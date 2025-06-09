@@ -1,0 +1,23 @@
+# === Global ===
+*.log
+*.env
+*.env.* 
+.envrc
+.vscode/
+__pycache__/
+
+# === Node (Next.js) ===
+*/node_modules
+*/.next/
+*/out/
+*/.env
+*/.env.* 
+*/pnpm-lock.yaml
+
+# === Python (FastAPI backend) ===
+*/__pycache__/
+*/*.py[cod]
+*/.venv/
+*/.env
+*/uv.lock
+
