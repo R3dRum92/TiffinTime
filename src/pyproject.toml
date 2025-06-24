@@ -8,5 +8,6 @@ dependencies = [
     "colorlog>=6.9.0",
     "fastapi[standard]>=0.115.13",
     "python-dotenv>=1.1.1",
+    "ruff>=0.12.0",
     "supabase>=2.16.0",
 ]
