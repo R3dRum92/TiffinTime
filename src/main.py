@@ -23,7 +23,10 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 async def root():
-    return {"message": "TiffinTime API is up and running"}
+    return JSONResponse(
+        content={"message": "TiffinTime API is up and running"},
+        status_code=status.HTTP_200_OK,
+    )
 
 
 @app.get("/test_db")
