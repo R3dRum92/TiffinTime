@@ -27,7 +27,9 @@ redoc_url = None if APP_MODE == "production" else "/redoc"  # disables redoc
 openapi_url = (
     None if APP_MODE == "production" else "/openapi.json"
 )  # disables openapi.json suggested by tobias comment.
-app = FastAPI(docs_url=docs_url, redoc_url=redoc_url, openapi_url=openapi_url)
+app = FastAPI(
+    lifespan=lifespan, docs_url=docs_url, redoc_url=redoc_url, openapi_url=openapi_url
+)
 
 
 @app.get("/")
