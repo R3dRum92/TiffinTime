@@ -11,7 +11,6 @@ interface Vendor {
   description: string;
   image: string;
   rating: number;
-  cuisine: string;
   deliveryTime: string;
   deliveryFee: number;
   isOpen: boolean;
@@ -57,7 +56,7 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
         <p className="text-sm mb-3 line-clamp-2" style={{ color: '#a0896b' }}>{vendor.description}</p>
 
         <div className="flex items-center justify-between text-sm mb-3" style={{ color: '#a0896b' }}>
-          <span className="px-2 py-1 rounded text-white" style={{ backgroundColor: '#EFDCAB', color: '#443627' }}>{vendor.cuisine}</span>
+          {/* <span className="px-2 py-1 rounded text-white" style={{ backgroundColor: '#EFDCAB', color: '#443627' }}>{vendor.cuisine}</span> */}
           <span>{vendor.deliveryTime}</span>
         </div>
 
@@ -85,9 +84,9 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
 };
 
 const VendorsPage = () => {
-  const [vendors, setVendors] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   // Fetch vendors from JSON file in the same folder
   useEffect(() => {
