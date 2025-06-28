@@ -1,7 +1,8 @@
 from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
 from supabase import AsyncClient
-
+from typing import Optional
+from contextlib import asynccontextmanager
 from db.supabase import create_supabase
 from utils.logger import logger
 
