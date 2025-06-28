@@ -1,0 +1,84 @@
+{
+  "vendors": [
+    {
+      "id": 1,
+      "name": "Pizza Palace",
+      "description": "Authentic Italian pizzas with fresh ingredients",
+      "image": "https://via.placeholder.com/300x200/4A90E2/FFFFFF?text=Pizza+Palace",
+      "rating": 4.5,
+      "deliveryTime": "25-35 min",
+      "deliveryFee": 2.99,
+      "isOpen": true
+    },
+    {
+      "id": 2,
+      "name": "Burger Bistro",
+      "description": "Gourmet burgers and crispy fries",
+      "image": "https://via.placeholder.com/300x200/E94B3C/FFFFFF?text=Burger+Bistro",
+      "rating": 4.2,
+      "deliveryTime": "20-30 min",
+      "deliveryFee": 1.99,
+      "isOpen": true
+    },
+    {
+      "id": 3,
+      "name": "Sushi Sensation",
+      "description": "Fresh sushi and Japanese delicacies",
+      "image": "https://via.placeholder.com/300x200/50C878/FFFFFF?text=Sushi+Sensation",
+      "rating": 4.7,
+      "deliveryTime": "30-40 min",
+      "deliveryFee": 3.99,
+      "isOpen": false
+    },
+    {
+      "id": 4,
+      "name": "Taco Fiesta",
+      "description": "Authentic Mexican tacos and burritos",
+      "image": "https://via.placeholder.com/300x200/FF6B35/FFFFFF?text=Taco+Fiesta",
+      "rating": 4.3,
+      "deliveryTime": "15-25 min",
+      "deliveryFee": 2.49,
+      "isOpen": true
+    },
+    {
+      "id": 5,
+      "name": "Curry Corner",
+      "description": "Spicy Indian curries and naan bread",
+      "image": "https://via.placeholder.com/300x200/F7931E/FFFFFF?text=Curry+Corner",
+      "rating": 4.6,
+      "deliveryTime": "35-45 min",
+      "deliveryFee": 2.99,
+      "isOpen": true
+    },
+    {
+      "id": 6,
+      "name": "Fresh Salads Co",
+      "description": "Healthy and fresh salads with organic ingredients",
+      "image": "https://via.placeholder.com/300x200/28A745/FFFFFF?text=Fresh+Salads",
+      "rating": 4.4,
+      "deliveryTime": "20-30 min",
+      "deliveryFee": 2.49,
+      "isOpen": true
+    },
+    {
+      "id": 7,
+      "name": "BBQ Masters",
+      "description": "Smoky BBQ ribs, brisket and grilled specialties",
+      "image": "https://via.placeholder.com/300x200/8B4513/FFFFFF?text=BBQ+Masters",
+      "rating": 4.8,
+      "deliveryTime": "40-50 min",
+      "deliveryFee": 3.49,
+      "isOpen": true
+    },
+    {
+      "id": 8,
+      "name": "Dessert Dreams",
+      "description": "Cakes, pastries and sweet treats for every occasion",
+      "image": "https://via.placeholder.com/300x200/FF69B4/FFFFFF?text=Dessert+Dreams",
+      "rating": 4.6,
+      "deliveryTime": "15-25 min",
+      "deliveryFee": 1.99,
+      "isOpen": true
+    }
+  ]
+}
