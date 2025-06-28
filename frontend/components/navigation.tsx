@@ -28,37 +28,33 @@ const Navigation = () => {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-8">
-          <Link 
-            href="/" 
-            className={`font-bold text-xl darktext transition-colors relative ${
-              isActive('/') ? 'theme after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-current after:content-[""]' : ''
-            }`}
+          <Link
+            href="/"
+            className={`font-bold text-xl darktext transition-colors relative ${isActive('/') ? 'theme after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-current after:content-[""]' : ''
+              }`}
           >
             Home
           </Link>
-          <Link 
-            href="/about" 
-            className={`font-bold text-xl darktext transition-colors relative ${
-              isActive('/about') ? 'theme after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-current after:content-[""]' : ''
-            }`}
+          <Link
+            href="/about"
+            className={`font-bold text-xl darktext transition-colors relative ${isActive('/about') ? 'theme after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-current after:content-[""]' : ''
+              }`}
           >
             About us
           </Link>
-          <Link 
-            href="/menu" 
-            className={`font-bold text-xl darktext hover:theme transition-colors relative ${
-              isActive('/menu') ? 'theme after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-current after:content-[""]' : ''
-            }`}
+          <Link
+            href="/menu"
+            className={`font-bold text-xl darktext hover:theme transition-colors relative ${isActive('/menu') ? 'theme after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-current after:content-[""]' : ''
+              }`}
           >
             Menu
           </Link>
-          <Link 
-            href="/contact" 
-            className={`font-bold text-xl darktext hover:theme transition-colors relative ${
-              isActive('/contact') ? 'theme after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-current after:content-[""]' : ''
-            }`}
+          <Link
+            href="/subscription"
+            className={`font-bold text-xl darktext hover:theme transition-colors relative ${isActive('/subscription') ? 'theme after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-current after:content-[""]' : ''
+              }`}
           >
-            Contact us
+            Subscription Plan
           </Link>
         </div>
 
@@ -73,7 +69,7 @@ const Navigation = () => {
         </div>
 
         {/* Mobile menu button */}
-        <button 
+        <button
           className="md:hidden"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
         >
@@ -86,7 +82,7 @@ const Navigation = () => {
         </button>
       </div>
 
-   
+
     </nav>
   )
 }
