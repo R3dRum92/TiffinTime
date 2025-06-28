@@ -1,0 +1,23 @@
+/* src/styles/text.module.css */
+.darktext {
+  color: #443627;
+}
+
+.lighttext {
+  color: #a0896b;
+}
+.theme {
+  color: #D98324;
+}
+
+.bgtheme {
+  background-color: #D98324;
+  color: white;
+}
+
+.bglight {
+  background-color: #EFDCAB;
+  color: white;
+}
+
+
