@@ -104,7 +104,7 @@ const SubscriptionPlans = () => {
                                 ? 'ring-4 ring-orange-400 shadow-2xl scale-105'
                                 : 'hover:scale-102'
                                 }`}
-                            onClick={() => handlePlanSelect(plan.id)}
+                        // onClick={() => handlePlanSelect(plan.id)}
                         >
                             {/* Popular Badge */}
                             {plan.popular && (
