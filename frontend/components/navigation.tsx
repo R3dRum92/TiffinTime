@@ -37,21 +37,21 @@ const Navigation = () => {
           </Link>
           <Link
             href="/my-plan"
-            className={`font-bold text-xl darktext transition-colors relative ${isActive('/about') ? 'theme after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-current after:content-[""]' : ''
+            className={`font-bold text-xl darktext transition-colors relative ${isActive('/my-plan/') ? 'theme after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-current after:content-[""]' : ''
               }`}
           >
             My Plan
           </Link>
           <Link
-            href="/menu"
-            className={`font-bold text-xl darktext hover:theme transition-colors relative ${isActive('/menu') ? 'theme after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-current after:content-[""]' : ''
+            href="/vendors"
+            className={`font-bold text-xl darktext hover:theme transition-colors relative ${isActive('/vendors/') ? 'theme after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-current after:content-[""]' : ''
               }`}
           >
             Menu
           </Link>
           <Link
             href="/subscription"
-            className={`font-bold text-xl darktext hover:theme transition-colors relative ${isActive('/subscription') ? 'theme after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-current after:content-[""]' : ''
+            className={`font-bold text-xl darktext hover:theme transition-colors relative ${isActive('/subscription/') ? 'theme after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-current after:content-[""]' : ''
               }`}
           >
             Subscription Plan
@@ -60,9 +60,12 @@ const Navigation = () => {
 
         {/* Auth Buttons */}
         <div className="hidden md:flex items-center space-x-4">
-          <button className="bgtheme text-white font-bold px-6 py-2 rounded-full hover:bg-orange-500 transition-colors">
-            Sign in
-          </button>
+          <Link
+            href="/auth">
+            <button className="bgtheme text-white font-bold px-6 py-2 rounded-full hover:bg-orange-500 transition-colors">
+              Sign up
+            </button>
+          </Link>
           <button className="bg-white darktext font-bold border border-gray-300 text-gray-700 px-6 py-2 rounded-full hover:bg-gray-50 transition-colors">
             Login
           </button>
