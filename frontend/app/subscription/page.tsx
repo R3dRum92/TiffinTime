@@ -65,38 +65,38 @@ const SubscriptionPlans = () => {
         // } finally {
         //     setLoading(false);
         // }
-        try {
-            const token = localStorage.getItem('token');
+        // try {
+        //     const token = localStorage.getItem('token');
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/subscription/create`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    plan_type: selectedPlan
-                })
-            });
+        //     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/subscription/create`, {
+        //         method: 'POST',
+        //         headers: {
+        //             'Content-Type': 'application/json',
+        //             'Authorization': `Bearer ${token}`
+        //         },
+        //         body: JSON.stringify({
+        //             plan_type: selectedPlan
+        //         })
+        //     });
 
-            const data = await response.json();
+        //     const data = await response.json();
 
-            if (response.ok && data.payment_url) {
-                // Redirect to SSLCOMMERZ payment gateway
-                window.location.href = data.payment_url;
-            } else {
-                alert(data.detail || 'Failed to create subscription');
-            }
-        } catch (error) {
-            console.error('Error creating subscription:', error);
-            alert('Something went wrong. Please try again.');
-        } finally {
-            setLoading(false);
-        }
+        //     if (response.ok && data.payment_url) {
+        //         // Redirect to SSLCOMMERZ payment gateway
+        //         window.location.href = data.payment_url;
+        //     } else {
+        //         alert(data.detail || 'Failed to create subscription');
+        //     }
+        // } catch (error) {
+        //     console.error('Error creating subscription:', error);
+        //     alert('Something went wrong. Please try again.');
+        // } finally {
+        //     setLoading(false);
+        // }
     };
 
     return (
-        <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#f7f9e6' }}>
+        <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: ' #f7f9e6' }}>
             {/* Background SVG Pattern */}
             <div className="absolute inset-0">
                 <svg
@@ -121,12 +121,12 @@ const SubscriptionPlans = () => {
             <div className="relative z-10 py-12 px-4">
                 <div className="max-w-6xl mx-auto">
                     {/* Header */}
-                    <div className="text-center mb-16">
-                        <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full" style={{ backgroundColor: '#EFDCAB' }}>
+                    <div className="text-center pt-15 mb-16">
+                        <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full" style={{ backgroundColor: 'rgb(235, 206, 133)' }}>
                             <Utensils className="w-5 h-5" style={{ color: '#D98324' }} />
                             <span className="text-sm font-semibold" style={{ color: '#443627' }}>Student plan</span>
                         </div>
-                        <h1 className="text-5xl lg:text-6xl font-bold mb-6" style={{ color: '#443627' }}>
+                        <h1 className="text-5xl lg:text-6xl font-bold mb-6 pt-10" style={{ color: '#443627' }}>
                             Choose Your<br />
                             <span style={{ color: '#D98324' }}>Subscription Plan</span>
                         </h1>
@@ -136,11 +136,11 @@ const SubscriptionPlans = () => {
                     </div>
 
                     {/* Plans Grid */}
-                    <div className="grid grid-cols-2 gap-8 mb-16">
+                    <div className="grid grid-cols-2 gap-10 mb-16 max-w-5xl mx-auto">
                         {plans.map((plan) => (
                             <div
                                 key={plan.id}
-                                className={`relative bg-white rounded-3xl shadow-lg transition-all duration-300 cursor-pointer hover:shadow-2xl transform hover:-translate-y-2 ${selectedPlan === plan.id
+                                className={`relative bg-white rounded-3xl shadow-lg transition-all duration-300 cursor-pointer hover:shadow-2xl transform hover:-translate-y-2 flex flex-col ${selectedPlan === plan.id
                                     ? 'shadow-2xl scale-105'
                                     : ''
                                     }`}
@@ -154,7 +154,7 @@ const SubscriptionPlans = () => {
                                     <div className="absolute -top-6 left-1/2 transform -translate-x-1/2">
                                         <div
                                             className="text-white px-8 py-3 rounded-full text-sm font-bold flex items-center gap-2 shadow-lg"
-                                            style={{ background: 'linear-gradient(135deg,rgb(202, 83, 35) 0%' }}
+                                            style={{ background: 'rgb(202, 83, 35)' }}
                                         >
                                             <Crown className="w-5 h-5" />
                                             Most Popular Choice
@@ -165,13 +165,13 @@ const SubscriptionPlans = () => {
                                 {/* Savings Badge */}
                                 {plan.savings && (
                                     <div className="absolute -top-3 -right-3">
-                                        <div className="bg-green-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg">
+                                        <div className="bg-green-700 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg">
                                             {plan.savings}
                                         </div>
                                     </div>
                                 )}
 
-                                <div className="p-8">
+                                <div className="p-8 flex flex-col flex-grow">
                                     {/* Plan Header */}
                                     <div className="flex items-center gap-4 mb-8">
                                         <div
@@ -180,7 +180,7 @@ const SubscriptionPlans = () => {
                                                 : 'text-white'
                                                 }`}
                                             style={{
-                                                backgroundColor: selectedPlan === plan.id ? '#D98324' : '#EFDCAB'
+                                                backgroundColor: selectedPlan === plan.id ? ' #D98324' : '#EFDCAB'
                                             }}
                                         >
                                             {plan.icon}
@@ -229,30 +229,32 @@ const SubscriptionPlans = () => {
                                     </div>
 
                                     {/* Selection Button */}
-                                    <button
-                                        className={`w-full py-4 rounded-2xl font-semibold text-lg transition-all duration-300 ${selectedPlan === plan.id
-                                            ? 'text-white shadow-lg transform scale-105'
-                                            : 'text-white hover:shadow-lg hover:transform hover:scale-105'
-                                            }`}
-                                        style={{
-                                            background: selectedPlan === plan.id
-                                                ? '#D98324'
-                                                : 'rgb(233, 200, 119) 100%'
-                                        }}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handlePlanSelect(plan.id);
-                                        }}
-                                    >
-                                        {selectedPlan === plan.id ? (
-                                            <span className="flex items-center justify-center gap-2">
-                                                <Check className="w-5 h-5" />
-                                                Selected
-                                            </span>
-                                        ) : (
-                                            'Select This Plan'
-                                        )}
-                                    </button>
+                                    <div className="mt-auto pt-2">
+                                        <button
+                                            className={`mx-auto block py-3 px-8 rounded-3xl font-semibold text-lg transition-all duration-300 ${selectedPlan === plan.id
+                                                ? 'text-white shadow-lg transform scale-105'
+                                                : 'text-white hover:shadow-lg hover:transform hover:scale-105'
+                                                }`}
+                                            style={{
+                                                background: selectedPlan === plan.id
+                                                    ? '#D98324'
+                                                    : 'rgb(233, 200, 119) 100%'
+                                            }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handlePlanSelect(plan.id);
+                                            }}
+                                        >
+                                            {selectedPlan === plan.id ? (
+                                                <span className="flex items-center justify-center gap-2">
+                                                    <Check className="w-5 h-5" />
+                                                    Selected
+                                                </span>
+                                            ) : (
+                                                'Select This Plan'
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -269,7 +271,7 @@ const SubscriptionPlans = () => {
                                 }`}
                             style={{
                                 background: selectedPlan && !loading
-                                    ? 'linear-gradient(135deg, #D98324 0%, #ffc867 100%)'
+                                    ? 'rgb(202, 83, 35)'
                                     : undefined
                             }}
                         >

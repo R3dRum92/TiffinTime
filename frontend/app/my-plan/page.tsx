@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { MapPin, Calendar, User, CreditCard, X, Edit, ShoppingBag, Clock, MapPin as LocationIcon } from 'lucide-react';
-import { toast, Toaster } from "sonner"
+import { toast } from "sonner"
 
 const Index = () => {
     const [pickupPoint, setPickupPoint] = useState('Main Campus Cafeteria');
@@ -68,17 +68,17 @@ const Index = () => {
         });
     };
 
-    const handleCancelSubscription = (subscriptionId: number) => {
-        toast(
-            "Subscription Cancelled", {
-            description: "Your subscription has been cancelled. You can still use remaining meals.",
-            action: {
-                label: "Undo",
-                onClick: () => console.log("Undo"),
-            },
+    // const handleCancelSubscription = (subscriptionId: number) => {
+    //     toast(
+    //         "Subscription Cancelled", {
+    //         description: "Your subscription has been cancelled. You can still use remaining meals.",
+    //         action: {
+    //             label: "Undo",
+    //             onClick: () => console.log("Undo"),
+    //         },
 
-        });
-    };
+    //     });
+    // };
 
     const handlePickupPointChange = (newPoint: string) => {
         setPickupPoint(newPoint);
@@ -92,59 +92,19 @@ const Index = () => {
         singleOrders.reduce((sum, order) => sum + order.price, 0);
 
     return (
-        <div className="min-h-screen relative bgtheme2" style={{ backgroundColor: 'rgb(243, 236, 217)' }}>
-            {/* <div className="absolute inset-0">
-                <svg
-                    viewBox="0 0 1440 800"
-                    className="w-full h-full"
-                    preserveAspectRatio="none"
-                >
-                    <path
-                        d="M 0 200 C 100 150 200 100 400 120 C 600 140 800 180 1000 160 C 1200 140 1300 120 1440 140 L 1440 0 L 0 0 Z"
-                        fill="url(#subscriptionGradient)"
-                        opacity="0.3"
-                    />
-                    <defs>
-                        <linearGradient id="subscriptionGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#D98324" />
-                            <stop offset="100%" stopColor="#EFDCAB" />
-                        </linearGradient>
-                    </defs>
-                </svg>
-            </div> */}
+        <div className="min-h-screen relative bgtheme2" style={{ backgroundColor: 'rgb(249, 245, 230)' }}>
             {/* Subtle circle pattern background */}
             <div
                 className="absolute inset-0 opacity-20"
-            // style={{
-            //     backgroundImage: `radial-gradient(circle at 20px 20px, #D98324 2px, transparent 2px)`,
-            //     backgroundSize: '40px 40px'
-
-            // }}
             />
-            {/* <div className="absolute top-30 right-10 w-32 h-32 bg-orange-200 rounded-full opacity-100"></div>
-            <div className="absolute bottom-50 left-20 w-24 h-24 bg-yellow-200 rounded-full opacity-100"></div>
-            <div className="absolute top-70 left-20 w-16 h-16 bg-orange-300 rounded-full opacity-100">
-
-            </div> */}
-
-            {/* Header */}
-            <div
-
-            />
-            <div className="max-w-6xl mx-auto relative z-10">
-                <div className="text-center ">
-
-                </div>
-            </div>
-
 
             <div className="max-w-6xl mx-auto p-6 space-y-20 relative z-10">
                 {/* Hero Section */}
                 <div className="text-center pt-20">
-                    <h2 className="text-3xl font-bold mb-4 theme">
+                    <h2 className="text-3xl font-bold mb-4 darktext">
                         Welcome back, {userData.name}!
                     </h2>
-                    <p className="text-xl" style={{ color: '#a0896b' }}>
+                    <p className="text-xl lighttext">
                         Manage your orders, subscriptions, and preferences all in one place
                     </p>
                 </div>
@@ -354,7 +314,7 @@ const Index = () => {
                                             </div>
                                         </div>
 
-                                        <AlertDialog>
+                                        {/* <AlertDialog>
                                             <AlertDialogTrigger asChild>
                                                 <Button variant="destructive" size="sm" className="flex items-center gap-2">
                                                     <X className="h-4 w-4" />
@@ -379,7 +339,7 @@ const Index = () => {
                                                     </AlertDialogAction>
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>
-                                        </AlertDialog>
+                                        </AlertDialog> */}
                                     </div>
                                 </div>
                             ))
@@ -444,10 +404,10 @@ const Index = () => {
                                         </div>
 
                                         <div className="flex justify-between items-center">
-                                            <p className="font-bold text-lg" style={{ color: '#443627' }}>৳{order.price}</p>
+                                            <p className="font-bold text-lg " style={{ color: ' #443627' }}>৳{order.price}</p>
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
-                                                    <Button variant="destructive" size="sm" className="flex items-center gap-2">
+                                                    <Button variant="destructive" size="sm" className="flex bgalert items-center gap-2">
                                                         <X className="h-4 w-4" />
                                                         Cancel Order
                                                     </Button>
@@ -464,7 +424,7 @@ const Index = () => {
                                                         <AlertDialogCancel>Keep Order</AlertDialogCancel>
                                                         <AlertDialogAction
                                                             onClick={() => handleCancelOrder(order.id)}
-                                                            className="bg-red-600 hover:bg-red-700"
+                                                            className="bg-red-500 hover:bg-red-700"
                                                         >
                                                             Cancel Order
                                                         </AlertDialogAction>

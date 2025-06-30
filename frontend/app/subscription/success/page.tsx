@@ -4,7 +4,7 @@ import React from 'react';
 
 export default function SubscriptionSuccess() {
     return (
-        <div className="relative min-h-screen flex items-center justify-center">
+        <div className="relative min-h-screen flex items-center justify-center" style={{ backgroundColor: 'rgb(247, 241, 234)' }}>
             {/* Background SVG */}
             <div className="absolute inset-0 z-0">
                 <svg
@@ -39,7 +39,7 @@ export default function SubscriptionSuccess() {
                 </div>
 
                 <button
-                    className="px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 hover:opacity-90 hover:transform hover:scale-105"
+                    className="px-8 py-4 rounded-3xl font-semibold text-lg transition-all duration-300 hover:opacity-90 hover:transform hover:scale-105"
                     style={{ backgroundColor: '#D98324', color: 'white' }}
                 >
                     Start Ordering

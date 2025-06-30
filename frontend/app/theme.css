@@ -21,6 +21,11 @@
   color: white;
 }
 
+.bgalert {
+  background-color: rgb(216, 77, 77);
+  color: white;
+}
+
 .bgtheme2 {
   position: relative;
   background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 1440 800' preserveAspectRatio='none' xmlns='http://www.w3.org/2000/svg'><defs><linearGradient id='subscriptionGradient' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%23D98324'/><stop offset='100%' stop-color='%23EFDCAB'/></linearGradient></defs><path d='M 0 200 C 100 150 200 100 400 120 C 600 140 800 180 1000 160 C 1200 140 1300 120 1440 140 L 1440 0 L 0 0 Z' fill='url(%23subscriptionGradient)' opacity='0.3'/></svg>");
