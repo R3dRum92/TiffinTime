@@ -36,11 +36,11 @@ const Navigation = () => {
             Home
           </Link>
           <Link
-            href="/about"
+            href="/my-plan"
             className={`font-bold text-xl darktext transition-colors relative ${isActive('/about') ? 'theme after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-current after:content-[""]' : ''
               }`}
           >
-            About us
+            My Plan
           </Link>
           <Link
             href="/vendors"
