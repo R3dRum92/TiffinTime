@@ -3,13 +3,14 @@ from contextlib import asynccontextmanager
 from typing import Optional
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, status
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
 from supabase import AsyncClient
 
 from db.supabase import create_supabase
 from utils.auth import user_or_admin_auth
 from utils.logger import logger
+from utils.token import create_access_token
 
 client: Optional[AsyncClient] = None
 
@@ -54,3 +55,11 @@ async def test_db():
         return JSONResponse(
             content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+@app.post("/login")
+def login(username: str, password: str):
+    if username == "papry" and password == "cpsid":
+        access_token = create_access_token(data={"sub": username})
+        return {"access_token": access_token, "token_type": "bearer"}
+    raise HTTPException(status_code=400, detail="Invalid credentials")
