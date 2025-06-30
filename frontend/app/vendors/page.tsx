@@ -28,57 +28,55 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
   };
 
   return (
-    <div className='bgtheme2'>
-      <div
-        className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 w-full cursor-pointer"
-        onClick={handleCardClick}
-      >
-        <div className="relative">
-          <Image
-            src={vendor.image}
-            alt={vendor.name}
-            width={400}
-            height={240}
-            className="w-full h-56 object-cover"
-          />
-          {!vendor.isOpen && (
-            <div className="absolute inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center">
-              <span className="text-white font-semibold text-lg">Closed</span>
-            </div>
-          )}
-          <div className="absolute top-2 right-2 bg-white rounded-full px-2 py-1 flex items-center">
-            <span className="text-yellow-500 text-sm">★</span>
-            <span className="text-sm font-medium ml-1" style={{ color: '#443627' }}>{vendor.rating}</span>
+    <div
+      className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 w-full cursor-pointer"
+      onClick={handleCardClick}
+    >
+      <div className="relative">
+        <Image
+          src={vendor.image}
+          alt={vendor.name}
+          width={400}
+          height={240}
+          className="w-full h-56 object-cover"
+        />
+        {!vendor.isOpen && (
+          <div className="absolute inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center">
+            <span className="text-white font-semibold text-lg">Closed</span>
           </div>
+        )}
+        <div className="absolute top-2 right-2 bg-white rounded-full px-2 py-1 flex items-center">
+          <span className="text-yellow-500 text-sm">★</span>
+          <span className="text-sm font-medium ml-1" style={{ color: '#443627' }}>{vendor.rating}</span>
+        </div>
+      </div>
+
+      <div className="p-4">
+        <h3 className="text-xl font-semibold mb-2" style={{ color: '#443627' }}>{vendor.name}</h3>
+        <p className="text-sm mb-3 line-clamp-2" style={{ color: '#a0896b' }}>{vendor.description}</p>
+
+        <div className="flex items-center justify-between text-sm mb-3" style={{ color: '#a0896b' }}>
+          {/* <span className="px-2 py-1 rounded text-white" style={{ backgroundColor: '#EFDCAB', color: '#443627' }}>{vendor.cuisine}</span> */}
+          <span>{vendor.deliveryTime}</span>
         </div>
 
-        <div className="p-4">
-          <h3 className="text-xl font-semibold mb-2" style={{ color: '#443627' }}>{vendor.name}</h3>
-          <p className="text-sm mb-3 line-clamp-2" style={{ color: '#a0896b' }}>{vendor.description}</p>
-
-          <div className="flex items-center justify-between text-sm mb-3" style={{ color: '#a0896b' }}>
-            {/* <span className="px-2 py-1 rounded text-white" style={{ backgroundColor: '#EFDCAB', color: '#443627' }}>{vendor.cuisine}</span> */}
-            <span>{vendor.deliveryTime}</span>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="text-sm" style={{ color: '#a0896b' }}>
-              Delivery: ${vendor.deliveryFee}
-            </span>
-            <Link href={`/vendor/${vendor.id}`}>
-              <button
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${vendor.isOpen
-                  ? 'text-white hover:opacity-90'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
-                style={vendor.isOpen ? { backgroundColor: '#D98324' } : {}}
-                disabled={!vendor.isOpen}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {vendor.isOpen ? 'Order Now' : 'Closed'}
-              </button>
-            </Link>
-          </div>
+        <div className="flex items-center justify-between">
+          <span className="text-sm" style={{ color: '#a0896b' }}>
+            Delivery: ${vendor.deliveryFee}
+          </span>
+          <Link href={`/vendor/${vendor.id}`}>
+            <button
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${vendor.isOpen
+                ? 'text-white hover:opacity-90'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              style={vendor.isOpen ? { backgroundColor: '#D98324' } : {}}
+              disabled={!vendor.isOpen}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {vendor.isOpen ? 'Order Now' : 'Closed'}
+            </button>
+          </Link>
         </div>
       </div>
     </div>

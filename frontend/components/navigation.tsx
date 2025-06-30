@@ -47,7 +47,7 @@ const Navigation = () => {
             className={`font-bold text-xl darktext hover:theme transition-colors relative ${isActive('/vendors/') ? 'theme after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-current after:content-[""]' : ''
               }`}
           >
-            Menu
+            Vendors
           </Link>
           <Link
             href="/subscription"
