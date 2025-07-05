@@ -110,7 +110,7 @@ const VendorsPage = () => {
         // const vendorsData = await import('./vendors.json');
         // setVendors(vendorsData.vendors || vendorsData.default || vendorsData);
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}get_vendors`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/get_vendors`, {
           headers: {
             'Authorization': `Bearer ${process.env.NEXT_PUBLIC_API_KEY}`,
             'Content-Type': `application/json`
