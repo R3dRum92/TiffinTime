@@ -3,6 +3,7 @@ import './globals.css'
 import { Inter } from 'next/font/google'
 import Navigation from '../components/navigation'
 import { Toaster } from "@/components/ui/sonner"
+import { Providers } from './providers'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -19,27 +20,29 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Navigation />
-        <Toaster position="top-center"
-          richColors
-          closeButton
-          toastOptions={{
-            style: {
-              background: 'rgb(240, 231, 208)',
-              color: 'rgb(46, 36, 26)',
-              border: '1.5px solid #D98324',
-              fontSize: 14
-            },
-            actionButtonStyle: {
-              backgroundColor: '#D98324',
-              color: 'white',
-            },
-          }}
-        />
-        <main>
-          {children}
-        </main>
-
+        <Providers>
+          <Navigation />
+          <main>
+            {children}
+          </main>
+          <Toaster
+            position="top-center"
+            richColors
+            closeButton
+            toastOptions={{
+              style: {
+                background: 'rgb(240, 231, 208)',
+                color: 'rgb(46, 36, 26)',
+                border: '1.5px solid #D98324',
+                fontSize: 14
+              },
+              actionButtonStyle: {
+                backgroundColor: '#D98324',
+                color: 'white',
+              },
+            }}
+          />
+        </Providers>
       </body>
     </html>
   )

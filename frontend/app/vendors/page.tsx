@@ -1,33 +1,10 @@
-// pages/vendors.js or app/vendors/page.js (depending on your NextJS version)
-'use client'; // Add this if using App Router (NextJS 13+)
+'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useVendors, Vendor } from '../hooks/useVendors'; // Adjust path as needed
 
-interface Vendor {
-  id: string | number;
-  name: string;
-  description: string;
-  image: string;
-  deliveryTime: string;
-  isOpen: boolean;
-}
-
-interface BackendVendor {
-  id: string;
-  name: string;
-  img_url: string;
-  description: string | null;
-  deliveryTime: {
-    min: number;
-    max: number;
-  };
-  isOpen: boolean;
-  created_at: string;
-  img_path: string;
-  img_bucket: string;
-}
 
 interface VendorCardProps {
   vendor: Vendor;
@@ -58,10 +35,6 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
             <span className="text-white font-semibold text-lg">Closed</span>
           </div>
         )}
-        {/* <div className="absolute top-2 right-2 bg-white rounded-full px-2 py-1 flex items-center">
-          <span className="text-yellow-500 text-sm">★</span>
-          <span className="text-sm font-medium ml-1" style={{ color: '#443627' }}>{vendor.rating}</span>
-        </div> */}
       </div>
 
       <div className="p-4">
@@ -69,14 +42,10 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
         <p className="text-sm mb-3 line-clamp-2" style={{ color: '#a0896b' }}>{vendor.description}</p>
 
         <div className="flex items-center justify-between text-sm mb-3" style={{ color: '#a0896b' }}>
-          {/* <span className="px-2 py-1 rounded text-white" style={{ backgroundColor: '#EFDCAB', color: '#443627' }}>{vendor.cuisine}</span> */}
           <span>{vendor.deliveryTime}</span>
         </div>
 
         <div className="flex items-center justify-between">
-          {/* <span className="text-sm" style={{ color: '#a0896b' }}>
-            Delivery: ${vendor.deliveryFee}
-          </span> */}
           <Link href={`/vendor/${vendor.id}`}>
             <button
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${vendor.isOpen
@@ -97,60 +66,12 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
 };
 
 const VendorsPage = () => {
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  // Fetch vendors from JSON file in the same folder
-  useEffect(() => {
-    const fetchVendors = async () => {
-      setLoading(true);
-      try {
-        // Import the JSON file directly
-        // const vendorsData = await import('./vendors.json');
-        // setVendors(vendorsData.vendors || vendorsData.default || vendorsData);
+  // Use React Query hook
+  const { data: vendors = [], isLoading: loading, error, refetch } = useVendors();
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/get_vendors`, {
-          headers: {
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_API_KEY}`,
-            'Content-Type': `application/json`
-          },
-
-          cache: 'force-cache',
-          next: { revalidate: 300 }
-        });
-
-        if (!response.ok) {
-          throw new Error('HTTP error! status: ${response.status}');
-        }
-
-        const result = await response.json();
-
-        const transformedVendors = result.data.map((vendor: BackendVendor) => ({
-          id: vendor.id,
-          name: vendor.name,
-          image: vendor.img_url,
-          description: vendor.description || 'No description available',
-          deliveryTime: `${vendor.deliveryTime.min}-${vendor.deliveryTime.max} mins`,
-          isOpen: vendor.isOpen,
-          // rating: vendor.rating || '4.5', // Add default rating if not provided
-          // deliveryFee: vendor.deliveryFee || '2.99', // Add default delivery fee if not provided
-          // cuisine: vendor.cuisine || 'Various' // Add default cuisine if not provided
-        }));
-
-        setVendors(transformedVendors);
-      } catch (error) {
-        console.error('Error loading vendors:', error);
-        setVendors([]); // Set empty array on error
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchVendors();
-  }, []);
-
-  // Filter vendors based on search only
+  // Filter vendors based on search
   const filteredVendors = vendors.filter(vendor => {
     const matchesSearch = vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       vendor.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -162,6 +83,23 @@ const VendorsPage = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-500"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center py-12">
+          <h3 className="text-xl mb-2 text-red-600">Error loading vendors</h3>
+          <p className="text-gray-600 mb-4">Something went wrong. Please try again.</p>
+          <button
+            onClick={() => refetch()}
+            className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
@@ -180,6 +118,12 @@ const VendorsPage = () => {
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           />
         </div>
+        <button
+          onClick={() => refetch()}
+          className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+        >
+          Refresh
+        </button>
       </div>
 
       {/* Vendors Grid */}
@@ -192,10 +136,9 @@ const VendorsPage = () => {
       ) : (
         <div className="text-center py-12">
           <h3 className="text-xl mb-2" style={{ color: '#443627' }}>No vendors found</h3>
-          <p style={{ color: '#a0896b' }}>Try adjusting your search or filter criteria</p>
+          <p style={{ color: '#a0896b' }}>Try adjusting your search criteria</p>
         </div>
       )}
-
     </div>
   );
 };
