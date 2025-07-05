@@ -4,6 +4,7 @@ from typing import Optional
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from supabase import AsyncClient
 
@@ -30,6 +31,14 @@ openapi_url = (
 )  # disables openapi.json suggested by tobias comment.
 app = FastAPI(
     lifespan=lifespan, docs_url=docs_url, redoc_url=redoc_url, openapi_url=openapi_url
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 🔥 Allow all origins - good for testing, not production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -63,3 +72,35 @@ def login(username: str, password: str):
         access_token = create_access_token(data={"sub": username})
         return {"access_token": access_token, "token_type": "bearer"}
     raise HTTPException(status_code=400, detail="Invalid credentials")
+
+
+@app.get("/get_vendors", dependencies=[Depends(user_or_admin_auth)])
+async def get_vendors():
+    try:
+        response = await client.table("vendors").select("*").execute()
+
+        vendors = response.data
+
+        for vendor in vendors:
+            bucket = vendor.get("img_bucket")
+            path = vendor.get("img_path")
+            if bucket and path:
+                try:
+                    url_data = await client.storage.from_(bucket).create_signed_url(
+                        path, 60
+                    )
+                    vendor["img_url"] = url_data.get("signedUrl")
+                except Exception as e:
+                    logger.error(f"Path or bucket does not exist: {e}")
+                    return JSONResponse(content={"error": str(e)})
+            else:
+                logger.error(f"Path or bucket does not exist: {e}")
+                return JSONResponse(content={"error"})
+
+        return JSONResponse(content={"data": vendors}, status_code=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"Database query failed: {e}")
+        return JSONResponse(
+            content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

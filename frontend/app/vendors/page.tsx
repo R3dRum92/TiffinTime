@@ -94,8 +94,35 @@ const VendorsPage = () => {
       setLoading(true);
       try {
         // Import the JSON file directly
-        const vendorsData = await import('./vendors.json');
-        setVendors(vendorsData.vendors || vendorsData.default || vendorsData);
+        // const vendorsData = await import('./vendors.json');
+        // setVendors(vendorsData.vendors || vendorsData.default || vendorsData);
+
+        const response = await fetch('http://localhost:8000/get_vendors', {
+          headers: {
+            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_API_KEY}`,
+            'Content-Type': `application/json`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('HTTP error! status: ${response.status}');
+        }
+
+        const result = await response.json();
+
+        const transformedVendors = result.data.map((vendor: any) => ({
+          id: vendor.id,
+          name: vendor.name,
+          image: vendor.img_url,
+          description: vendor.description || 'No description available',
+          deliveryTime: `${vendor.deliveryTime.min}-${vendor.deliveryTime.max} mins`,
+          isOpen: vendor.isOpen,
+          rating: vendor.rating || '4.5', // Add default rating if not provided
+          deliveryFee: vendor.deliveryFee || '2.99', // Add default delivery fee if not provided
+          cuisine: vendor.cuisine || 'Various' // Add default cuisine if not provided
+        }));
+
+        setVendors(transformedVendors);
       } catch (error) {
         console.error('Error loading vendors:', error);
         setVendors([]); // Set empty array on error
