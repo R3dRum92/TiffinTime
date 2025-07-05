@@ -10,10 +10,23 @@ interface Vendor {
   name: string;
   description: string;
   image: string;
-  rating: number;
   deliveryTime: string;
-  deliveryFee: number;
   isOpen: boolean;
+}
+
+interface BackendVendor {
+  id: string;
+  name: string;
+  img_url: string;
+  description: string | null;
+  deliveryTime: {
+    min: number;
+    max: number;
+  };
+  isOpen: boolean;
+  created_at: string;
+  img_path: string;
+  img_bucket: string;
 }
 
 interface VendorCardProps {
@@ -45,10 +58,10 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
             <span className="text-white font-semibold text-lg">Closed</span>
           </div>
         )}
-        <div className="absolute top-2 right-2 bg-white rounded-full px-2 py-1 flex items-center">
+        {/* <div className="absolute top-2 right-2 bg-white rounded-full px-2 py-1 flex items-center">
           <span className="text-yellow-500 text-sm">★</span>
           <span className="text-sm font-medium ml-1" style={{ color: '#443627' }}>{vendor.rating}</span>
-        </div>
+        </div> */}
       </div>
 
       <div className="p-4">
@@ -61,9 +74,9 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-sm" style={{ color: '#a0896b' }}>
+          {/* <span className="text-sm" style={{ color: '#a0896b' }}>
             Delivery: ${vendor.deliveryFee}
-          </span>
+          </span> */}
           <Link href={`/vendor/${vendor.id}`}>
             <button
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${vendor.isOpen
@@ -97,7 +110,7 @@ const VendorsPage = () => {
         // const vendorsData = await import('./vendors.json');
         // setVendors(vendorsData.vendors || vendorsData.default || vendorsData);
 
-        const response = await fetch('http://localhost:8000/get_vendors', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}get_vendors`, {
           headers: {
             'Authorization': `Bearer ${process.env.NEXT_PUBLIC_API_KEY}`,
             'Content-Type': `application/json`
@@ -110,16 +123,16 @@ const VendorsPage = () => {
 
         const result = await response.json();
 
-        const transformedVendors = result.data.map((vendor: any) => ({
+        const transformedVendors = result.data.map((vendor: BackendVendor) => ({
           id: vendor.id,
           name: vendor.name,
           image: vendor.img_url,
           description: vendor.description || 'No description available',
           deliveryTime: `${vendor.deliveryTime.min}-${vendor.deliveryTime.max} mins`,
           isOpen: vendor.isOpen,
-          rating: vendor.rating || '4.5', // Add default rating if not provided
-          deliveryFee: vendor.deliveryFee || '2.99', // Add default delivery fee if not provided
-          cuisine: vendor.cuisine || 'Various' // Add default cuisine if not provided
+          // rating: vendor.rating || '4.5', // Add default rating if not provided
+          // deliveryFee: vendor.deliveryFee || '2.99', // Add default delivery fee if not provided
+          // cuisine: vendor.cuisine || 'Various' // Add default cuisine if not provided
         }));
 
         setVendors(transformedVendors);
