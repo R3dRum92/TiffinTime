@@ -114,7 +114,10 @@ const VendorsPage = () => {
           headers: {
             'Authorization': `Bearer ${process.env.NEXT_PUBLIC_API_KEY}`,
             'Content-Type': `application/json`
-          }
+          },
+
+          cache: 'force-cache',
+          next: { revalidate: 300 }
         });
 
         if (!response.ok) {
