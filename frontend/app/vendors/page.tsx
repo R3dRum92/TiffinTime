@@ -118,12 +118,6 @@ const VendorsPage = () => {
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           />
         </div>
-        <button
-          onClick={() => refetch()}
-          className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
-        >
-          Refresh
-        </button>
       </div>
 
       {/* Vendors Grid */}
