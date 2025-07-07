@@ -21,9 +21,6 @@ interface BackendVendor {
         max: number;
     };
     isOpen: boolean;
-    created_at: string;
-    img_path: string;
-    img_bucket: string;
 }
 
 const fetchVendors = async (): Promise<Vendor[]> => {
