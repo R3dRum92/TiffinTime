@@ -24,7 +24,7 @@ interface BackendVendor {
 }
 
 const fetchVendors = async (): Promise<Vendor[]> => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/get_vendors`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendors/`, {
         headers: {
             'Authorization': `Bearer ${process.env.NEXT_PUBLIC_API_KEY}`,
             'Content-Type': 'application/json'
