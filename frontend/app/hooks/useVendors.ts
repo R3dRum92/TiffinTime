@@ -16,11 +16,11 @@ interface BackendVendor {
     name: string;
     img_url: string;
     description: string | null;
-    deliveryTime: {
+    delivery_time: {
         min: number;
         max: number;
     };
-    isOpen: boolean;
+    is_open: boolean;
 }
 
 const fetchVendors = async (): Promise<Vendor[]> => {
@@ -35,15 +35,14 @@ const fetchVendors = async (): Promise<Vendor[]> => {
         throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const result = await response.json();
-
-    return result.data.map((vendor: BackendVendor) => ({
+    const vendors = await response.json();
+    return vendors.map((vendor: BackendVendor) => ({
         id: vendor.id,
         name: vendor.name,
         image: vendor.img_url,
         description: vendor.description || 'No description available',
-        deliveryTime: `${vendor.deliveryTime.min}-${vendor.deliveryTime.max} mins`,
-        isOpen: vendor.isOpen,
+        deliveryTime: `${vendor.delivery_time.min}-${vendor.delivery_time.max} mins`,
+        isOpen: vendor.is_open,
     }));
 };
 
