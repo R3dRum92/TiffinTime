@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from supabase import AsyncClient
 
 from app import schemas
@@ -15,6 +15,7 @@ router = APIRouter(prefix="/vendors", tags=["vendors"])
     "/",
     response_model=List[schemas.VendorsResponse],
     dependencies=[Depends(user_or_admin_auth)],
+    status_code=status.HTTP_200_OK,
 )
 async def get_all_vendors(client: AsyncClient = Depends(get_db)):
     return await vendors.get_all_vendors(client=client)
