@@ -56,7 +56,7 @@ export default function VendorDashboard() {
                     <h1 className="text-3xl font-bold darktext">
                         Welcome Back, Chef! 👨‍🍳
                     </h1>
-                    <p className="lighttext">Here's what's happening in your kitchen today</p>
+                    <p className="lighttext">Here&apos;s what&apos;s happening in your kitchen today</p>
                 </div>
 
                 {/* Stats Cards */}
