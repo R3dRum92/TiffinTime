@@ -13,7 +13,8 @@ interface VendorCardProps {
 const VendorCard = ({ vendor }: VendorCardProps) => {
   const handleCardClick = () => {
     if (vendor.isOpen) {
-      window.location.href = `/vendor/${vendor.id}`;
+      window.location.href = `/vendors/${vendor.id}`;
+      //console.log(vendor.id)
     }
   };
 
@@ -46,7 +47,7 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
         </div>
 
         <div className="flex items-center justify-between">
-          <Link href={`/vendor/${vendor.id}`}>
+          <Link href={`/vendors/${vendor.id}`}>
             <button
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${vendor.isOpen
                 ? 'text-white hover:opacity-90'
