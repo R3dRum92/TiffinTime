@@ -11,7 +11,7 @@ export interface Vendor {
     isOpen: boolean;
 }
 
-interface BackendVendor {
+export interface BackendVendor {
     id: string;
     name: string;
     img_url: string;
