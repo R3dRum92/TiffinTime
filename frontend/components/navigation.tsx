@@ -2,17 +2,41 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
   const pathname = usePathname()
 
   const isActive = (path: string) => pathname === path
 
+  // Handle scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY
+      setIsScrolled(scrollTop > 50) // Add blur effect after scrolling 50px
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
   return (
-    <nav className="fixed top-3 left-0 right-0 z-50 bg-transparent px-4 py-4 pointer-events-none">
+    <nav 
+     className={`fixed left-0 right-0 z-50 px-1 py-4 pointer-events-none transition-all duration-300 ${
+  isScrolled 
+    ? 'backdrop-blur-md border border-white/20 ' 
+    : 'bg-transparent'
+}`}
+style={{
+  backgroundColor: isScrolled ? 'rgba(249, 245, 230)' : 'transparent',
+  backdropFilter: isScrolled ? 'blur(12px)' : 'none',
+  WebkitBackdropFilter: isScrolled ? 'blur(12px)' : 'none',
+}}
+
+    >
       <div className="max-w-7xl mx-auto flex items-center justify-between pointer-events-auto">
         {/* Logo */}
         <Link href="/" className="text-3xl font-bold">
@@ -21,10 +45,10 @@ const Navigation = () => {
         </Link>
 
         {/* Phone Number */}
-        <div className="hidden md:flex items-center darktext">
+        {/* <div className="hidden md:flex items-center darktext">
           <span className="mr-2">📞</span>
           <span>(+88) 0174 6174 857</span>
-        </div>
+        </div> */}
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-8">
@@ -48,6 +72,13 @@ const Navigation = () => {
               }`}
           >
             Vendors
+          </Link>
+           <Link
+            href="/food"
+            className={`font-bold text-xl darktext transition-colors relative ${isActive('/food/') ? 'theme after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-current after:content-[""]' : ''
+              }`}
+          >
+            Find Food
           </Link>
           <Link
             href="/subscription"
@@ -85,7 +116,72 @@ const Navigation = () => {
         </button>
       </div>
 
-
+      {/* Mobile menu */}
+      {isMenuOpen && (
+        <div className={`md:hidden mt-4 mx-4 rounded-lg transition-all duration-300 ${
+          isScrolled 
+            ? 'bg-white/90 backdrop-blur-md border border-white/20 shadow-lg' 
+            : 'bg-white/95 backdrop-blur-sm border border-white/30'
+        }`}>
+          <div className="px-6 py-4 space-y-4">
+            <Link
+              href="/"
+              className={`block font-bold text-lg darktext transition-colors ${
+                isActive('/') ? 'theme' : ''
+              }`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Home
+            </Link>
+            <Link
+              href="/my-plan"
+              className={`block font-bold text-lg darktext transition-colors ${
+                isActive('/my-plan/') ? 'theme' : ''
+              }`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              My Plan
+            </Link>
+            <Link
+              href="/vendors"
+              className={`block font-bold text-lg darktext transition-colors ${
+                isActive('/vendors/') ? 'theme' : ''
+              }`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Vendors
+            </Link>
+            <Link
+              href="/food"
+              className={`block font-bold text-lg darktext transition-colors ${
+                isActive('/food/') ? 'theme' : ''
+              }`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Find Food
+            </Link>
+            <Link
+              href="/subscription"
+              className={`block font-bold text-lg darktext transition-colors ${
+                isActive('/subscription/') ? 'theme' : ''
+              }`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Subscription Plan
+            </Link>
+            <div className="pt-4 border-t border-gray-200 space-y-3">
+              <Link href="/auth" onClick={() => setIsMenuOpen(false)}>
+                <button className="w-full bgtheme text-white font-bold px-6 py-2 rounded-full hover:bg-orange-500 transition-colors">
+                  Sign up
+                </button>
+              </Link>
+              <button className="w-full bg-white darktext font-bold border border-gray-300 text-gray-700 px-6 py-2 rounded-full hover:bg-gray-50 transition-colors">
+                Login
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   )
 }
