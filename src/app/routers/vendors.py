@@ -1,4 +1,5 @@
 from typing import List
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
 from supabase import AsyncClient
@@ -19,3 +20,13 @@ router = APIRouter(prefix="/vendors", tags=["vendors"])
 )
 async def get_all_vendors(client: AsyncClient = Depends(get_db)):
     return await vendors.get_all_vendors(client=client)
+
+
+@router.get(
+    "/{vendor_id}",
+    response_model=schemas.VendorsResponse,
+    dependencies=[Depends(user_or_admin_auth)],
+    status_code=status.HTTP_200_OK,
+)
+async def get_vendor_by_id(vendor_id: UUID, client: AsyncClient = Depends(get_db)):
+    return await vendors.get_vendor_by_id(vendor_id=vendor_id, client=client)
