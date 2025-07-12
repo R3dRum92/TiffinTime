@@ -10,6 +10,12 @@ const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false)
   const pathname = usePathname()
 
+  // Define allowed pages where navigation should be shown
+  const allowedPages = ['/', '/my-plan/', '/vendors/', '/food/', '/subscription/']
+  
+  // Check if current page should show navigation
+  const shouldShowNavigation = allowedPages.includes(pathname)
+
   const isActive = (path: string) => pathname === path
 
   // Handle scroll effect
@@ -22,6 +28,11 @@ const Navigation = () => {
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  // Don't render navigation if current page is not in allowed pages
+  if (!shouldShowNavigation) {
+    return null
+  }
 
   return (
     <nav 
@@ -136,7 +147,7 @@ style={{
             <Link
               href="/my-plan"
               className={`block font-bold text-lg darktext transition-colors ${
-                isActive('/my-plan/') ? 'theme' : ''
+                isActive('/my-plan') ? 'theme' : ''
               }`}
               onClick={() => setIsMenuOpen(false)}
             >
@@ -145,7 +156,7 @@ style={{
             <Link
               href="/vendors"
               className={`block font-bold text-lg darktext transition-colors ${
-                isActive('/vendors/') ? 'theme' : ''
+                isActive('/vendors') ? 'theme' : ''
               }`}
               onClick={() => setIsMenuOpen(false)}
             >
@@ -154,7 +165,7 @@ style={{
             <Link
               href="/food"
               className={`block font-bold text-lg darktext transition-colors ${
-                isActive('/food/') ? 'theme' : ''
+                isActive('/food') ? 'theme' : ''
               }`}
               onClick={() => setIsMenuOpen(false)}
             >
@@ -163,7 +174,7 @@ style={{
             <Link
               href="/subscription"
               className={`block font-bold text-lg darktext transition-colors ${
-                isActive('/subscription/') ? 'theme' : ''
+                isActive('/subscription') ? 'theme' : ''
               }`}
               onClick={() => setIsMenuOpen(false)}
             >
