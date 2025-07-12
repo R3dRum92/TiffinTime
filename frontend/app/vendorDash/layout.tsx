@@ -67,9 +67,13 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
 
             {/* Desktop Sidebar */}
             <aside className="hidden md:block w-64 bg-white shadow-md fixed h-screen z-20">
-                <div className="p-6 pt-20">
-                    <h2 className="text-2xl font-bold mb-6">Vendor Panel</h2>
-                    <nav className="space-y-2">
+                <div className="p-6 pt-15">
+                    <Link href={"/"} className="text-3xl font-bold">
+                        <span className="theme">Tiffin</span>
+                        <span className="darktext">Time</span>
+                    </Link>
+                    {/* <h2 className="text-2xl mb-6 pt-6">Vendor Panel</h2> */}
+                    <nav className="space-y-2 pt-15">
                         {sidebarItems.map((item) => (
                             <Link
                                 key={item.href}
