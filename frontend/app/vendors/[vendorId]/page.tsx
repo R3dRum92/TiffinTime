@@ -1,6 +1,6 @@
 // 'use client';
 
-import ClientVendorPage from './ClientVendorPage';
+import ClientVendorPage, { VendorDetailPageProps } from './ClientVendorPage';
 import { BackendVendor } from '@/app/hooks/useVendors';
 
 export async function generateStaticParams() {
@@ -26,8 +26,8 @@ export async function generateStaticParams() {
   }
 }
 
-export default function VendorDetailPage({ params }: { params: { vendorId: string } }) {
-  return <ClientVendorPage vendorId={params.vendorId} />;
+export default function VendorDetailPage({ params }: VendorDetailPageProps) {
+  return <ClientVendorPage params={params} />;
 }
 
 
