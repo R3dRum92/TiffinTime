@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { Check, Crown, Clock, Calendar, Utensils, Truck, Star, Shield } from 'lucide-react';
 
 interface MenuItem {
     id: string;
@@ -24,6 +25,7 @@ interface SubscriptionPlan {
     description: string;
     features: string[];
     discount: number;
+    isPopular?: boolean;
 }
 
 interface VendorDetails {
@@ -69,7 +71,6 @@ interface CartItem {
 
 // Dummy data
 const getDummyVendorData = (id: string): VendorDetails => (
-
     {
         id,
         name: "Mama's Kitchen",
@@ -168,34 +169,39 @@ const getDummyVendorData = (id: string): VendorDetails => (
         ],
         subscriptionPlans: [
             {
-                id: "basic",
-                name: "Basic Plan",
+                id: "weekly",
+                name: "Weekly Plan",
                 duration: "7 days",
-                price: 800,
+                price: 299,
                 mealsPerDay: 1,
                 description: "Perfect for students who want a healthy lunch every day",
-                features: ["1 meal per day", "Free delivery", "Menu variety", "Cancel anytime"],
+                features: [
+                    'Unlimited food delivery',
+                    'No delivery charges',
+                    'Priority customer support',
+                    'Access to exclusive vendors',
+                    'Cancel anytime'
+                ],
                 discount: 10
             },
             {
-                id: "standard",
-                name: "Standard Plan",
-                duration: "15 days",
-                price: 1500,
-                mealsPerDay: 1,
-                description: "Great value for regular customers",
-                features: ["1 meal per day", "Free delivery", "Menu variety", "Cancel anytime", "Weekend specials"],
-                discount: 15
-            },
-            {
-                id: "premium",
-                name: "Premium Plan",
+                id: "monthly",
+                name: "Monthly Plan",
                 duration: "30 days",
-                price: 2800,
+                price: 999,
                 mealsPerDay: 1,
                 description: "Best value for long-term commitment",
-                features: ["1 meal per day", "Free delivery", "Menu variety", "Cancel anytime", "Weekend specials", "Priority support"],
-                discount: 20
+                features: [
+                    'Unlimited food delivery',
+                    'No delivery charges',
+                    'Priority customer support',
+                    'Access to exclusive vendors',
+                    'Cancel anytime',
+                    'Free dessert with every order',
+                    '24/7 customer service'
+                ],
+                discount: 20,
+                isPopular: true,
             }
         ],
         tags: ["Homemade", "Bengali", "Vegetarian Options", "Non-Vegetarian", "Healthy"]
@@ -212,7 +218,7 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
     const [activeTab, setActiveTab] = useState<'menu' | 'subscription'>('menu');
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
     const [cart, setCart] = useState<CartItem[]>([]);
-    const [selectedPlan, setSelectedPlan] = useState<string>('');
+    const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
     const [vendorId, setVendorId] = useState<string>('');
@@ -228,7 +234,7 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
     useEffect(() => {
         const fetchVendor = async () => {
             setLoading(true);
-            await new Promise((res) => setTimeout(res, 500)); // Simulate delay
+            await new Promise((res) => setTimeout(res, 500));
             const data = getDummyVendorData(vendorId);
             setVendor(data);
             setLoading(false);
@@ -285,11 +291,61 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
         return cart.reduce((total, item) => total + item.quantity, 0);
     };
 
-    const handleSubscriptionPurchase = (planId: string) => {
+    const handlePlanSelect = (planId: string) => {
         setSelectedPlan(planId);
-        // Here you would integrate with payment system
-        alert(`Subscription selected: ${vendor?.subscriptionPlans.find(p => p.id === planId)?.name}`);
     };
+
+    const handleSubscribe = async () => {
+        if (!selectedPlan) {
+            alert('Please select a subscription plan');
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            const token = localStorage.getItem('token');
+
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/subscription/create`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    plan_type: selectedPlan
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.payment_url) {
+                window.location.href = data.payment_url;
+            } else {
+                alert(data.detail || 'Failed to create subscription');
+            }
+        } catch (error) {
+            console.error('Error creating subscription:', error);
+            alert('Something went wrong. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const mapVendorPlansToDisplayPlans = (vendorPlans: SubscriptionPlan[]) => {
+        return vendorPlans.map(plan => ({
+            id: plan.id,
+            name: plan.name,
+            price: plan.price,
+            duration: plan.duration,
+            icon: plan.duration.includes('7 days') ? <Clock className="w-6 h-6" /> : <Calendar className="w-6 h-6" />,
+            features: plan.features || [],
+            popular: plan.isPopular || false,
+            savings: plan.discount ? `Save ৳${Math.round(plan.price * plan.discount / 100)}` : null
+        }));
+    };
+
+    const displayPlans = vendor ? mapVendorPlansToDisplayPlans(vendor.subscriptionPlans) : [];
 
     if (loading) {
         return (
@@ -315,288 +371,493 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header Section */}
-            <div className="relative">
-                <Image
-                    src={vendor.coverImage}
-                    alt={vendor.name}
-                    width={800}
-                    height={400}
-                    className="w-full h-64 md:h-80 object-cover"
-                />
-                <div className="absolute inset-0 bg-black bg-opacity-40"></div>
-                <div className="absolute bottom-4 left-4 text-white">
-                    <h1 className="text-3xl md:text-4xl font-bold mb-2">{vendor.name}</h1>
-                    <div className="flex items-center gap-4 text-sm">
-                        <span className="flex items-center gap-1">
-                            ⭐ {vendor.rating} ({vendor.totalReviews} reviews)
-                        </span>
-                        <span>🕒 {vendor.deliveryTime}</span>
-                        <span className={`px-2 py-1 rounded ${vendor.isOpen ? 'bg-green-500' : 'bg-red-500'}`}>
-                            {vendor.isOpen ? 'Open' : 'Closed'}
-                        </span>
-                    </div>
-                </div>
+        <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: ' #f7f9e6' }}>
+            {/* Background SVG Pattern for the entire page */}
+            <div className="absolute inset-0 pt-20">
+                <svg
+                    viewBox="0 0 1440 800"
+                    className="w-full h-full"
+                    preserveAspectRatio="none"
+                >
+                    <path
+                        d="M 0 200 C 100 150 200 100 400 120 C 600 140 800 180 1000 160 C 1200 140 1300 120 1440 140 L 1440 0 L 0 0 Z"
+                        fill="url(#subscriptionGradient)"
+                        opacity="0.3"
+                    />
+                    <defs>
+                        <linearGradient id="subscriptionGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#D98324" />
+                            <stop offset="100%" stopColor="#EFDCAB" />
+                        </linearGradient>
+                    </defs>
+                </svg>
             </div>
 
-            <div className="container mx-auto px-4 py-8">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Main Content */}
-                    <div className="lg:col-span-2">
-                        {/* Vendor Info */}
-                        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                            <p className="text-gray-600 mb-4">{vendor.description}</p>
-                            <div className="flex flex-wrap gap-2 mb-4">
-                                {vendor.tags.map(tag => (
-                                    <span key={tag} className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm">
-                                        {tag}
-                                    </span>
-                                ))}
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <p className="font-semibold">Minimum Order: ৳{vendor.minimumOrder}</p>
-                                    <p>Delivery Fee: ৳{vendor.deliveryFee}</p>
-                                </div>
-                                <div>
-                                    <p className="font-semibold">Contact: {vendor.contact.phone}</p>
-                                    <p>Email: {vendor.contact.email}</p>
-                                </div>
-                            </div>
+            {/* Content Wrapper to ensure it's above the SVG background */}
+            <div className="relative z-10">
+                {/* Header Section */}
+                <div className="relative">
+                    <Image
+                        src={vendor.coverImage}
+                        alt={vendor.name}
+                        width={800}
+                        height={400}
+                        className="w-full h-64 md:h-80 object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+                    <div className="absolute bottom-4 left-4 text-white">
+                        <h1 className="text-3xl md:text-4xl font-bold mb-2">{vendor.name}</h1>
+                        <div className="flex items-center gap-4 text-sm">
+                            <span className="flex items-center gap-1">
+                                ⭐ {vendor.rating} ({vendor.totalReviews} reviews)
+                            </span>
+                            <span>🕒 {vendor.deliveryTime}</span>
+                            <span className={`px-2 py-1 rounded ${vendor.isOpen ? 'bg-green-500' : 'bg-red-500'}`}>
+                                {vendor.isOpen ? 'Open' : 'Closed'}
+                            </span>
                         </div>
+                    </div>
+                </div>
 
-                        {/* Tab Navigation */}
-                        <div className="bg-white rounded-lg shadow-md mb-6">
-                            <div className="flex border-b">
-                                <button
-                                    onClick={() => setActiveTab('menu')}
-                                    className={`flex-1 py-4 px-6 text-center font-medium ${activeTab === 'menu'
-                                        ? 'border-b-2 border-orange-500 text-orange-500'
-                                        : 'text-gray-600 hover:text-orange-500'
-                                        }`}
-                                >
-                                    Menu
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('subscription')}
-                                    className={`flex-1 py-4 px-6 text-center font-medium ${activeTab === 'subscription'
-                                        ? 'border-b-2 border-orange-500 text-orange-500'
-                                        : 'text-gray-600 hover:text-orange-500'
-                                        }`}
-                                >
-                                    Subscription Plans
-                                </button>
+                <div className="container mx-auto px-4 py-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Main Content */}
+                        <div className="lg:col-span-2">
+                            {/* Vendor Info */}
+                            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                                <p className="text-gray-600 mb-4">{vendor.description}</p>
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                    {vendor.tags.map(tag => (
+                                        <span key={tag} className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm">
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <p className="font-semibold">Minimum Order: ৳{vendor.minimumOrder}</p>
+                                        <p>Delivery Fee: ৳{vendor.deliveryFee}</p>
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold">Contact: {vendor.contact.phone}</p>
+                                        <p>Email: {vendor.contact.email}</p>
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Menu Tab */}
-                            {activeTab === 'menu' && (
-                                <div className="p-6">
-                                    {/* Category Filter */}
-                                    <div className="flex flex-wrap gap-2 mb-6">
-                                        {categories.map(category => (
-                                            <button
-                                                key={category}
-                                                onClick={() => setSelectedCategory(category)}
-                                                className={`px-4 py-2 rounded-full text-sm font-medium ${selectedCategory === category
-                                                    ? 'bg-orange-500 text-white'
-                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                                    }`}
-                                            >
-                                                {category}
-                                            </button>
-                                        ))}
-                                    </div>
+                            {/* Tab Navigation */}
+                            <div className="bg-white rounded-lg shadow-md mb-6">
+                                <div className="flex border-b">
+                                    <button
+                                        onClick={() => setActiveTab('menu')}
+                                        className={`flex-1 py-4 px-6 text-center font-medium ${activeTab === 'menu'
+                                            ? 'border-b-2 border-orange-500 text-orange-500'
+                                            : 'text-gray-600 hover:text-orange-500'
+                                            }`}
+                                    >
+                                        Menu
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('subscription')}
+                                        className={`flex-1 py-4 px-6 text-center font-medium ${activeTab === 'subscription'
+                                            ? 'border-b-2 border-orange-500 text-orange-500'
+                                            : 'text-gray-600 hover:text-orange-500'
+                                            }`}
+                                    >
+                                        Subscription Plans
+                                    </button>
+                                </div>
 
-                                    {/* Menu Items */}
-                                    <div className="space-y-4">
-                                        {filteredMenu.map(item => (
-                                            <div
-                                                key={item.id}
-                                                className={`flex items-center justify-between p-4 border rounded-lg ${item.isAvailable ? 'bg-white' : 'bg-gray-100'
-                                                    }`}
-                                            >
-                                                <div className="flex items-center gap-4">
-                                                    <Image
-                                                        src={item.image}
-                                                        alt={item.name}
-                                                        width={80}
-                                                        height={80}
-                                                        className="w-20 h-20 object-cover rounded-lg"
-                                                    />
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <h3 className="font-semibold text-gray-800">{item.name}</h3>
-                                                            <span className={`text-xs px-2 py-1 rounded ${item.isVeg ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                                                }`}>
-                                                                {item.isVeg ? 'VEG' : 'NON-VEG'}
-                                                            </span>
+                                {/* Menu Tab */}
+                                {activeTab === 'menu' && (
+                                    <div className="p-6">
+                                        {/* Category Filter */}
+                                        <div className="flex flex-wrap gap-2 mb-6">
+                                            {categories.map(category => (
+                                                <button
+                                                    key={category}
+                                                    onClick={() => setSelectedCategory(category)}
+                                                    className={`px-4 py-2 rounded-full text-sm font-medium ${selectedCategory === category
+                                                        ? 'bg-orange-500 text-white'
+                                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                                        }`}
+                                                >
+                                                    {category}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Menu Items */}
+                                        <div className="space-y-4">
+                                            {filteredMenu.map(item => (
+                                                <div
+                                                    key={item.id}
+                                                    className={`flex items-center justify-between p-4 border rounded-lg ${item.isAvailable ? 'bg-white' : 'bg-gray-100'
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center gap-4">
+                                                        <Image
+                                                            src={item.image}
+                                                            alt={item.name}
+                                                            width={80}
+                                                            height={80}
+                                                            className="w-20 h-20 object-cover rounded-lg"
+                                                        />
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                                <h3 className="font-semibold text-gray-800">{item.name}</h3>
+                                                                <span className={`text-xs px-2 py-1 rounded ${item.isVeg ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                                                    }`}>
+                                                                    {item.isVeg ? 'VEG' : 'NON-VEG'}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-sm text-gray-600 mb-2">{item.description}</p>
+                                                            <p className="font-bold text-lg" style={{ color: '#D98324' }}>
+                                                                ৳{item.price}
+                                                            </p>
                                                         </div>
-                                                        <p className="text-sm text-gray-600 mb-2">{item.description}</p>
-                                                        <p className="font-bold text-lg" style={{ color: '#D98324' }}>
-                                                            ৳{item.price}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Subscription Tab */}
+                                {activeTab === 'subscription' && (
+                                    <div className="p-6">
+                                        <div className="max-w-6xl mx-auto">
+                                            {/* Header */}
+                                            <div className="text-center pt-5 mb-10">
+                                                <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full" style={{ backgroundColor: 'rgb(235, 206, 133)' }}>
+                                                    <Utensils className="w-5 h-5" style={{ color: '#D98324' }} />
+                                                    <span className="text-sm font-semibold" style={{ color: '#443627' }}>Student plan</span>
+                                                </div>
+                                                <h1 className="text-3xl lg:text-4xl font-bold mb-4 pt-5" style={{ color: '#443627' }}>
+                                                    Choose Your<br />
+                                                    <span style={{ color: '#D98324' }}>Subscription Plan</span>
+                                                </h1>
+                                                <p className="text-md max-w-2xl mx-auto" style={{ color: '#a0896b' }}>
+                                                    Affordable food delivery plans designed for university students in Bangladesh. Get unlimited access to your favorite vendors!
+                                                </p>
+                                            </div>
+
+                                            {/* Plans Grid */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10 max-w-5xl mx-auto">
+                                                {displayPlans.map((plan) => (
+                                                    <div
+                                                        key={plan.id}
+                                                        className={`relative bg-white rounded-3xl shadow-lg transition-all duration-300 cursor-pointer hover:shadow-2xl transform hover:-translate-y-2 flex flex-col ${selectedPlan === plan.id
+                                                            ? 'shadow-2xl scale-105'
+                                                            : ''
+                                                            }`}
+                                                        style={{
+                                                            boxShadow: selectedPlan === plan.id ? '0 0 0 4px #D98324, 0 25px 50px -12px rgba(0, 0, 0, 0.25)' : undefined
+                                                        }}
+                                                        onClick={() => handlePlanSelect(plan.id)}
+                                                    >
+                                                        {/* Popular Badge */}
+                                                        {plan.popular && (
+                                                            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2">
+                                                                <div
+                                                                    className="text-white px-8 py-3 rounded-full text-sm font-bold flex items-center gap-2 shadow-lg"
+                                                                    style={{ background: 'rgb(202, 83, 35)' }}
+                                                                >
+                                                                    <Crown className="w-5 h-5" />
+                                                                    Most Popular Choice
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Savings Badge */}
+                                                        {plan.savings && (
+                                                            <div className="absolute -top-3 -right-3">
+                                                                <div className="bg-green-700 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg">
+                                                                    {plan.savings}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        <div className="p-8 flex flex-col flex-grow">
+                                                            {/* Plan Header */}
+                                                            <div className="flex items-center gap-4 mb-8">
+                                                                <div
+                                                                    className={`p-4 rounded-2xl transition-all duration-300 ${selectedPlan === plan.id
+                                                                        ? 'text-white'
+                                                                        : 'text-white'
+                                                                        }`}
+                                                                    style={{
+                                                                        backgroundColor: selectedPlan === plan.id ? ' #D98324' : '#EFDCAB'
+                                                                    }}
+                                                                >
+                                                                    {plan.icon}
+                                                                </div>
+                                                                <div>
+                                                                    <h3 className="text-2xl font-bold" style={{ color: '#443627' }}>
+                                                                        {plan.name}
+                                                                    </h3>
+                                                                    <p style={{ color: '#a0896b' }}>{plan.duration}</p>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Price */}
+                                                            <div className="mb-8">
+                                                                <div className="flex items-baseline gap-2">
+                                                                    <span className="text-5xl font-bold" style={{ color: '#443627' }}>
+                                                                        ৳{plan.price}
+                                                                    </span>
+                                                                    <span style={{ color: '#a0896b' }}>/{plan.duration}</span>
+                                                                </div>
+                                                                {plan.duration.includes('30 days') && (
+                                                                    <p className="text-sm mt-2" style={{ color: '#a0896b' }}>
+                                                                        Only ৳{Math.round(plan.price / 30)}/day
+                                                                    </p>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Features */}
+                                                            <div className="space-y-4 mb-8">
+                                                                {plan.features.map((feature, index) => (
+                                                                    <div key={index} className="flex items-center gap-3">
+                                                                        <div
+                                                                            className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${selectedPlan === plan.id
+                                                                                ? 'text-white'
+                                                                                : 'text-white'
+                                                                                }`}
+                                                                            style={{
+                                                                                backgroundColor: selectedPlan === plan.id ? '#D98324' : '#EFDCAB'
+                                                                            }}
+                                                                        >
+                                                                            <Check className="w-4 h-4" />
+                                                                        </div>
+                                                                        <span style={{ color: '#443627' }}>{feature}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+
+                                                            {/* Selection Button */}
+                                                            <div className="mt-auto pt-2">
+                                                                <button
+                                                                    className={`mx-auto block py-3 px-8 rounded-3xl font-semibold text-lg transition-all duration-300 ${selectedPlan === plan.id
+                                                                        ? 'text-white shadow-lg transform scale-105'
+                                                                        : 'text-white hover:shadow-lg hover:transform hover:scale-105'
+                                                                        }`}
+                                                                    style={{
+                                                                        background: selectedPlan === plan.id
+                                                                            ? '#D98324'
+                                                                            : 'rgb(233, 200, 119) 100%'
+                                                                    }}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handlePlanSelect(plan.id);
+                                                                    }}
+                                                                >
+                                                                    {selectedPlan === plan.id ? (
+                                                                        <span className="flex items-center justify-center gap-2">
+                                                                            <Check className="w-5 h-5" />
+                                                                            Selected
+                                                                        </span>
+                                                                    ) : (
+                                                                        'Select This Plan'
+                                                                    )}
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Subscribe Button */}
+                                            <div className="text-center mb-10">
+                                                <button
+                                                    onClick={handleSubscribe}
+                                                    disabled={!selectedPlan || loading}
+                                                    className={`px-16 py-5 rounded-full font-bold text-xl transition-all duration-300 transform hover:scale-105 shadow-lg ${selectedPlan && !loading
+                                                        ? 'text-white hover:shadow-2xl'
+                                                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                        }`}
+                                                    style={{
+                                                        background: selectedPlan && !loading
+                                                            ? 'rgb(202, 83, 35)'
+                                                            : undefined
+                                                    }}
+                                                >
+                                                    {loading ? (
+                                                        <span className="flex items-center gap-3">
+                                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                            Processing...
+                                                        </span>
+                                                    ) : selectedPlan ? (
+                                                        'Subscribe Now →'
+                                                    ) : (
+                                                        'Select a Plan Above'
+                                                    )}
+                                                </button>
+
+                                                {selectedPlan && (
+                                                    <p className="text-sm mt-4" style={{ color: '#a0896b' }}>
+                                                        🔒 Secure payment with SSLCOMMERZ • Cancel anytime
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            {/* Features Section */}
+                                            <div className="grid md:grid-cols-3 gap-8 mb-10">
+                                                <div className="text-center">
+                                                    <div
+                                                        className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
+                                                        style={{ backgroundColor: '#EFDCAB' }}
+                                                    >
+                                                        <Truck className="w-8 h-8" style={{ color: '#D98324' }} />
+                                                    </div>
+                                                    <h3 className="font-bold text-lg mb-2" style={{ color: '#443627' }}>
+                                                        Fast Delivery
+                                                    </h3>
+                                                    <p style={{ color: '#a0896b' }}>
+                                                        Get your fresh food delivered within 1-2 hours
+                                                    </p>
+                                                </div>
+
+                                                <div className="text-center">
+                                                    <div
+                                                        className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
+                                                        style={{ backgroundColor: '#EFDCAB' }}
+                                                    >
+                                                        <Star className="w-8 h-8" style={{ color: '#D98324' }} />
+                                                    </div>
+                                                    <h3 className="font-bold text-lg mb-2" style={{ color: '#443627' }}>
+                                                        Premium Quality
+                                                    </h3>
+                                                    <p style={{ color: '#a0896b' }}>
+                                                        100% organic and fresh ingredients from trusted vendors
+                                                    </p>
+                                                </div>
+
+                                                <div className="text-center">
+                                                    <div
+                                                        className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
+                                                        style={{ backgroundColor: '#EFDCAB' }}
+                                                    >
+                                                        <Shield className="w-8 h-8" style={{ color: '#D98324' }} />
+                                                    </div>
+                                                    <h3 className="font-bold text-lg mb-2" style={{ color: '#443627' }}>
+                                                        Money Back Guarantee
+                                                    </h3>
+                                                    <p style={{ color: '#a0896b' }}>
+                                                        Not satisfied? Get full refund within 7 days
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Footer Info */}
+                                            <div className="bg-white rounded-3xl p-8 shadow-lg">
+                                                <h4 className="font-bold text-xl mb-6 text-center" style={{ color: '#443627' }}>
+                                                    Why Students Love Our Subscription
+                                                </h4>
+                                                <div className="grid md:grid-cols-3 gap-6 text-center">
+                                                    <div>
+                                                        <div className="font-semibold mb-2" style={{ color: '#D98324' }}>
+                                                            No Hidden Fees
+                                                        </div>
+                                                        <p className="text-sm" style={{ color: '#a0896b' }}>
+                                                            Transparent pricing with no surprise charges
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-semibold mb-2" style={{ color: '#D98324' }}>
+                                                            Instant Activation
+                                                        </div>
+                                                        <p className="text-sm" style={{ color: '#a0896b' }}>
+                                                            Start ordering immediately after payment
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-semibold mb-2" style={{ color: '#D98324' }}>
+                                                            Easy Cancellation
+                                                        </div>
+                                                        <p className="text-sm" style={{ color: '#a0896b' }}>
+                                                            Cancel anytime through your account
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    {cart.find(cartItem => cartItem.id === item.id) ? (
-                                                        <div className="flex items-center gap-2">
-                                                            <button
-                                                                onClick={() => removeFromCart(item.id)}
-                                                                className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center hover:bg-orange-600"
-                                                            >
-                                                                -
-                                                            </button>
-                                                            <span className="w-8 text-center">
-                                                                {cart.find(cartItem => cartItem.id === item.id)?.quantity || 0}
-                                                            </span>
-                                                            <button
-                                                                onClick={() => addToCart(item)}
-                                                                className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center hover:bg-orange-600"
-                                                                disabled={!item.isAvailable}
-                                                            >
-                                                                +
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <button
-                                                            onClick={() => addToCart(item)}
-                                                            disabled={!item.isAvailable}
-                                                            className={`px-4 py-2 rounded-lg font-medium ${item.isAvailable
-                                                                ? 'bg-orange-500 text-white hover:bg-orange-600'
-                                                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                                                }`}
-                                                        >
-                                                            {item.isAvailable ? 'Add to Cart' : 'Unavailable'}
-                                                        </button>
-                                                    )}
-                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Sidebar */}
+                        <div className="lg:col-span-1">
+                            {/* Location Info */}
+                            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                                <h3 className="text-lg font-semibold mb-4">Location & Hours</h3>
+                                <div className="space-y-2 text-sm">
+                                    <p><strong>Address:</strong> {vendor.location.address}</p>
+                                    <p><strong>Area:</strong> {vendor.location.area}</p>
+                                    <p><strong>City:</strong> {vendor.location.city}</p>
+                                </div>
+                                <div className="mt-4">
+                                    <h4 className="font-semibold mb-2">Opening Hours</h4>
+                                    <div className="text-sm space-y-1">
+                                        {Object.entries(vendor.openingHours).map(([day, hours]) => (
+                                            <div key={day} className="flex justify-between">
+                                                <span>{day}:</span>
+                                                <span>{hours}</span>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
-                            )}
+                            </div>
 
-                            {/* Subscription Tab */}
-                            {activeTab === 'subscription' && (
-                                <div className="p-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {vendor.subscriptionPlans.map(plan => (
-                                            <div
-                                                key={plan.id}
-                                                className={`border rounded-lg p-6 ${selectedPlan === plan.id
-                                                    ? 'border-orange-500 bg-orange-50'
-                                                    : 'border-gray-200 hover:border-orange-300'
-                                                    }`}
-                                            >
-                                                <div className="text-center mb-4">
-                                                    <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
-                                                    <div className="text-3xl font-bold text-orange-500 mb-1">
-                                                        ৳{plan.price}
-                                                    </div>
-                                                    <p className="text-sm text-gray-600">{plan.duration}</p>
-                                                    <p className="text-sm text-green-600 font-medium">
-                                                        {plan.discount}% off regular price
+                            {/* Cart Summary */}
+                            {cart.length > 0 && (
+                                <div className="bg-white rounded-lg shadow-md p-6">
+                                    <h3 className="text-lg font-semibold mb-4">
+                                        Cart ({getCartItemCount()} items)
+                                    </h3>
+                                    <div className="space-y-3 mb-4">
+                                        {cart.map(item => (
+                                            <div key={item.id} className="flex justify-between items-center">
+                                                <div>
+                                                    <p className="font-medium">{item.name}</p>
+                                                    <p className="text-sm text-gray-600">
+                                                        ৳{item.price} x {item.quantity}
                                                     </p>
                                                 </div>
-                                                <p className="text-sm text-gray-600 mb-4">{plan.description}</p>
-                                                <ul className="text-sm space-y-2 mb-6">
-                                                    {plan.features.map((feature, index) => (
-                                                        <li key={index} className="flex items-center gap-2">
-                                                            <span className="text-green-500">✓</span>
-                                                            {feature}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                                <button
-                                                    onClick={() => handleSubscriptionPurchase(plan.id)}
-                                                    className={`w-full py-3 rounded-lg font-medium transition-colors ${selectedPlan === plan.id
-                                                        ? 'bg-orange-500 text-white'
-                                                        : 'bg-gray-200 text-gray-700 hover:bg-orange-500 hover:text-white'
-                                                        }`}
-                                                >
-                                                    Select Plan
-                                                </button>
+                                                <p className="font-semibold">৳{item.price * item.quantity}</p>
                                             </div>
                                         ))}
                                     </div>
+                                    <div className="border-t pt-3">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span>Subtotal:</span>
+                                            <span className="font-semibold">৳{getCartTotal()}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span>Delivery Fee:</span>
+                                            <span>৳{vendor.deliveryFee}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center font-bold text-lg border-t pt-2">
+                                            <span>Total:</span>
+                                            <span>৳{getCartTotal() + vendor.deliveryFee}</span>
+                                        </div>
+                                    </div>
+                                    <button
+                                        className="w-full mt-4 bg-orange-500 text-white py-3 rounded-lg font-medium hover:bg-orange-600 transition-colors"
+                                        disabled={getCartTotal() < vendor.minimumOrder}
+                                    >
+                                        {getCartTotal() < vendor.minimumOrder
+                                            ? `Minimum order ৳${vendor.minimumOrder}`
+                                            : 'Proceed to Checkout'
+                                        }
+                                    </button>
                                 </div>
                             )}
                         </div>
-                    </div>
-
-                    {/* Sidebar */}
-                    <div className="lg:col-span-1">
-                        {/* Location Info */}
-                        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                            <h3 className="text-lg font-semibold mb-4">Location & Hours</h3>
-                            <div className="space-y-2 text-sm">
-                                <p><strong>Address:</strong> {vendor.location.address}</p>
-                                <p><strong>Area:</strong> {vendor.location.area}</p>
-                                <p><strong>City:</strong> {vendor.location.city}</p>
-                            </div>
-                            <div className="mt-4">
-                                <h4 className="font-semibold mb-2">Opening Hours</h4>
-                                <div className="text-sm space-y-1">
-                                    {Object.entries(vendor.openingHours).map(([day, hours]) => (
-                                        <div key={day} className="flex justify-between">
-                                            <span>{day}:</span>
-                                            <span>{hours}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Cart Summary */}
-                        {cart.length > 0 && (
-                            <div className="bg-white rounded-lg shadow-md p-6">
-                                <h3 className="text-lg font-semibold mb-4">
-                                    Cart ({getCartItemCount()} items)
-                                </h3>
-                                <div className="space-y-3 mb-4">
-                                    {cart.map(item => (
-                                        <div key={item.id} className="flex justify-between items-center">
-                                            <div>
-                                                <p className="font-medium">{item.name}</p>
-                                                <p className="text-sm text-gray-600">
-                                                    ৳{item.price} x {item.quantity}
-                                                </p>
-                                            </div>
-                                            <p className="font-semibold">৳{item.price * item.quantity}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="border-t pt-3">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <span>Subtotal:</span>
-                                        <span className="font-semibold">৳{getCartTotal()}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center mb-2">
-                                        <span>Delivery Fee:</span>
-                                        <span>৳{vendor.deliveryFee}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center font-bold text-lg border-t pt-2">
-                                        <span>Total:</span>
-                                        <span>৳{getCartTotal() + vendor.deliveryFee}</span>
-                                    </div>
-                                </div>
-                                <button
-                                    className="w-full mt-4 bg-orange-500 text-white py-3 rounded-lg font-medium hover:bg-orange-600 transition-colors"
-                                    disabled={getCartTotal() < vendor.minimumOrder}
-                                >
-                                    {getCartTotal() < vendor.minimumOrder
-                                        ? `Minimum order ৳${vendor.minimumOrder}`
-                                        : 'Proceed to Checkout'
-                                    }
-                                </button>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
         </div>
     );
-
-
 }
