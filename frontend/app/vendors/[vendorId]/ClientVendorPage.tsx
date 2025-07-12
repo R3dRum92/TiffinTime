@@ -201,17 +201,29 @@ const getDummyVendorData = (id: string): VendorDetails => (
         tags: ["Homemade", "Bengali", "Vegetarian Options", "Non-Vegetarian", "Healthy"]
     });
 
-interface VendorDetailPageProps {
-    vendorId: string;
+export interface VendorDetailPageProps {
+    params: Promise<{
+        vendorId: string;
+    }>;
 }
 
-export default function ClientVendorPage({ vendorId }: VendorDetailPageProps) {
+export default function ClientVendorPage({ params }: VendorDetailPageProps) {
     const [vendor, setVendor] = useState<VendorDetails | null>(null);
     const [activeTab, setActiveTab] = useState<'menu' | 'subscription'>('menu');
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
     const [cart, setCart] = useState<CartItem[]>([]);
     const [selectedPlan, setSelectedPlan] = useState<string>('');
     const [loading, setLoading] = useState(true);
+
+    const [vendorId, setVendorId] = useState<string>('');
+
+    useEffect(() => {
+        const getParams = async () => {
+            const resolvedParams = await params;
+            setVendorId(resolvedParams.vendorId);
+        };
+        getParams();
+    }, [params]);
 
     useEffect(() => {
         const fetchVendor = async () => {
