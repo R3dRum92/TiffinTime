@@ -24,17 +24,16 @@ const Navigation = () => {
   }, [])
 
   return (
-    <nav 
-     className={`fixed left-0 right-0 z-50 px-1 py-4 pointer-events-none transition-all duration-300 ${
-  isScrolled 
-    ? 'backdrop-blur-md border border-white/20 ' 
-    : 'bg-transparent'
-}`}
-style={{
-  backgroundColor: isScrolled ? 'rgba(249, 245, 230)' : 'transparent',
-  backdropFilter: isScrolled ? 'blur(12px)' : 'none',
-  WebkitBackdropFilter: isScrolled ? 'blur(12px)' : 'none',
-}}
+    <nav
+      className={`fixed left-0 right-0 z-50 px-1 py-4 pointer-events-none transition-all duration-300 ${isScrolled
+          ? 'backdrop-blur-md border border-white/20 '
+          : 'bg-transparent'
+        }`}
+      style={{
+        backgroundColor: isScrolled ? 'rgba(249, 245, 230)' : 'transparent',
+        backdropFilter: isScrolled ? 'blur(12px)' : 'none',
+        WebkitBackdropFilter: isScrolled ? 'blur(12px)' : 'none',
+      }}
 
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between pointer-events-auto">
@@ -73,19 +72,12 @@ style={{
           >
             Vendors
           </Link>
-           <Link
+          <Link
             href="/food"
             className={`font-bold text-xl darktext transition-colors relative ${isActive('/food/') ? 'theme after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-current after:content-[""]' : ''
               }`}
           >
             Find Food
-          </Link>
-          <Link
-            href="/subscription"
-            className={`font-bold text-xl darktext hover:theme transition-colors relative ${isActive('/subscription/') ? 'theme after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-current after:content-[""]' : ''
-              }`}
-          >
-            Subscription Plan
           </Link>
         </div>
 
@@ -118,53 +110,47 @@ style={{
 
       {/* Mobile menu */}
       {isMenuOpen && (
-        <div className={`md:hidden mt-4 mx-4 rounded-lg transition-all duration-300 ${
-          isScrolled 
-            ? 'bg-white/90 backdrop-blur-md border border-white/20 shadow-lg' 
+        <div className={`md:hidden mt-4 mx-4 rounded-lg transition-all duration-300 ${isScrolled
+            ? 'bg-white/90 backdrop-blur-md border border-white/20 shadow-lg'
             : 'bg-white/95 backdrop-blur-sm border border-white/30'
-        }`}>
+          }`}>
           <div className="px-6 py-4 space-y-4">
             <Link
               href="/"
-              className={`block font-bold text-lg darktext transition-colors ${
-                isActive('/') ? 'theme' : ''
-              }`}
+              className={`block font-bold text-lg darktext transition-colors ${isActive('/') ? 'theme' : ''
+                }`}
               onClick={() => setIsMenuOpen(false)}
             >
               Home
             </Link>
             <Link
               href="/my-plan"
-              className={`block font-bold text-lg darktext transition-colors ${
-                isActive('/my-plan/') ? 'theme' : ''
-              }`}
+              className={`block font-bold text-lg darktext transition-colors ${isActive('/my-plan/') ? 'theme' : ''
+                }`}
               onClick={() => setIsMenuOpen(false)}
             >
               My Plan
             </Link>
             <Link
               href="/vendors"
-              className={`block font-bold text-lg darktext transition-colors ${
-                isActive('/vendors/') ? 'theme' : ''
-              }`}
+              className={`block font-bold text-lg darktext transition-colors ${isActive('/vendors/') ? 'theme' : ''
+                }`}
               onClick={() => setIsMenuOpen(false)}
             >
               Vendors
             </Link>
             <Link
               href="/food"
-              className={`block font-bold text-lg darktext transition-colors ${
-                isActive('/food/') ? 'theme' : ''
-              }`}
+              className={`block font-bold text-lg darktext transition-colors ${isActive('/food/') ? 'theme' : ''
+                }`}
               onClick={() => setIsMenuOpen(false)}
             >
               Find Food
             </Link>
             <Link
               href="/subscription"
-              className={`block font-bold text-lg darktext transition-colors ${
-                isActive('/subscription/') ? 'theme' : ''
-              }`}
+              className={`block font-bold text-lg darktext transition-colors ${isActive('/subscription/') ? 'theme' : ''
+                }`}
               onClick={() => setIsMenuOpen(false)}
             >
               Subscription Plan
