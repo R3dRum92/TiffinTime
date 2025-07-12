@@ -90,7 +90,7 @@ export default function HomePage() {
 
 
           <Image
-            src="/resources/food.png"
+            src="/resources/khabar.png"
             alt="Delicious food"
             width={700}
             height={700}

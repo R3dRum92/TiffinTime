@@ -3,11 +3,13 @@ import React, { useState } from 'react';
 
 const AuthPage = () => {
     const [isLogin, setIsLogin] = useState(true);
+    const [selectedRole, setSelectedRole] = useState<'student' | 'vendor'>('student');
     const [formData, setFormData] = useState({
         email: '',
         password: '',
         confirmPassword: '',
-        name: ''
+        name: '',
+        role: 'student' as 'student' | 'vendor'
     });
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -17,9 +19,47 @@ const AuthPage = () => {
         });
     };
 
+    const handleRoleSelect = (role: 'student' | 'vendor') => {
+        setSelectedRole(role);
+        setFormData({
+            ...formData,
+            role: role
+        });
+    };
+
+    //---authentication--------
+
+    /* const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        //console.log('Form submitted:', formData);
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Store JWT token
+                localStorage.setItem('token', data.token);
+                // Then redirect based on role
+                window.location.href = formData.role === 'student' ? '/' : '/vendorDash';
+            }
+        } catch (error) {
+            console.error('Auth error:', error);
+        }
+    }; */
+
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        console.log('Form submitted:', formData);
+        //console.log('Form submitted:', formData);
+        if (formData.role === 'student') {
+            window.location.href = '/'; // or use Next.js router
+        } else if (formData.role === 'vendor') {
+            window.location.href = '/vendorDash'; // or use Next.js router
+        }
     };
 
     const toggleAuthMode = () => {
@@ -28,7 +68,8 @@ const AuthPage = () => {
             email: '',
             password: '',
             confirmPassword: '',
-            name: ''
+            name: '',
+            role: selectedRole as 'student' | 'vendor'
         });
     };
 
@@ -72,7 +113,7 @@ const AuthPage = () => {
                     <div className="backdrop-blur-lg bg-white/80 shadow-2xl border-0 rounded-3xl overflow-hidden">
                         <div className="text-center pb-2 pt-6 px-6">
                             <h2 className="text-2xl font-bold mb-2 text-[#443627]">
-                                {isLogin ? 'Welcome Back!' : 'Join FoodieApp'}
+                                {isLogin ? 'Welcome Back!' : 'Join Us'}
                             </h2>
                             <p className="text-base text-[#a0896b]">
                                 {isLogin
@@ -83,6 +124,34 @@ const AuthPage = () => {
                         </div>
 
                         <div className="pt-2 px-6 pb-6">
+                            {/* Role Selection */}
+                            <div className="mb-6">
+                                <label className="text-sm font-medium block text-[#443627] mb-3">
+                                    I am a:
+                                </label>
+                                <div className="flex space-x-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRoleSelect('student')}
+                                        className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 border-2 ${selectedRole === 'student'
+                                            ? 'bg-[#D98324] text-white border-[#D98324] shadow-lg transform scale-105'
+                                            : 'bg-white text-[#443627] border-gray-200 hover:border-[#D98324] hover:shadow-md'
+                                            }`}
+                                    >
+                                        🎓 Student
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRoleSelect('vendor')}
+                                        className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 border-2 ${selectedRole === 'vendor'
+                                            ? 'bg-[#D98324] text-white border-[#D98324] shadow-lg transform scale-105'
+                                            : 'bg-white text-[#443627] border-gray-200 hover:border-[#D98324] hover:shadow-md'
+                                            }`}
+                                    >
+                                        🍳 Vendor
+                                    </button>
+                                </div>
+                            </div>
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 {!isLogin && (
                                     <div className="space-y-2">
