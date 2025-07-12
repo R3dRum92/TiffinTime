@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import {useRouter} from 'next/router'
+import { useRouter } from 'next/router'
 
 // Types
 interface MenuItem {
@@ -72,142 +72,142 @@ interface CartItem {
 
 // Dummy data
 const getDummyVendorData = (id: string): VendorDetails => (
-    
-{
-  id,
-  name: "Mama's Kitchen",
-  description: "Authentic homemade meals prepared with love and fresh ingredients. We specialize in traditional recipes passed down through generations.",
-  image: "/api/placeholder/400/240",
-  coverImage: "/api/placeholder/800/400",
-  rating: 4.5,
-  totalReviews: 248,
-  deliveryTime: "30-45 mins",
-  minimumOrder: 100,
-  deliveryFee: 25,
-  isOpen: true,
-  location: {
-    address: "123 Food Street, Block A",
-    area: "Dhanmondi",
-    city: "Dhaka",
-    coordinates: {
-      lat: 23.746466,
-      lng: 90.376015
-    }
-  },
-  contact: {
-    phone: "+880 1234567890",
-    email: "orders@mamaskitchen.com"
-  },
-  openingHours: {
-    Monday: "11:00 AM - 9:00 PM",
-    Tuesday: "11:00 AM - 9:00 PM",
-    Wednesday: "11:00 AM - 9:00 PM",
-    Thursday: "11:00 AM - 9:00 PM",
-    Friday: "11:00 AM - 9:00 PM",
-    Saturday: "11:00 AM - 10:00 PM",
-    Sunday: "12:00 PM - 8:00 PM"
-  },
-  menu: [
-    {
-      id: "1",
-      name: "Chicken Biryani",
-      description: "Aromatic basmati rice cooked with tender chicken pieces and traditional spices",
-      price: 180,
-      image: "/api/placeholder/300/200",
-      category: "Main Course",
-      isVeg: false,
-      isAvailable: true
+
+  {
+    id,
+    name: "Mama's Kitchen",
+    description: "Authentic homemade meals prepared with love and fresh ingredients. We specialize in traditional recipes passed down through generations.",
+    image: "/api/placeholder/400/240",
+    coverImage: "/api/placeholder/800/400",
+    rating: 4.5,
+    totalReviews: 248,
+    deliveryTime: "30-45 mins",
+    minimumOrder: 100,
+    deliveryFee: 25,
+    isOpen: true,
+    location: {
+      address: "123 Food Street, Block A",
+      area: "Dhanmondi",
+      city: "Dhaka",
+      coordinates: {
+        lat: 23.746466,
+        lng: 90.376015
+      }
     },
-    {
-      id: "2",
-      name: "Vegetable Curry",
-      description: "Mixed vegetables cooked in rich curry sauce with aromatic spices",
-      price: 120,
-      image: "/api/placeholder/300/200",
-      category: "Main Course",
-      isVeg: true,
-      isAvailable: true
+    contact: {
+      phone: "+880 1234567890",
+      email: "orders@mamaskitchen.com"
     },
-    {
-      id: "3",
-      name: "Fish Curry",
-      description: "Fresh fish cooked in traditional Bengali style with mustard oil and spices",
-      price: 200,
-      image: "/api/placeholder/300/200",
-      category: "Main Course",
-      isVeg: false,
-      isAvailable: true
+    openingHours: {
+      Monday: "11:00 AM - 9:00 PM",
+      Tuesday: "11:00 AM - 9:00 PM",
+      Wednesday: "11:00 AM - 9:00 PM",
+      Thursday: "11:00 AM - 9:00 PM",
+      Friday: "11:00 AM - 9:00 PM",
+      Saturday: "11:00 AM - 10:00 PM",
+      Sunday: "12:00 PM - 8:00 PM"
     },
-    {
-      id: "4",
-      name: "Dal Tadka",
-      description: "Yellow lentils tempered with cumin, mustard seeds, and curry leaves",
-      price: 80,
-      image: "/api/placeholder/300/200",
-      category: "Dal",
-      isVeg: true,
-      isAvailable: true
-    },
-    {
-      id: "5",
-      name: "Mutton Kosha",
-      description: "Tender mutton pieces cooked in thick spicy gravy",
-      price: 280,
-      image: "/api/placeholder/300/200",
-      category: "Main Course",
-      isVeg: false,
-      isAvailable: false
-    },
-    {
-      id: "6",
-      name: "Rasgulla",
-      description: "Soft cottage cheese balls soaked in sugar syrup",
-      price: 60,
-      image: "/api/placeholder/300/200",
-      category: "Dessert",
-      isVeg: true,
-      isAvailable: true
-    }
-  ],
-  subscriptionPlans: [
-    {
-      id: "basic",
-      name: "Basic Plan",
-      duration: "7 days",
-      price: 800,
-      mealsPerDay: 1,
-      description: "Perfect for students who want a healthy lunch every day",
-      features: ["1 meal per day", "Free delivery", "Menu variety", "Cancel anytime"],
-      discount: 10
-    },
-    {
-      id: "standard",
-      name: "Standard Plan",
-      duration: "15 days",
-      price: 1500,
-      mealsPerDay: 1,
-      description: "Great value for regular customers",
-      features: ["1 meal per day", "Free delivery", "Menu variety", "Cancel anytime", "Weekend specials"],
-      discount: 15
-    },
-    {
-      id: "premium",
-      name: "Premium Plan",
-      duration: "30 days",
-      price: 2800,
-      mealsPerDay: 1,
-      description: "Best value for long-term commitment",
-      features: ["1 meal per day", "Free delivery", "Menu variety", "Cancel anytime", "Weekend specials", "Priority support"],
-      discount: 20
-    }
-  ],
-  tags: ["Homemade", "Bengali", "Vegetarian Options", "Non-Vegetarian", "Healthy"]
-});
+    menu: [
+      {
+        id: "1",
+        name: "Chicken Biryani",
+        description: "Aromatic basmati rice cooked with tender chicken pieces and traditional spices",
+        price: 180,
+        image: "/api/placeholder/300/200",
+        category: "Main Course",
+        isVeg: false,
+        isAvailable: true
+      },
+      {
+        id: "2",
+        name: "Vegetable Curry",
+        description: "Mixed vegetables cooked in rich curry sauce with aromatic spices",
+        price: 120,
+        image: "/api/placeholder/300/200",
+        category: "Main Course",
+        isVeg: true,
+        isAvailable: true
+      },
+      {
+        id: "3",
+        name: "Fish Curry",
+        description: "Fresh fish cooked in traditional Bengali style with mustard oil and spices",
+        price: 200,
+        image: "/api/placeholder/300/200",
+        category: "Main Course",
+        isVeg: false,
+        isAvailable: true
+      },
+      {
+        id: "4",
+        name: "Dal Tadka",
+        description: "Yellow lentils tempered with cumin, mustard seeds, and curry leaves",
+        price: 80,
+        image: "/api/placeholder/300/200",
+        category: "Dal",
+        isVeg: true,
+        isAvailable: true
+      },
+      {
+        id: "5",
+        name: "Mutton Kosha",
+        description: "Tender mutton pieces cooked in thick spicy gravy",
+        price: 280,
+        image: "/api/placeholder/300/200",
+        category: "Main Course",
+        isVeg: false,
+        isAvailable: false
+      },
+      {
+        id: "6",
+        name: "Rasgulla",
+        description: "Soft cottage cheese balls soaked in sugar syrup",
+        price: 60,
+        image: "/api/placeholder/300/200",
+        category: "Dessert",
+        isVeg: true,
+        isAvailable: true
+      }
+    ],
+    subscriptionPlans: [
+      {
+        id: "basic",
+        name: "Basic Plan",
+        duration: "7 days",
+        price: 800,
+        mealsPerDay: 1,
+        description: "Perfect for students who want a healthy lunch every day",
+        features: ["1 meal per day", "Free delivery", "Menu variety", "Cancel anytime"],
+        discount: 10
+      },
+      {
+        id: "standard",
+        name: "Standard Plan",
+        duration: "15 days",
+        price: 1500,
+        mealsPerDay: 1,
+        description: "Great value for regular customers",
+        features: ["1 meal per day", "Free delivery", "Menu variety", "Cancel anytime", "Weekend specials"],
+        discount: 15
+      },
+      {
+        id: "premium",
+        name: "Premium Plan",
+        duration: "30 days",
+        price: 2800,
+        mealsPerDay: 1,
+        description: "Best value for long-term commitment",
+        features: ["1 meal per day", "Free delivery", "Menu variety", "Cancel anytime", "Weekend specials", "Priority support"],
+        discount: 20
+      }
+    ],
+    tags: ["Homemade", "Bengali", "Vegetarian Options", "Non-Vegetarian", "Healthy"]
+  });
 
 interface VendorDetailPageProps {
-  params: {
+  params: Promise<{
     vendorId: string;
-  };
+  }>;
 }
 
 export default function VendorDetailPage({ params }: VendorDetailPageProps) {
@@ -218,7 +218,15 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
   const [selectedPlan, setSelectedPlan] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
-  const vendorId = params.vendorId;
+  const [vendorId, setVendorId] = useState<string>('');
+
+  useEffect(() => {
+    const getParams = async () => {
+      const resolvedParams = await params;
+      setVendorId(resolvedParams.vendorId);
+    };
+    getParams();
+  }, [params]);
 
   useEffect(() => {
     const fetchVendor = async () => {
@@ -231,9 +239,9 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
     fetchVendor();
   }, [vendorId]);
 
-    const categories = vendor ? ['All', ...Array.from(new Set(vendor.menu.map(item => item.category)))] : [];
+  const categories = vendor ? ['All', ...Array.from(new Set(vendor.menu.map(item => item.category)))] : [];
 
-  const filteredMenu = vendor?.menu.filter(item => 
+  const filteredMenu = vendor?.menu.filter(item =>
     selectedCategory === 'All' || item.category === selectedCategory
   ) || [];
 
@@ -366,21 +374,19 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
               <div className="flex border-b">
                 <button
                   onClick={() => setActiveTab('menu')}
-                  className={`flex-1 py-4 px-6 text-center font-medium ${
-                    activeTab === 'menu'
-                      ? 'border-b-2 border-orange-500 text-orange-500'
-                      : 'text-gray-600 hover:text-orange-500'
-                  }`}
+                  className={`flex-1 py-4 px-6 text-center font-medium ${activeTab === 'menu'
+                    ? 'border-b-2 border-orange-500 text-orange-500'
+                    : 'text-gray-600 hover:text-orange-500'
+                    }`}
                 >
                   Menu
                 </button>
                 <button
                   onClick={() => setActiveTab('subscription')}
-                  className={`flex-1 py-4 px-6 text-center font-medium ${
-                    activeTab === 'subscription'
-                      ? 'border-b-2 border-orange-500 text-orange-500'
-                      : 'text-gray-600 hover:text-orange-500'
-                  }`}
+                  className={`flex-1 py-4 px-6 text-center font-medium ${activeTab === 'subscription'
+                    ? 'border-b-2 border-orange-500 text-orange-500'
+                    : 'text-gray-600 hover:text-orange-500'
+                    }`}
                 >
                   Subscription Plans
                 </button>
@@ -395,11 +401,10 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
                       <button
                         key={category}
                         onClick={() => setSelectedCategory(category)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium ${
-                          selectedCategory === category
-                            ? 'bg-orange-500 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        }`}
+                        className={`px-4 py-2 rounded-full text-sm font-medium ${selectedCategory === category
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          }`}
                       >
                         {category}
                       </button>
@@ -411,9 +416,8 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
                     {filteredMenu.map(item => (
                       <div
                         key={item.id}
-                        className={`flex items-center justify-between p-4 border rounded-lg ${
-                          item.isAvailable ? 'bg-white' : 'bg-gray-100'
-                        }`}
+                        className={`flex items-center justify-between p-4 border rounded-lg ${item.isAvailable ? 'bg-white' : 'bg-gray-100'
+                          }`}
                       >
                         <div className="flex items-center gap-4">
                           <Image
@@ -426,9 +430,8 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <h3 className="font-semibold text-gray-800">{item.name}</h3>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                item.isVeg ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                              }`}>
+                              <span className={`text-xs px-2 py-1 rounded ${item.isVeg ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                }`}>
                                 {item.isVeg ? 'VEG' : 'NON-VEG'}
                               </span>
                             </div>
@@ -462,11 +465,10 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
                             <button
                               onClick={() => addToCart(item)}
                               disabled={!item.isAvailable}
-                              className={`px-4 py-2 rounded-lg font-medium ${
-                                item.isAvailable
-                                  ? 'bg-orange-500 text-white hover:bg-orange-600'
-                                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                              }`}
+                              className={`px-4 py-2 rounded-lg font-medium ${item.isAvailable
+                                ? 'bg-orange-500 text-white hover:bg-orange-600'
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                }`}
                             >
                               {item.isAvailable ? 'Add to Cart' : 'Unavailable'}
                             </button>
@@ -485,11 +487,10 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
                     {vendor.subscriptionPlans.map(plan => (
                       <div
                         key={plan.id}
-                        className={`border rounded-lg p-6 ${
-                          selectedPlan === plan.id
-                            ? 'border-orange-500 bg-orange-50'
-                            : 'border-gray-200 hover:border-orange-300'
-                        }`}
+                        className={`border rounded-lg p-6 ${selectedPlan === plan.id
+                          ? 'border-orange-500 bg-orange-50'
+                          : 'border-gray-200 hover:border-orange-300'
+                          }`}
                       >
                         <div className="text-center mb-4">
                           <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
@@ -512,11 +513,10 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
                         </ul>
                         <button
                           onClick={() => handleSubscriptionPurchase(plan.id)}
-                          className={`w-full py-3 rounded-lg font-medium transition-colors ${
-                            selectedPlan === plan.id
-                              ? 'bg-orange-500 text-white'
-                              : 'bg-gray-200 text-gray-700 hover:bg-orange-500 hover:text-white'
-                          }`}
+                          className={`w-full py-3 rounded-lg font-medium transition-colors ${selectedPlan === plan.id
+                            ? 'bg-orange-500 text-white'
+                            : 'bg-gray-200 text-gray-700 hover:bg-orange-500 hover:text-white'
+                            }`}
                         >
                           Select Plan
                         </button>
