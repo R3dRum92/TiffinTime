@@ -48,7 +48,7 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                     >
                         <X className="w-5 h-5" />
                     </button>
-                    <h2 className="text-2xl font-bold mb-6">Vendor Panel</h2>
+                    {/* <h2 className="text-2xl font-bold mb-6">Vendor Panel</h2> */}
                     <nav className="space-y-2">
                         {sidebarItems.map((item) => (
                             <Link
@@ -96,8 +96,12 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                 >
                     <MenuIcon className="w-6 h-6 text-orange-500" />
                 </button>
-                <span className="text-lg font-semibold">Vendor Panel</span>
-                <div className="w-10" /> {/* Spacer for centering */}
+                <Link href={"/"} className="text-3xl font-bold">
+                    <span className="theme">Tiffin</span>
+                    <span className="darktext">Time</span>
+                </Link>
+                <div className="w-10" />
+                {/* Spacer for centering */}
             </div>
 
             {/* Main Content Area */}
