@@ -1,10 +1,37 @@
+from datetime import timedelta
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 
 
 class BaseResponse(BaseModel):
     message: str
+
+
+class UserID(BaseModel):
+    id: UUID
+
+
+class SubscriptionRequest(BaseModel):
+    vendor_id: UUID
+    type: str
+
+    @field_validator("type")
+    @classmethod
+    def validate_type(cls, v):
+        allowed = {"weekly", "monthly"}
+        if v not in allowed:
+            raise ValueError(f"type must be one of {allowed}")
+        return v
+
+    @property
+    def type_timedelta(self) -> timedelta:
+        if self.type == "weekly":
+            return timedelta(weeks=1)
+        elif self.type == "monthly":
+            return timedelta(days=30)
+        else:
+            raise ValueError(f"Unsupported subscription type: {self.type}")
 
 
 class RegistrationRequest(BaseModel):

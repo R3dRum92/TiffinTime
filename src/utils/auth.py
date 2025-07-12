@@ -1,19 +1,41 @@
-from fastapi import Depends, HTTPException, Security
+from fastapi import HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from supabase import AsyncClient
 
+from app import schemas
 from utils.token import API_KEY, verify_access_token
 
 security = HTTPBearer()
 
 
+async def get_user_from_token(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+) -> schemas.UserID:
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token"
+        )
+
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Security(security),
-):
+) -> schemas.UserID:
     token = credentials.credentials
     payload = verify_access_token(token)
     if payload is None:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
-    return payload
+
+    user_id = payload.get("user_id")
+
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+        )
+
+    return schemas.UserID(id=user_id)
 
 
 async def admin_auth(credentials: HTTPAuthorizationCredentials = Security(security)):
