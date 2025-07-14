@@ -413,3 +413,4 @@ const FoodSearch = () => {
 };
 
 export default FoodSearch;
+

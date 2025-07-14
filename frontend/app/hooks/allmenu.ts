@@ -22,7 +22,7 @@ export interface BackendMenuItem {
     date: string;
     description: string | null;
     img_url: string;
-    // Add other fields as they appear in your API response
+    price: number; // Fixed: Added missing price field
 }
 
 const fetchMenu = async (vendorId?: string): Promise<MenuItem[]> => {
@@ -48,7 +48,7 @@ const fetchMenu = async (vendorId?: string): Promise<MenuItem[]> => {
         id: item.id,
         name: item.name,
         description: item.description,
-        price: 0, // You'll need to add price field to your backend response
+        price: item.price, // Fixed: Use actual price from backend
         image: item.img_url,
         vendorName: item.vendor_name,
         category: 'Food', // Default category, update based on your backend

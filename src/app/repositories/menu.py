@@ -12,7 +12,7 @@ async def get_all_menus(client: AsyncClient) -> List[schemas.MenuResponse]:
         response = (
             await client.table("menus")
             .select(
-                "id, vendors(id, name), name, date, img_path, img_bucket, description"
+                "id, vendors(id, name), name, date, img_path, img_bucket, description, price"
             )
             .execute()
         )
@@ -60,6 +60,7 @@ async def get_all_menus(client: AsyncClient) -> List[schemas.MenuResponse]:
             date=menu.get("date"),
             img_url=url.get("signedURL"),
             description=menu.get("description"),
+            price=menu.get("price"),
         )
 
         menus.append(_menu)

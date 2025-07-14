@@ -77,3 +77,4 @@ class MenuResponse(BaseModel):
     date: date
     description: str | None
     img_url: str
+    price: float
