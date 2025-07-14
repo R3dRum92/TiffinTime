@@ -1,33 +1,32 @@
+
+
+
+
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, MapPin, Clock, Star, Plus, Minus, ShoppingCart } from 'lucide-react';
+import { Search, MapPin, Clock, Star, Plus, Minus, ShoppingCart, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from "sonner";
+import { useMenu, MenuItem } from '@/app/hooks/allmenu'; // Adjust import path as needed
+import Image from 'next/image';
+
 
 const FoodSearch = () => {
     const [searchQuery, setSearchQuery] = useState('');
-    interface FoodItem {
-        id: number;
-        name: string;
-        vendor: string;
-        price: number;
-        category: string;
-        rating: number;
-        image: string;
-        description: string;
-        preparationTime?: string;
-        available: boolean;
-    }
-    const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
+    const [selectedFood, setSelectedFood] = useState<MenuItem | null>(null);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [quantity, setQuantity] = useState(1);
     const [pickupPoint, setPickupPoint] = useState('Main Campus Cafeteria');
     const [selectedCategory, setSelectedCategory] = useState('All');
+    const [selectedVendor, setSelectedVendor] = useState('All');
+
+    // Fetch vendors and menu data
+    const { data: menuItems, isLoading: menuLoading, error: menuError } = useMenu();
 
     const pickupPoints = [
         'Main Campus Cafeteria',
@@ -37,115 +36,34 @@ const FoodSearch = () => {
         'TSC'
     ];
 
-    const categories = ['All', 'Rice', 'Curry', 'Snacks', 'Drinks', 'Desserts'];
+    // Extract unique categories from menu items
+    const categories = useMemo(() => {
+        if (!menuItems) return ['All'];
+        const uniqueCategories = [...new Set(menuItems.map(item => item.category).filter((category): category is string => category !== undefined && category !== null))];
+        return ['All', ...uniqueCategories];
+    }, [menuItems]);
 
-    const foodItems = [
-        {
-            id: 1,
-            name: 'Chicken Biryani',
-            vendor: 'Modhur Cantine',
-            price: 180,
-            category: 'Rice',
-            rating: 4.5,
-            image: 'https://ministryofcurry.com/wp-content/uploads/2024/06/chicken-biryani.jpg',
-            description: 'Aromatic basmati rice cooked with tender chicken pieces and traditional spices',
-            // preparationTime: '15-20 min',
-            available: true
-        },
-        {
-            id: 2,
-            name: 'Beef Curry',
-            vendor: 'Kashem Mama',
-            price: 150,
-            category: 'Curry',
-            rating: 4.2,
-            image: 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjdg5XYh-KMdCsZQRdFZnunWAM2DorsRwoLVPt_c6ujnaAljR-4GPIsvL79G5vb5vN4nmprZWX2ygRw8K7nSIjAHc7Vl-SJYz5O8RPWKxm73yegoU7V7RcGu5HbEdiB36TMt0lQbW9uSmI/s2048/nadan+beef+curry+24.JPG',
-            description: 'Slow-cooked beef in rich, spicy gravy with traditional Bengali spices',
-            // preparationTime: '10-15 min',
-            available: true
-        },
-        {
-            id: 3,
-            name: 'Chicken Fry',
-            vendor: 'Pushti r Chipa',
-            price: 120,
-            category: 'Snacks',
-            rating: 4.8,
-            image: 'https://images.unsplash.com/photo-1569058242253-92a9c755a0ec?w=400&h=300&fit=crop',
-            description: 'Crispy fried chicken marinated with special spices and herbs',
-            preparationTime: '8-12 min',
-            available: true
-        },
-        {
-            id: 4,
-            name: 'Fish Curry',
-            vendor: 'Modhur Cantine',
-            price: 140,
-            category: 'Curry',
-            rating: 4.3,
-            image: 'https://images.unsplash.com/photo-1626205084096-cdc1c9e0a8a6?w=400&h=300&fit=crop',
-            description: 'Fresh fish cooked in traditional Bengali curry with mustard oil',
-            preparationTime: '12-18 min',
-            available: false
-        },
-        {
-            id: 5,
-            name: 'Vegetable Fried Rice',
-            vendor: 'Green Spoon',
-            price: 100,
-            category: 'Rice',
-            rating: 4.0,
-            image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400&h=300&fit=crop',
-            description: 'Healthy fried rice with mixed vegetables and aromatic spices',
-            preparationTime: '10-15 min',
-            available: true
-        },
-        {
-            id: 6,
-            name: 'Coca Cola',
-            vendor: 'Pushti r Chipa',
-            price: 25,
-            category: 'Drinks',
-            rating: 4.7,
-            image: 'https://images.unsplash.com/photo-1581636625402-29b2a704ef13?w=400&h=300&fit=crop',
-            description: 'Refreshing cold drink to complement your meal',
-            preparationTime: '2-3 min',
-            available: true
-        },
-        {
-            id: 7,
-            name: 'Rasgulla',
-            vendor: 'Sweet Corner',
-            price: 40,
-            category: 'Desserts',
-            rating: 4.6,
-            image: 'https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=400&h=300&fit=crop',
-            description: 'Traditional Bengali sweet made from fresh cottage cheese',
-            preparationTime: '5 min',
-            available: true
-        },
-        {
-            id: 8,
-            name: 'Mutton Curry',
-            vendor: 'Kashem Mama',
-            price: 200,
-            category: 'Curry',
-            rating: 4.4,
-            image: 'https://images.unsplash.com/photo-1574653191817-9d7c0e2f7c5c?w=400&h=300&fit=crop',
-            description: 'Tender mutton cooked in rich, aromatic spices and onion gravy',
-            preparationTime: '20-25 min',
-            available: true
-        }
-    ];
+    // Extract unique vendors from menu items
+    const vendorOptions = useMemo(() => {
+        if (!menuItems) return ['All'];
+        const uniqueVendors = [...new Set(menuItems.map(item => item.vendorName))];
+        return ['All', ...uniqueVendors];
+    }, [menuItems]);
 
-    const filteredFoods = foodItems.filter(food => {
-        const matchesSearch = food.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            food.vendor.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesCategory = selectedCategory === 'All' || food.category === selectedCategory;
-        return matchesSearch && matchesCategory;
-    });
+    // Filter menu items based on search and filters
+    const filteredFoods = useMemo(() => {
+        if (!menuItems) return [];
+        
+        return menuItems.filter(food => {
+            const matchesSearch = food.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                food.vendorName.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesCategory = selectedCategory === 'All' || food.category === selectedCategory;
+            const matchesVendor = selectedVendor === 'All' || food.vendorName === selectedVendor;
+            return matchesSearch && matchesCategory && matchesVendor;
+        });
+    }, [menuItems, searchQuery, selectedCategory, selectedVendor]);
 
-    const handleFoodClick = (food: FoodItem) => {
+    const handleFoodClick = (food: MenuItem) => {
         setSelectedFood(food);
         setQuantity(1);
         setIsDetailsOpen(true);
@@ -169,7 +87,32 @@ const FoodSearch = () => {
         }
     };
 
-    const totalPrice = selectedFood ? selectedFood.price * quantity : 0;
+    const totalPrice = selectedFood ? (selectedFood.price * quantity) : 0;
+
+    // Loading state
+    if (menuLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'rgb(249, 245, 230)' }}>
+                <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" style={{ color: '#D98324' }} />
+                    <p className="text-lg" style={{ color: '#443627' }}>Loading menu...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Error state
+    if (menuError) {
+        return (
+            <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'rgb(249, 245, 230)' }}>
+                <div className="text-center">
+                    <AlertCircle className="h-8 w-8 mx-auto mb-4" style={{ color: '#D98324' }} />
+                    <p className="text-lg mb-2" style={{ color: '#443627' }}>Failed to load menu</p>
+                    <p className="text-sm" style={{ color: '#a0896b' }}>Please try again later</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen relative" style={{ backgroundColor: 'rgb(249, 245, 230)' }}>
@@ -188,7 +131,7 @@ const FoodSearch = () => {
                 </div>
 
                 {/* Search and Filter Section */}
-                <Card className=" shadow-lg border-0 relative overflow-hidden ">
+                <Card className="shadow-lg border-0 relative overflow-hidden">
                     <div
                         className="absolute inset-0 opacity-5"
                         style={{
@@ -196,7 +139,7 @@ const FoodSearch = () => {
                             backgroundSize: '24px 24px'
                         }}
                     />
-                    <CardContent className=" p-1 relative z-10 px-10">
+                    <CardContent className="p-1 relative z-10 px-10">
                         <div className="flex flex-col md:flex-row gap-4">
                             <div className="relative flex-1">
                                 <Search className="absolute left-3 top-3 h-4 w-4" style={{ color: '#a0896b' }} />
@@ -204,7 +147,7 @@ const FoodSearch = () => {
                                     placeholder="Search food items or vendors..."
                                     value={searchQuery}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-                                    className="pl-10 h-12"
+                                    className="pl-10 h-12 w-full border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
                                 />
                             </div>
                             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -215,6 +158,18 @@ const FoodSearch = () => {
                                     {categories.map((category) => (
                                         <SelectItem key={category} value={category}>
                                             {category}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Select value={selectedVendor} onValueChange={setSelectedVendor}>
+                                <SelectTrigger className="w-full md:w-48 h-12">
+                                    <SelectValue placeholder="Vendor" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {vendorOptions.map((vendor) => (
+                                        <SelectItem key={vendor} value={vendor}>
+                                            {vendor}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -242,10 +197,12 @@ const FoodSearch = () => {
                             />
                             <div className="relative z-10">
                                 <div className="h-48 bg-gray-200 rounded-t-lg overflow-hidden">
-                                    <img
+                                    <Image
                                         src={food.image}
                                         alt={food.name}
                                         className="w-full h-full object-cover"
+                                       width={400}
+                                        height={240}
                                     />
                                 </div>
                                 <CardContent className="p-4">
@@ -261,31 +218,31 @@ const FoodSearch = () => {
                                     </div>
                                     
                                     <p className="text-sm mb-2" style={{ color: '#a0896b' }}>
-                                        by {food.vendor}
+                                        by {food.vendorName}
                                     </p>
                                     
                                     <p className="text-sm mb-3" style={{ color: '#443627' }}>
-                                        {food.description}
+                                        {food.description || 'No description available'}
                                     </p>
                                     
                                     <div className="flex items-center justify-between mb-3">
                                         <div className="flex items-center gap-1">
                                             <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                                             <span className="text-sm font-medium" style={{ color: '#443627' }}>
-                                                {food.rating}
+                                                {food.rating || 'N/A'}
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <Clock className="h-4 w-4" style={{ color: '#a0896b' }} />
                                             <span className="text-sm" style={{ color: '#a0896b' }}>
-                                                {food.preparationTime}
+                                                {food.preparationTime || 'N/A'}
                                             </span>
                                         </div>
                                     </div>
                                     
                                     <div className="flex justify-between items-center">
                                         <span className="text-xl font-bold" style={{ color: '#D98324' }}>
-                                            ৳{food.price}
+                                            {food.price > 0 ? `৳${food.price}` : 'Price TBD'}
                                         </span>
                                         <Button
                                             size="sm"
@@ -327,16 +284,20 @@ const FoodSearch = () => {
                                         src={selectedFood.image}
                                         alt={selectedFood.name}
                                         className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            const target = e.target as HTMLImageElement;
+                                            target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop';
+                                        }}
                                     />
                                 </div>
                                 
                                 <div className="space-y-4">
                                     <div>
                                         <h3 className="font-semibold mb-2" style={{ color: '#443627' }}>
-                                            Vendor: {selectedFood.vendor}
+                                            Vendor: {selectedFood.vendorName}
                                         </h3>
                                         <p style={{ color: '#a0896b' }}>
-                                            {selectedFood.description}
+                                            {selectedFood.description || 'No description available'}
                                         </p>
                                     </div>
                                     
@@ -344,17 +305,17 @@ const FoodSearch = () => {
                                         <div className="flex items-center gap-4">
                                             <div className="flex items-center gap-1">
                                                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                                                <span style={{ color: '#443627' }}>{selectedFood.rating}</span>
+                                                <span style={{ color: '#443627' }}>{selectedFood.rating || 'N/A'}</span>
                                             </div>
                                             <div className="flex items-center gap-1">
                                                 <Clock className="h-4 w-4" style={{ color: '#a0896b' }} />
                                                 <span style={{ color: '#a0896b' }}>
-                                                    {selectedFood.preparationTime}
+                                                    {selectedFood.preparationTime || 'N/A'}
                                                 </span>
                                             </div>
                                         </div>
                                         <span className="text-xl font-bold" style={{ color: '#D98324' }}>
-                                            ৳{selectedFood.price}
+                                            {selectedFood.price > 0 ? `৳${selectedFood.price}` : 'Price TBD'}
                                         </span>
                                     </div>
                                     
@@ -408,16 +369,18 @@ const FoodSearch = () => {
                                     </div>
                                     
                                     {/* Total Price */}
-                                    <div className="p-4 rounded-lg" style={{ backgroundColor: '#f8f6f3' }}>
-                                        <div className="flex justify-between items-center">
-                                            <span className="font-semibold" style={{ color: '#443627' }}>
-                                                Total Amount:
-                                            </span>
-                                            <span className="text-2xl font-bold" style={{ color: '#D98324' }}>
-                                                ৳{totalPrice}
-                                            </span>
+                                    {selectedFood.price > 0 && (
+                                        <div className="p-4 rounded-lg" style={{ backgroundColor: '#f8f6f3' }}>
+                                            <div className="flex justify-between items-center">
+                                                <span className="font-semibold" style={{ color: '#443627' }}>
+                                                    Total Amount:
+                                                </span>
+                                                <span className="text-2xl font-bold" style={{ color: '#D98324' }}>
+                                                    ৳{totalPrice}
+                                                </span>
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
                                     
                                     {/* Action Buttons */}
                                     <div className="flex gap-3 pt-4">
@@ -425,6 +388,7 @@ const FoodSearch = () => {
                                             onClick={handleAddToCart}
                                             variant="outline"
                                             className="flex-1"
+                                            disabled={selectedFood.price <= 0}
                                         >
                                             <ShoppingCart className="h-4 w-4 mr-2" />
                                             Add to Cart
@@ -433,6 +397,7 @@ const FoodSearch = () => {
                                             onClick={handleOrderNow}
                                             className="flex-1"
                                             style={{ backgroundColor: '#D98324' }}
+                                            disabled={selectedFood.price <= 0}
                                         >
                                             Order Now
                                         </Button>
