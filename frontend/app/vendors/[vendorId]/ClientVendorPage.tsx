@@ -5,6 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Check, Crown, Clock, Calendar, Utensils } from 'lucide-react';
 import { useVendor } from "@/app/hooks/singleVendor";
+import { useVendorSubscription } from "@/app/hooks/useVendorSubscription";
+import { toast } from "sonner";
 
 interface MenuItem {
     id: string;
@@ -223,10 +225,9 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
     // const [vendorLoading, setVendorLoading] = useState(true);
-    const [subscriptionLoading, setSubscriptionLoading] = useState(false);
-
-
     const [vendorId, setVendorId] = useState<string>('');
+
+    const { subscribe, isLoading: subscriptionLoading, error: subscriptionError, isSuccess } = useVendorSubscription();
 
     useEffect(() => {
         const getParams = async () => {
@@ -253,40 +254,61 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
 
     const handleSubscribe = async () => {
         if (!selectedPlan) {
-            alert('Please select a subscription plan');
+            toast("No Plan Selected", {
+                description: "Please select a subscription plan before proceeding",
+            });
             return;
         }
 
-        setSubscriptionLoading(true);
+        if (!vendorId) {
+            toast("Vendor Error", {
+                description: "Vendor information not found. Please refresh the page and try again.",
+            });
+            return;
+        }
+        toast("Processing Subscription...", {
+            description: "Please wait while we process your subscription",
+        });
 
         try {
-            const token = localStorage.getItem('token');
-
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/subscription/create`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    plan_type: selectedPlan
-                })
-            });
-
-            const data = await response.json();
-
-            if (response.ok && data.payment_url) {
-                window.location.href = data.payment_url;
-            } else {
-                alert(data.detail || 'Failed to create subscription');
-            }
+            const result = await subscribe(vendorId, selectedPlan);
         } catch (error) {
-            console.error('Error creating subscription:', error);
-            alert('Something went wrong. Please try again.');
-        } finally {
-            setSubscriptionLoading(false);
+            console.error('Subscription failed:', error);
         }
     };
+
+    useEffect(() => {
+        if (isSuccess) {
+            toast("Subscription Successful! 🎉", {
+                description: "Your subscription has been activated. You can now enjoy unlimited food delivery!",
+                duration: 1000,
+            });
+
+            // Reset selected plan after successful subscription
+            setSelectedPlan(null);
+
+            // Optional: You could redirect to a success page or user dashboard
+            // router.push('/dashboard/subscription');
+
+            console.log('Subscription completed successfully');
+        }
+    }, [isSuccess]);
+
+    // Show subscription error if any
+    useEffect(() => {
+        if (subscriptionError) {
+            const errorMessage = subscriptionError instanceof Error
+                ? subscriptionError.message
+                : 'Something went wrong with your subscription. Please try again.';
+
+            toast("Subscription Failed", {
+                description: errorMessage,
+                duration: 1000,
+            });
+
+            console.error('Subscription error:', subscriptionError);
+        }
+    }, [subscriptionError]);
 
     const mapVendorPlansToDisplayPlans = (vendorPlans: SubscriptionPlan[]) => {
         return vendorPlans.map(plan => ({
