@@ -15,9 +15,10 @@ async def test_db(client: AsyncClient = Depends(get_db)):
         # response = await client.rpc("get_server_time").execute()
 
         response = (
-            await client.table("users")
-            .select("name", "email")
-            .eq("email", "tksadik92@example.com")
+            await client.table("menus")
+            .select(
+                "id, vendors(id, name), name, date, img_path, img_bucket, description"
+            )
             .execute()
         )
 

@@ -34,7 +34,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ toggleAuthMode, handleRoleSelec
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         try {
-            const response = await fetch('/api/auth/login', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
