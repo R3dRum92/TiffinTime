@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Check, Crown, Clock, Calendar, Utensils } from 'lucide-react';
+import { useVendor } from "@/app/hooks/singleVendor";
 
 interface MenuItem {
     id: string;
@@ -61,20 +62,19 @@ interface VendorDetails {
     tags: string[];
 }
 
-// Dummy data
-const getDummyVendorData = (id: string): VendorDetails => (
-    {
-        id,
-        name: "Mama's Kitchen",
-        description: "Authentic homemade meals prepared with love and fresh ingredients. We specialize in traditional recipes passed down through generations.",
-        image: "/api/placeholder/400/240",
-        coverImage: "/api/placeholder/800/400",
-        rating: 4.5,
+const transformVendorData = (apiData: any): VendorDetails => {
+    return {
+        id: apiData.id,
+        name: apiData.name,
+        description: apiData.description,
+        image: apiData.img_url,
+        coverImage: apiData.img_url, // Using same image for cover
+        rating: 4.5, // Default values - replace with actual API data when available
         totalReviews: 248,
-        deliveryTime: "30-45 mins",
+        deliveryTime: `${apiData.delivery_time.min}-${apiData.delivery_time.max} mins`,
         minimumOrder: 100,
         deliveryFee: 25,
-        isOpen: true,
+        isOpen: apiData.is_open,
         location: {
             address: "123 Food Street, Block A",
             area: "Dhanmondi",
@@ -86,7 +86,7 @@ const getDummyVendorData = (id: string): VendorDetails => (
         },
         contact: {
             phone: "+880 1234567890",
-            email: "orders@mamaskitchen.com"
+            email: "orders@vendor.com"
         },
         openingHours: {
             Monday: "11:00 AM - 9:00 PM",
@@ -197,7 +197,8 @@ const getDummyVendorData = (id: string): VendorDetails => (
             }
         ],
         tags: ["Homemade", "Bengali", "Vegetarian Options", "Non-Vegetarian", "Healthy"]
-    });
+    };
+};
 
 export interface VendorDetailPageProps {
     params: Promise<{
@@ -206,12 +207,10 @@ export interface VendorDetailPageProps {
 }
 
 export default function ClientVendorPage({ params }: VendorDetailPageProps) {
-    const [vendor, setVendor] = useState<VendorDetails | null>(null);
     const [activeTab, setActiveTab] = useState<'menu' | 'subscription'>('menu');
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [vendorLoading, setVendorLoading] = useState(true);
+    // const [vendorLoading, setVendorLoading] = useState(true);
     const [subscriptionLoading, setSubscriptionLoading] = useState(false);
 
 
@@ -225,16 +224,9 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
         getParams();
     }, [params]);
 
-    useEffect(() => {
-        const fetchVendor = async () => {
-            setVendorLoading(true);
-            await new Promise((res) => setTimeout(res, 500));
-            const data = getDummyVendorData(vendorId);
-            setVendor(data);
-            setVendorLoading(false);
-        };
-        fetchVendor();
-    }, [vendorId]);
+    const { data: vendorData, isLoading, error, isError } = useVendor(vendorId);
+
+    const vendor = vendorData ? transformVendorData(vendorData) : null;
 
     const categories = vendor ? ['All', ...Array.from(new Set(vendor.menu.map(item => item.category)))] : [];
 
@@ -299,7 +291,7 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
 
     const displayPlans = vendor ? mapVendorPlansToDisplayPlans(vendor.subscriptionPlans) : [];
 
-    if (vendorLoading) {
+    if (isLoading) {
         return (
             <div className="container mx-auto px-4 py-8">
                 <div className="flex justify-center items-center h-64">
@@ -309,11 +301,12 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
         );
     }
 
-    if (!vendor) {
+    if (isError || !vendor) { // Handle error state and no vendor data
         return (
             <div className="container mx-auto px-4 py-8">
                 <div className="text-center py-12">
-                    <h3 className="text-xl mb-2 text-red-600">Vendor not found</h3>
+                    <h3 className="text-xl mb-2 text-red-600">Vendor not found or an error occurred.</h3>
+                    {error && <p className="text-sm text-red-500">{error.message}</p>}
                     <Link href="/vendors" className="text-orange-500 hover:underline">
                         Back to Vendors
                     </Link>
