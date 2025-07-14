@@ -29,7 +29,7 @@ const AuthPage = () => {
 
     //---authentication--------
 
-    /* const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         //console.log('Form submitted:', formData);
         try {
@@ -50,17 +50,17 @@ const AuthPage = () => {
         } catch (error) {
             console.error('Auth error:', error);
         }
-    }; */
-
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        //console.log('Form submitted:', formData);
-        if (formData.role === 'student') {
-            window.location.href = '/'; // or use Next.js router
-        } else if (formData.role === 'vendor') {
-            window.location.href = '/vendorDash'; // or use Next.js router
-        }
     };
+
+    // const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    //     e.preventDefault();
+    //     //console.log('Form submitted:', formData);
+    //     if (formData.role === 'student') {
+    //         window.location.href = '/'; // or use Next.js router
+    //     } else if (formData.role === 'vendor') {
+    //         window.location.href = '/vendorDash'; // or use Next.js router
+    //     }
+    // };
 
     const toggleAuthMode = () => {
         setIsLogin(!isLogin);
