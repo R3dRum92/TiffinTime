@@ -137,7 +137,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ toggleAuthMode, handleRoleSelec
 
             <div className="mt-6 text-center">
                 <p className="text-[#a0896b]">
-                    Don't have an account?{' '}
+                    Don&apost have an account?{' '}
                     <button
                         type="button"
                         onClick={toggleAuthMode}
