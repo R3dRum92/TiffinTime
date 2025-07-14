@@ -62,7 +62,19 @@ interface VendorDetails {
     tags: string[];
 }
 
-const transformVendorData = (apiData: any): VendorDetails => {
+interface ApiVendorData {
+    id: string;
+    name: string;
+    description: string;
+    img_url: string;
+    delivery_time: {
+        min: number;
+        max: number;
+    };
+    is_open: boolean;
+}
+
+const transformVendorData = (apiData: ApiVendorData): VendorDetails => {
     return {
         id: apiData.id,
         name: apiData.name,
