@@ -1,16 +1,28 @@
 "use client"
 import React, { useState } from 'react';
 
-const AuthPage = () => {
-    const [isLogin, setIsLogin] = useState(true);
-    const [selectedRole, setSelectedRole] = useState<'student' | 'vendor'>('student');
+// Define types for roles
+type UserRole = 'student' | 'vendor';
+
+// Define props interface for SignInForm
+interface SignInFormProps {
+    toggleAuthMode: () => void;
+    handleRoleSelect: (role: UserRole) => void;
+    selectedRole: UserRole;
+}
+
+// SignInForm Component
+const SignInForm: React.FC<SignInFormProps> = ({ toggleAuthMode, handleRoleSelect, selectedRole }) => {
     const [formData, setFormData] = useState({
         email: '',
         password: '',
-        confirmPassword: '',
-        name: '',
-        role: 'student' as 'student' | 'vendor'
+        role: selectedRole
     });
+
+    // Update form data when role changes from parent
+    React.useEffect(() => {
+        setFormData(prev => ({ ...prev, role: selectedRole }));
+    }, [selectedRole]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({
@@ -19,19 +31,8 @@ const AuthPage = () => {
         });
     };
 
-    const handleRoleSelect = (role: 'student' | 'vendor') => {
-        setSelectedRole(role);
-        setFormData({
-            ...formData,
-            role: role
-        });
-    };
-
-    //---authentication--------
-
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        //console.log('Form submitted:', formData);
         try {
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
@@ -46,31 +47,304 @@ const AuthPage = () => {
                 localStorage.setItem('token', data.token);
                 // Then redirect based on role
                 window.location.href = formData.role === 'student' ? '/' : '/vendorDash';
+            } else {
+                // Handle login error (e.g., show a message to the user)
+                console.error('Login failed:', data.message || 'Unknown error');
+                // You might want to display an error message on the UI
             }
         } catch (error) {
             console.error('Auth error:', error);
+            // Handle network or other unexpected errors
         }
     };
 
-    // const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    //     e.preventDefault();
-    //     //console.log('Form submitted:', formData);
-    //     if (formData.role === 'student') {
-    //         window.location.href = '/'; // or use Next.js router
-    //     } else if (formData.role === 'vendor') {
-    //         window.location.href = '/vendorDash'; // or use Next.js router
-    //     }
-    // };
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Role Selection - Kept in both forms as per original design */}
+            <div className="mb-6">
+                <label className="text-sm font-medium block text-[#443627] mb-3">
+                    I am a:
+                </label>
+                <div className="flex space-x-3">
+                    <button
+                        type="button"
+                        onClick={() => handleRoleSelect('student')}
+                        className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 border-2 ${selectedRole === 'student'
+                            ? 'bg-[#D98324] text-white border-[#D98324] shadow-lg transform scale-105'
+                            : 'bg-white text-[#443627] border-gray-200 hover:border-[#D98324] hover:shadow-md'
+                            }`}
+                    >
+                        🎓 Student
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => handleRoleSelect('vendor')}
+                        className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 border-2 ${selectedRole === 'vendor'
+                            ? 'bg-[#D98324] text-white border-[#D98324] shadow-lg transform scale-105'
+                            : 'bg-white text-[#443627] border-gray-200 hover:border-[#D98324] hover:shadow-md'
+                            }`}
+                    >
+                        🍳 Vendor
+                    </button>
+                </div>
+            </div>
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium block text-[#443627]">
+                    Email Address
+                </label>
+                <input
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white"
+                    placeholder="Enter your email"
+                    required
+                />
+            </div>
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium block text-[#443627]">
+                    Password
+                </label>
+                <input
+                    name="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white"
+                    placeholder="Enter your password"
+                    required
+                />
+            </div>
+
+            <div className="flex justify-end">
+                <button
+                    type="button"
+                    className="text-sm hover:underline transition-all duration-200 text-[#D98324]"
+                >
+                    Forgot Password?
+                </button>
+            </div>
+
+            <button
+                type="submit"
+                className="w-full py-3 px-4 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 bg-[#D98324]"
+            >
+                Sign In
+            </button>
+
+            <div className="mt-6 text-center">
+                <p className="text-[#a0896b]">
+                    Don't have an account?{' '}
+                    <button
+                        type="button"
+                        onClick={toggleAuthMode}
+                        className="font-semibold hover:underline transition-all duration-200 text-[#D98324]"
+                    >
+                        Sign Up
+                    </button>
+                </p>
+            </div>
+        </form>
+    );
+};
+
+// Define props interface for SignUpForm
+interface SignUpFormProps {
+    toggleAuthMode: () => void;
+    handleRoleSelect: (role: UserRole) => void;
+    selectedRole: UserRole;
+}
+
+// SignUpForm Component
+const SignUpForm: React.FC<SignUpFormProps> = ({ toggleAuthMode, handleRoleSelect, selectedRole }) => {
+    const [formData, setFormData] = useState({
+        email: '',
+        password: '',
+        confirmPassword: '',
+        name: '',
+        role: selectedRole
+    });
+
+    // Update form data when role changes from parent
+    React.useEffect(() => {
+        setFormData(prev => ({ ...prev, role: selectedRole }));
+    }, [selectedRole]);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value
+        });
+    };
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (formData.password !== formData.confirmPassword) {
+            console.error("Passwords do not match!");
+            // You might want to display an error message on the UI
+            return;
+        }
+
+        try {
+            // Assuming a /api/auth/register endpoint for sign-up
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: formData.email,
+                    password: formData.password,
+                    name: formData.name,
+                    role: formData.role
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Store JWT token
+                localStorage.setItem('token', data.token);
+                // Then redirect based on role
+                window.location.href = formData.role === 'student' ? '/' : '/vendorDash';
+            } else {
+                // Handle registration error
+                console.error('Registration failed:', data.message || 'Unknown error');
+                // You might want to display an error message on the UI
+            }
+        } catch (error) {
+            console.error('Auth error:', error);
+            // Handle network or other unexpected errors
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Role Selection - Kept in both forms as per original design */}
+            <div className="mb-6">
+                <label className="text-sm font-medium block text-[#443627] mb-3">
+                    I am a:
+                </label>
+                <div className="flex space-x-3">
+                    <button
+                        type="button"
+                        onClick={() => handleRoleSelect('student')}
+                        className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 border-2 ${selectedRole === 'student'
+                            ? 'bg-[#D98324] text-white border-[#D98324] shadow-lg transform scale-105'
+                            : 'bg-white text-[#443627] border-gray-200 hover:border-[#D98324] hover:shadow-md'
+                            }`}
+                    >
+                        🎓 Student
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => handleRoleSelect('vendor')}
+                        className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 border-2 ${selectedRole === 'vendor'
+                            ? 'bg-[#D98324] text-white border-[#D98324] shadow-lg transform scale-105'
+                            : 'bg-white text-[#443627] border-gray-200 hover:border-[#D98324] hover:shadow-md'
+                            }`}
+                    >
+                        🍳 Vendor
+                    </button>
+                </div>
+            </div>
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium block text-[#443627]">
+                    Full Name
+                </label>
+                <input
+                    name="name"
+                    type="text"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white"
+                    placeholder="Enter your full name"
+                    required
+                />
+            </div>
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium block text-[#443627]">
+                    Email Address
+                </label>
+                <input
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white"
+                    placeholder="Enter your email"
+                    required
+                />
+            </div>
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium block text-[#443627]">
+                    Password
+                </label>
+                <input
+                    name="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white"
+                    placeholder="Enter your password"
+                    required
+                />
+            </div>
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium block text-[#443627]">
+                    Confirm Password
+                </label>
+                <input
+                    name="confirmPassword"
+                    type="password"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white"
+                    placeholder="Confirm your password"
+                    required
+                />
+            </div>
+
+            <button
+                type="submit"
+                className="w-full py-3 px-4 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 bg-[#D98324]"
+            >
+                Create Account
+            </button>
+
+            <div className="mt-6 text-center">
+                <p className="text-[#a0896b]">
+                    Already have an account?{' '}
+                    <button
+                        type="button"
+                        onClick={toggleAuthMode}
+                        className="font-semibold hover:underline transition-all duration-200 text-[#D98324]"
+                    >
+                        Sign In
+                    </button>
+                </p>
+            </div>
+        </form>
+    );
+};
+
+
+// Main AuthPage Component
+const AuthPage: React.FC = () => {
+    const [isLogin, setIsLogin] = useState<boolean>(true);
+    const [selectedRole, setSelectedRole] = useState<UserRole>('student'); // Initial role
+
+    const handleRoleSelect = (role: UserRole) => {
+        setSelectedRole(role);
+    };
 
     const toggleAuthMode = () => {
         setIsLogin(!isLogin);
-        setFormData({
-            email: '',
-            password: '',
-            confirmPassword: '',
-            name: '',
-            role: selectedRole as 'student' | 'vendor'
-        });
     };
 
     return (
@@ -124,135 +398,19 @@ const AuthPage = () => {
                         </div>
 
                         <div className="pt-2 px-6 pb-6">
-                            {/* Role Selection */}
-                            <div className="mb-6">
-                                <label className="text-sm font-medium block text-[#443627] mb-3">
-                                    I am a:
-                                </label>
-                                <div className="flex space-x-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleRoleSelect('student')}
-                                        className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 border-2 ${selectedRole === 'student'
-                                            ? 'bg-[#D98324] text-white border-[#D98324] shadow-lg transform scale-105'
-                                            : 'bg-white text-[#443627] border-gray-200 hover:border-[#D98324] hover:shadow-md'
-                                            }`}
-                                    >
-                                        🎓 Student
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleRoleSelect('vendor')}
-                                        className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 border-2 ${selectedRole === 'vendor'
-                                            ? 'bg-[#D98324] text-white border-[#D98324] shadow-lg transform scale-105'
-                                            : 'bg-white text-[#443627] border-gray-200 hover:border-[#D98324] hover:shadow-md'
-                                            }`}
-                                    >
-                                        🍳 Vendor
-                                    </button>
-                                </div>
-                            </div>
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                {!isLogin && (
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium block text-[#443627]">
-                                            Full Name
-                                        </label>
-                                        <input
-                                            name="name"
-                                            type="text"
-                                            value={formData.name}
-                                            onChange={handleInputChange}
-                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white"
-                                            placeholder="Enter your full name"
-                                            required={!isLogin}
-                                        />
-                                    </div>
-                                )}
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium block text-[#443627]">
-                                        Email Address
-                                    </label>
-                                    <input
-                                        name="email"
-                                        type="email"
-                                        value={formData.email}
-                                        onChange={handleInputChange}
-                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white"
-                                        placeholder="Enter your email"
-                                        required
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium block text-[#443627]">
-                                        Password
-                                    </label>
-                                    <input
-                                        name="password"
-                                        type="password"
-                                        value={formData.password}
-                                        onChange={handleInputChange}
-                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white"
-                                        placeholder="Enter your password"
-                                        required
-                                    />
-                                </div>
-
-                                {!isLogin && (
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium block text-[#443627]">
-                                            Confirm Password
-                                        </label>
-                                        <input
-                                            name="confirmPassword"
-                                            type="password"
-                                            value={formData.confirmPassword}
-                                            onChange={handleInputChange}
-                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white"
-                                            placeholder="Confirm your password"
-                                            required={!isLogin}
-                                        />
-                                    </div>
-                                )}
-
-                                {isLogin && (
-                                    <div className="flex justify-end">
-                                        <button
-                                            type="button"
-                                            className="text-sm hover:underline transition-all duration-200 text-[#D98324]"
-                                        >
-                                            Forgot Password?
-                                        </button>
-                                    </div>
-                                )}
-
-                                <button
-                                    type="submit"
-                                    className="w-full py-3 px-4 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 bg-[#D98324]"
-                                >
-                                    {isLogin ? 'Sign In' : 'Create Account'}
-                                </button>
-                            </form>
-
-                            <div className="mt-6">
-
-
-                            </div>
-
-                            <div className="mt-6 text-center">
-                                <p className="text-[#a0896b]">
-                                    {isLogin ? "Don't have an account? " : "Already have an account? "}
-                                    <button
-                                        type="button"
-                                        onClick={toggleAuthMode}
-                                        className="font-semibold hover:underline transition-all duration-200 text-[#D98324]"
-                                    >
-                                        {isLogin ? 'Sign Up' : 'Sign In'}
-                                    </button>
-                                </p>
-                            </div>
+                            {isLogin ? (
+                                <SignInForm
+                                    toggleAuthMode={toggleAuthMode}
+                                    handleRoleSelect={handleRoleSelect}
+                                    selectedRole={selectedRole}
+                                />
+                            ) : (
+                                <SignUpForm
+                                    toggleAuthMode={toggleAuthMode}
+                                    handleRoleSelect={handleRoleSelect}
+                                    selectedRole={selectedRole}
+                                />
+                            )}
                         </div>
                     </div>
 
