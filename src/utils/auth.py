@@ -1,3 +1,5 @@
+from typing import Union
+
 from fastapi import HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from supabase import AsyncClient
@@ -21,7 +23,7 @@ async def get_user_from_token(
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Security(security),
-) -> schemas.UserID:
+) -> Union[schemas.UserID, schemas.VendorID]:
     token = credentials.credentials
     payload = verify_access_token(token)
     if payload is None:
@@ -29,13 +31,17 @@ async def get_current_user(
 
     user_id = payload.get("user_id")
 
-    if user_id is None:
+    vendor_id = payload.get("vendor_id")
+
+    if user_id is None and vendor_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
         )
-
-    return schemas.UserID(id=user_id)
+    if user_id:
+        return schemas.UserID(id=user_id)
+    else:
+        return schemas.VendorID(id=vendor_id)
 
 
 async def admin_auth(credentials: HTTPAuthorizationCredentials = Security(security)):
@@ -61,4 +67,5 @@ async def user_or_admin_auth(
     except HTTPException as e:
         errors.append(str(e.detail))
 
+    raise HTTPException(status_code=401, detail=f"Unauthorized: {errors}")
     raise HTTPException(status_code=401, detail=f"Unauthorized: {errors}")

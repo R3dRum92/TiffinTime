@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, field_validator
@@ -9,6 +9,10 @@ class BaseResponse(BaseModel):
 
 
 class UserID(BaseModel):
+    id: UUID
+
+
+class VendorID(BaseModel):
     id: UUID
 
 
@@ -44,9 +48,11 @@ class RegistrationRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    role: str
 
 
 class LoginResponse(BaseModel):
+    success: bool
     token: str
 
 
@@ -62,3 +68,12 @@ class VendorsResponse(BaseModel):
     is_open: bool
     img_url: str
     delivery_time: VendorDeliveryTime
+
+
+class MenuResponse(BaseModel):
+    id: UUID
+    vendor_name: str
+    name: str
+    date: date
+    description: str | None
+    img_url: str

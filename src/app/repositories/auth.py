@@ -34,26 +34,48 @@ async def register(
     return schemas.BaseResponse(message="Registration successful")
 
 
-async def login(request: schemas.LoginRequest, client: AsyncClient):
-    response = (
-        await client.table("users")
-        .select("id", "email", "password_hash")
-        .eq("email", request.email)
-        .execute()
-    )
+async def login(
+    request: schemas.LoginRequest, client: AsyncClient
+) -> schemas.LoginResponse:
+    if request.role == "student":
+        response = (
+            await client.table("users")
+            .select("id", "email", "password_hash")
+            .eq("email", request.email)
+            .execute()
+        )
+        user = response.data[0]
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
 
-    user = response.data[0]
+        if not verify_password(request.password, user.get("password_hash")):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password"
+            )
 
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        token = create_access_token(
+            data={"user_id": str(user.get("id")), "role": "student"}
         )
 
-    if not verify_password(request.password, user.get("password_hash")):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password"
+        return schemas.LoginResponse(success=True, token=token)
+    else:
+        response = (
+            await client.table("vendors")
+            .select("id", "email", "password_hash")
+            .eq("email", request.email)
+            .execute()
         )
 
-    token = create_access_token(data={"user_id": str(user.get("id"))})
+        vendor = response.data[0]
+        if not vendor:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Vendor not found"
+            )
 
-    return schemas.LoginResponse(token=token)
+        token = create_access_token(
+            data={"vendor_id": str(vendor.get("id")), "role": "vendor"}
+        )
+
+        return schemas.LoginResponse(success=True, token=token)
