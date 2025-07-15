@@ -11,8 +11,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { MapPin, Calendar, User, CreditCard, X, Edit, ShoppingBag, Clock, MapPin as LocationIcon, Loader2 } from 'lucide-react';
 import { toast } from "sonner"
 import { useTransformedUserSubscriptions, useUserInfo } from '../hooks/getUserDetails';
+import { useRouter } from 'next/navigation';
+
+
 
 const Index = () => {
+    const router = useRouter();
     const [pickupPoint, setPickupPoint] = useState('Main Campus Cafeteria');
     const [isEditingPickup, setIsEditingPickup] = useState(false);
     const { subscriptions, isLoading: subscriptionsLoading, error: subscriptionsError, refetch } = useTransformedUserSubscriptions();
@@ -424,7 +428,8 @@ const Index = () => {
                         ) : (
                             <div className="text-center py-8">
                                 <p style={{ color: '#a0896b' }}>No active subscriptions</p>
-                                <Button className="mt-4" style={{ backgroundColor: '#D98324' }}>
+                                <Button className="mt-4" style={{ backgroundColor: '#D98324' }}
+                                    onClick={() => router.push("/vendors")}>
                                     Browse Subscription Plans
                                 </Button>
                             </div>

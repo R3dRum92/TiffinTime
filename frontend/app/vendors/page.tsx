@@ -3,8 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useVendors, Vendor } from '../hooks/useVendors'; // Adjust path as needed
-
+import { useVendors, Vendor } from '../hooks/useVendors'; // Adjust path if needed
 
 interface VendorCardProps {
   vendor: Vendor;
@@ -14,7 +13,6 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
   const handleCardClick = () => {
     if (vendor.isOpen) {
       window.location.href = `/vendors/${vendor.id}`;
-      //console.log(vendor.id)
     }
   };
 
@@ -69,14 +67,13 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
 const VendorsPage = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  // Use React Query hook
   const { data: vendors = [], isLoading: loading, error, refetch } = useVendors();
 
-  // Filter vendors based on search
   const filteredVendors = vendors.filter(vendor => {
-    const matchesSearch = vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vendor.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
+    return (
+      vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      vendor.description.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   });
 
   if (loading) {
@@ -107,33 +104,47 @@ const VendorsPage = () => {
   }
 
   return (
-    <div className="container mx-auto px-8 lg:px-16 xl:px-24 pt-20 pb-8">
-      {/* Search Section */}
-      <div className="mb-8 flex flex-col md:flex-row gap-4 py-4">
-        <div className="flex-1">
-          <input
-            type="text"
-            placeholder="Search vendors..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-          />
-        </div>
-      </div>
+    <div
+      className="min-h-screen relative"
+      style={{ backgroundColor: '#f9f5e6' }}
+    >
+      {/* Background pattern */}
+      <div
+        className="absolute inset-0 opacity-5"
+        style={{
+          backgroundImage: `radial-gradient(circle at 12px 12px, #D98324 1px, transparent 1px)`,
+          backgroundSize: '24px 24px',
+        }}
+      />
 
-      {/* Vendors Grid */}
-      {filteredVendors.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredVendors.map(vendor => (
-            <VendorCard key={vendor.id} vendor={vendor} />
-          ))}
+      <div className="relative z-10 container mx-auto px-8 lg:px-16 xl:px-24 pt-20 pb-8">
+        {/* Search Section */}
+        <div className="mb-8 flex flex-col md:flex-row gap-4 py-4">
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Search vendors..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            />
+          </div>
         </div>
-      ) : (
-        <div className="text-center py-12">
-          <h3 className="text-xl mb-2" style={{ color: '#443627' }}>No vendors found</h3>
-          <p style={{ color: '#a0896b' }}>Try adjusting your search criteria</p>
-        </div>
-      )}
+
+        {/* Vendors Grid */}
+        {filteredVendors.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredVendors.map(vendor => (
+              <VendorCard key={vendor.id} vendor={vendor} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <h3 className="text-xl mb-2" style={{ color: '#443627' }}>No vendors found</h3>
+            <p style={{ color: '#a0896b' }}>Try adjusting your search criteria</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
