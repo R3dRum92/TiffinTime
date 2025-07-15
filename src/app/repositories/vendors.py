@@ -29,11 +29,8 @@ async def get_all_vendors(client: AsyncClient) -> List[schemas.VendorsResponse]:
         _path = vendor.get("img_path")
 
         if not _bucket or not _path:
-            logger.error(f"Path or bucket does not exist")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Path or bucket does not exist",
-            )
+            logger.error(f"Path or bucket for vendor {vendor.get("id")} does not exist")
+            continue
 
         try:
             url = await client.storage.from_(_bucket).create_signed_url(
