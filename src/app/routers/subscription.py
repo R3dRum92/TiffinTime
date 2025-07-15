@@ -27,6 +27,21 @@ async def subscribe(
     )
 
 
+@router.get(
+    "/token/",
+    response_model=List[schemas.VendorSubscriptionResponse],
+    status_code=status.HTTP_200_OK,
+)
+async def get_subscription_by_vendor(
+    vendor: schemas.VendorID = Depends(get_current_user),
+    client: AsyncClient = Depends(get_db),
+):
+    vendor_id = vendor.id
+    return await subscription.get_subscriptions_by_vendor(
+        vendor_id=vendor_id, client=client
+    )
+
+
 @router.delete("/{subscription_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def cancel_subscription(
     subscription_id: UUID, client: AsyncClient = Depends(get_db)

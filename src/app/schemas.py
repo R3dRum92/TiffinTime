@@ -113,6 +113,13 @@ class UserSubscriptionResponse(BaseModel):
     start_date: date
 
 
+class VendorSubscriptionResponse(BaseModel):
+    id: UUID
+    name: str
+    end_date: date
+    start_date: date
+
+
 BD_PHONE_REGEX = re.compile(r"^(?:\+8801|01)[0-9]{9}$")
 
 
