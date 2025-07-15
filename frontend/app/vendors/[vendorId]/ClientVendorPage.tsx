@@ -343,25 +343,26 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
             {/* Content Wrapper to ensure it's above the SVG background */}
             <div className="relative z-10">
                 {/* Header Section */}
-                <div className="relative bg-black">
-                    <Image
-                        src={vendor.coverImage}
-                        alt={vendor.name}
-                        width={800}
-                        height={400}
-                        className="w-full h-64 md:h-80 object-cover"
-                    />
-                    <div className="absolute inset-0  bg-opacity-40"></div>
-                    <div className="absolute bottom-4 left-4 text-white">
-                        <h1 className="text-3xl md:text-4xl font-bold mb-2">{vendor.name}</h1>
-                        <div className="flex items-center gap-4 text-sm">
-                            <span className="flex items-center gap-1">
-                                ⭐ {vendor.rating} ({vendor.totalReviews} reviews)
-                            </span>
-                            <span>🕒 {vendor.deliveryTime}</span>
-                            <span className={`px-2 py-1 rounded ${vendor.isOpen ? 'bg-green-500' : 'bg-red-500'}`}>
-                                {vendor.isOpen ? 'Open' : 'Closed'}
-                            </span>
+                <div className="container mx-auto px-4 py-6">
+                    <div className="flex items-center gap-4 bg-white rounded-lg shadow-md p-4">
+                        <Image
+                            src={vendor.coverImage}
+                            alt={vendor.name}
+                            width={100}
+                            height={100}
+                            className="w-30 h-30 object-cover rounded-lg"
+                        />
+                        <div className="flex-1">
+                            <h1 className="text-2xl font-bold mb-2 darktext">{vendor.name}</h1>
+                            <div className="flex items-center gap-4 text-sm lighttext">
+                                <span className="flex items-center gap-1">
+                                    ⭐ {vendor.rating} ({vendor.totalReviews} reviews)
+                                </span>
+                                <span>🕒 {vendor.deliveryTime}</span>
+                                <span className={`px-2 py-1 rounded text-white ${vendor.isOpen ? 'bg-green-500' : 'bg-red-500'}`}>
+                                    {vendor.isOpen ? 'Open' : 'Closed'}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
