@@ -77,3 +77,10 @@ class MenuResponse(BaseModel):
     date: date
     description: str | None
     img_url: str
+
+
+class UserSubscriptionResponse(BaseModel):
+    id: UUID
+    name: str
+    duration: int
+    start_date: date
