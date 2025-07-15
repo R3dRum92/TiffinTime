@@ -8,28 +8,65 @@ from app.security import create_access_token, get_password_hash, verify_password
 async def register(
     request: schemas.RegistrationRequest, client: AsyncClient
 ) -> schemas.BaseResponse:
-    response = await (
-        client.table("users")
-        .select("email", "name")
-        .eq("email", request.email)
-        .execute()
-    )
-
-    if response.data:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
+    if request.role == "student":
+        response = await (
+            client.table("users")
+            .select("email", "name")
+            .eq("email", request.email)
+            .execute()
         )
 
-    if request.password != request.confirm_password:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Passwords do not match"
+        if response.data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered",
+            )
+
+        if request.password != request.confirm_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Passwords do not match"
+            )
+
+        hashed_password = get_password_hash(request.password)
+
+        await client.table("users").insert(
+            {
+                "name": request.name,
+                "email": request.email,
+                "phone_number": request.phone_number,
+                "password_hash": hashed_password,
+            }
+        ).execute()
+
+    elif request.role == "vendor":
+        response = await (
+            client.table("vendors")
+            .select("*")
+            .or_(f"email.eq.{request.email},name.eq.{request.name}")
+            .execute()
         )
 
-    hashed_password = get_password_hash(request.password)
+        if response.data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Vendor already registered",
+            )
 
-    await client.table("users").insert(
-        {"name": request.name, "email": request.email, "password_hash": hashed_password}
-    ).execute()
+        if request.password != request.confirm_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Passwords do not match"
+            )
+
+        hashed_password = get_password_hash(request.password)
+
+        await client.table("vendors").insert(
+            {
+                "name": request.name,
+                "email": request.email,
+                "phone_number": request.phone_number,
+                "password_hash": hashed_password,
+            }
+        ).execute()
 
     return schemas.BaseResponse(message="Registration successful")
 

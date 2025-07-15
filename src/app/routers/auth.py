@@ -11,7 +11,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post(
-    "/register",
+    "/register/",
     response_model=schemas.BaseResponse,
     status_code=status.HTTP_201_CREATED,
 )
@@ -21,6 +21,6 @@ async def register(
     return await auth.register(request=request, client=client)
 
 
-@router.post("/login", response_model=schemas.LoginResponse)
+@router.post("/login/", response_model=schemas.LoginResponse)
 async def login(request: schemas.LoginRequest, client: AsyncClient = Depends(get_db)):
     return await auth.login(request=request, client=client)
