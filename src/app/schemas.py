@@ -1,6 +1,6 @@
 import re
 from datetime import date, timedelta
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, field_validator
@@ -92,7 +92,7 @@ class VendorsResponse(BaseModel):
     name: str
     description: str | None
     is_open: bool
-    img_url: str
+    img_url: Optional[str]
     delivery_time: VendorDeliveryTime
 
 
