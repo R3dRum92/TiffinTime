@@ -44,13 +44,37 @@ class RegistrationRequest(BaseModel):
     name: str
     email: EmailStr
     password: str
+    phone_number: str
     confirm_password: str
+    role: str
+
+    @field_validator("phone_number")
+    def validate_phone_number(cls, v):
+        if not BD_PHONE_REGEX.match(v):
+            raise ValueError("Invalid phone number format")
+        return v
+
+    @field_validator("role")
+    @classmethod
+    def validate_role(cls, v):
+        allowed = {"student", "vendor"}
+        if v not in allowed:
+            raise ValueError(f"type must be one of {allowed}")
+        return v
 
 
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
     role: str
+
+    @field_validator("role")
+    @classmethod
+    def validate_role(cls, v):
+        allowed = {"student", "vendor"}
+        if v not in allowed:
+            raise ValueError(f"type must be one of {allowed}")
+        return v
 
 
 class LoginResponse(BaseModel):

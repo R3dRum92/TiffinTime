@@ -137,7 +137,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ toggleAuthMode, handleRoleSelec
 
             <div className="mt-6 text-center">
                 <p className="text-[#a0896b]">
-                    Don&apost have an account?{' '}
+                    Don&apos;t have an account?{' '}
                     <button
                         type="button"
                         onClick={toggleAuthMode}
@@ -165,7 +165,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ toggleAuthMode, handleRoleSelec
         password: '',
         confirmPassword: '',
         name: '',
-        number: '',
+        phone_number: '',
         role: selectedRole
     });
 
@@ -191,25 +191,23 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ toggleAuthMode, handleRoleSelec
 
         try {
             // Assuming a /api/auth/register endpoint for sign-up
-            const response = await fetch('/api/auth/register', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     email: formData.email,
                     password: formData.password,
                     name: formData.name,
-                    number: formData.number,
+                    phone_number: formData.phone_number,
+                    confirm_password: formData.confirmPassword,
                     role: formData.role
                 })
             });
 
             const data = await response.json();
 
-            if (data.success) {
-                // Store JWT token
-                localStorage.setItem('token', data.token);
-                // Then redirect based on role
-                window.location.href = formData.role === 'student' ? '/' : '/vendorDash';
+            if (response.ok) {
+                toggleAuthMode()
             } else {
                 // Handle registration error
                 console.error('Registration failed:', data.message || 'Unknown error');
@@ -286,13 +284,14 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ toggleAuthMode, handleRoleSelec
                     Phone Number
                 </label>
                 <input
-                    name="number"
+                    name="phone_number"
                     type="tel"
-                    value={formData.number}
+                    value={formData.phone_number || ''}
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white"
                     placeholder="Enter your phone number"
                     required
+                    autoComplete="tel"
                 />
             </div>
 
