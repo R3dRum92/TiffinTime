@@ -8,12 +8,15 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { MapPin, Calendar, User, CreditCard, X, Edit, ShoppingBag, Clock, MapPin as LocationIcon } from 'lucide-react';
+import { MapPin, Calendar, User, CreditCard, X, Edit, ShoppingBag, Clock, MapPin as LocationIcon, Loader2 } from 'lucide-react';
 import { toast } from "sonner"
+import { useTransformedUserSubscriptions } from '../hooks/getUserSubscription';
 
 const Index = () => {
     const [pickupPoint, setPickupPoint] = useState('Main Campus Cafeteria');
     const [isEditingPickup, setIsEditingPickup] = useState(false);
+    const { subscriptions, isLoading, error, refetch } = useTransformedUserSubscriptions();
+
 
     const userData = {
         name: 'Papry Rahman',
@@ -22,19 +25,6 @@ const Index = () => {
         studentId: 'CSE-2021-22'
     };
 
-    const subscriptions = [
-        {
-            id: 1,
-            vendor: 'Kashem Mama',
-            plan: 'Monthly Plan',
-            price: 999,
-            duration: '30 days',
-            startDate: '2024-06-01',
-            endDate: '2024-06-30',
-            status: 'Active',
-            mealsLeft: 18
-        }
-    ];
 
     const singleOrders = [
         {
@@ -62,23 +52,19 @@ const Index = () => {
         'TSC'
     ];
 
-    const handleCancelOrder = (orderId: number) => {
-        toast("Order Cancelled", {
-            description: "Your order has been successfully cancelled.",
+    const handleCancelSubscription = (subscriptionId: string) => {
+        // TODO: Implement API call to cancel subscription
+        toast("Subscription Cancelled", {
+            description: "Your subscription has been cancelled. You can still use remaining meals.",
+            action: {
+                label: "Undo",
+                onClick: () => console.log("Undo subscription cancellation"),
+            },
         });
+
+        // Refetch subscriptions after cancellation
+        refetch();
     };
-
-    // const handleCancelSubscription = (subscriptionId: number) => {
-    //     toast(
-    //         "Subscription Cancelled", {
-    //         description: "Your subscription has been cancelled. You can still use remaining meals.",
-    //         action: {
-    //             label: "Undo",
-    //             onClick: () => console.log("Undo"),
-    //         },
-
-    //     });
-    // };
 
     const handlePickupPointChange = (newPoint: string) => {
         setPickupPoint(newPoint);
@@ -90,6 +76,41 @@ const Index = () => {
 
     const totalBill = subscriptions.reduce((sum, sub) => sum + sub.price, 0) +
         singleOrders.reduce((sum, order) => sum + order.price, 0);
+
+    // Handle loading state
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'rgb(249, 245, 230)' }}>
+                <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" style={{ color: '#D98324' }} />
+                    <p className="text-lg" style={{ color: '#443627' }}>Loading your subscriptions...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'rgb(249, 245, 230)' }}>
+                <Card className="shadow-lg border-0 max-w-md w-full">
+                    <CardContent className="p-6 text-center">
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+                            <X className="h-8 w-8 text-red-600" />
+                        </div>
+                        <h3 className="font-bold text-lg mb-2 text-red-700">
+                            Error Loading Subscriptions
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-4">
+                            {error.message || 'Failed to load your subscriptions. Please try again.'}
+                        </p>
+                        <Button onClick={() => refetch()} style={{ backgroundColor: '#D98324' }}>
+                            Try Again
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen relative bgtheme2" style={{ backgroundColor: 'rgb(249, 245, 230)' }}>
@@ -268,12 +289,24 @@ const Index = () => {
                         }}
                     />
                     <CardHeader className="pb-4 relative z-10">
-                        <CardTitle style={{ color: '#443627' }}>Active Subscriptions</CardTitle>
+                        <CardTitle className="flex items-center justify-between" style={{ color: '#443627' }}>
+                            Active Subscriptions
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => refetch()}
+                                className="flex items-center gap-2"
+                            >
+                                <Loader2 className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                                Refresh
+                            </Button>
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4 relative z-10">
                         {subscriptions.length > 0 ? (
                             subscriptions.map((subscription) => (
                                 <div key={subscription.id} className="p-4 rounded-lg border relative overflow-hidden" style={{ backgroundColor: '#f8f6f3' }}>
+                                    {/* Your existing subscription card JSX */}
                                     <div
                                         className="absolute inset-0 opacity-10"
                                         style={{
@@ -285,7 +318,7 @@ const Index = () => {
                                         <div className="flex justify-between items-start mb-3">
                                             <div>
                                                 <h3 className="font-bold text-lg" style={{ color: '#443627' }}>{subscription.vendor}</h3>
-                                                <p style={{ color: '#a0896b' }}>{subscription.plan}</p>
+
                                             </div>
                                             <Badge
                                                 className="px-3 py-1"
@@ -297,10 +330,6 @@ const Index = () => {
 
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                                             <div>
-                                                <p className="text-sm" style={{ color: '#a0896b' }}>Price</p>
-                                                <p className="font-semibold" style={{ color: '#443627' }}>৳{subscription.price}</p>
-                                            </div>
-                                            <div>
                                                 <p className="text-sm" style={{ color: '#a0896b' }}>Duration</p>
                                                 <p className="font-semibold" style={{ color: '#443627' }}>{subscription.duration}</p>
                                             </div>
@@ -309,37 +338,47 @@ const Index = () => {
                                                 <p className="font-semibold" style={{ color: '#443627' }}>{subscription.startDate}</p>
                                             </div>
                                             <div>
-                                                <p className="text-sm" style={{ color: '#a0896b' }}>Meals Left</p>
-                                                <p className="font-semibold" style={{ color: '#443627' }}>{subscription.mealsLeft}</p>
+                                                <p className="text-sm" style={{ color: '#a0896b' }}>End Date</p>
+                                                <p className="font-semibold" style={{ color: '#443627' }}>{subscription.endDate}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm" style={{ color: '#a0896b' }}>Status</p>
+                                                <p className="font-semibold" style={{ color: '#443627' }}>{subscription.status}</p>
                                             </div>
                                         </div>
-
-                                        {/* <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="destructive" size="sm" className="flex items-center gap-2">
-                                                    <X className="h-4 w-4" />
-                                                    Cancel Subscription
-                                                </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Cancel Subscription</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        Are you sure you want to cancel your subscription with {subscription.vendor}?
-                                                        You can still use your remaining meals until the end date.
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
-                                                    <AlertDialogAction
-                                                        onClick={() => handleCancelSubscription(subscription.id)}
-                                                        className="bg-red-600 hover:bg-red-700"
+                                        {/* Cancel Button */}
+                                        <div className="flex justify-end">
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button
+                                                        variant="destructive"
+                                                        size="sm"
+                                                        className="flex items-center gap-2 bgalert"
                                                     >
-                                                        Cancel Subscription
-                                                    </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog> */}
+                                                        <X className="h-4 w-4" />
+                                                        Cancel
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Cancel Subscription</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Are you sure you want to cancel your subscription with {subscription.vendor}?
+                                                            This action cannot be undone.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Keep</AlertDialogCancel>
+                                                        <AlertDialogAction
+                                                            onClick={() => handleCancelSubscription(subscription.id)}
+                                                            className="bg-red-500 hover:bg-red-700"
+                                                        >
+                                                            Cancel
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </div>
                                     </div>
                                 </div>
                             ))
@@ -355,7 +394,7 @@ const Index = () => {
                 </Card>
 
                 {/* Single Orders */}
-                <Card className="shadow-lg border-0 relative overflow-hidden">
+                {/* <Card className="shadow-lg border-0 relative overflow-hidden">
                     <div
                         className="absolute inset-0 opacity-5"
                         style={{
@@ -444,10 +483,10 @@ const Index = () => {
                             </div>
                         )}
                     </CardContent>
-                </Card>
+                </Card> */}
 
                 {/* Bill Summary */}
-                <Card className="shadow-lg border-0 relative overflow-hidden">
+                {/* <Card className="shadow-lg border-0 relative overflow-hidden">
                     <div
                         className="absolute inset-0 opacity-5"
                         style={{
@@ -478,7 +517,7 @@ const Index = () => {
                             </div>
                         </div>
                     </CardContent>
-                </Card>
+                </Card> */}
             </div>
         </div>
     );

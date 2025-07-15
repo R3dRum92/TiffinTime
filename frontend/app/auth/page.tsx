@@ -165,6 +165,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ toggleAuthMode, handleRoleSelec
         password: '',
         confirmPassword: '',
         name: '',
+        number: '',
         role: selectedRole
     });
 
@@ -197,6 +198,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ toggleAuthMode, handleRoleSelec
                     email: formData.email,
                     password: formData.password,
                     name: formData.name,
+                    number: formData.number,
                     role: formData.role
                 })
             });
@@ -211,7 +213,6 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ toggleAuthMode, handleRoleSelec
             } else {
                 // Handle registration error
                 console.error('Registration failed:', data.message || 'Unknown error');
-                // You might want to display an error message on the UI
             }
         } catch (error) {
             console.error('Auth error:', error);
@@ -276,6 +277,21 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ toggleAuthMode, handleRoleSelec
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white"
                     placeholder="Enter your email"
+                    required
+                />
+            </div>
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium block text-[#443627]">
+                    Phone Number
+                </label>
+                <input
+                    name="number"
+                    type="tel"
+                    value={formData.number}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white"
+                    placeholder="Enter your phone number"
                     required
                 />
             </div>
