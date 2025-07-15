@@ -85,3 +85,4 @@ class UserSubscriptionResponse(BaseModel):
     name: str
     duration: int
     start_date: date
+
