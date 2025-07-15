@@ -56,9 +56,6 @@ interface VendorDetails {
         phone: string;
         email: string;
     };
-    openingHours: {
-        [key: string]: string;
-    };
     menu: MenuItem[];
     subscriptionPlans: SubscriptionPlan[];
     tags: string[];
@@ -102,15 +99,7 @@ const transformVendorData = (apiData: ApiVendorData): VendorDetails => {
             phone: "+880 1234567890",
             email: "orders@vendor.com"
         },
-        openingHours: {
-            Monday: "11:00 AM - 9:00 PM",
-            Tuesday: "11:00 AM - 9:00 PM",
-            Wednesday: "11:00 AM - 9:00 PM",
-            Thursday: "11:00 AM - 9:00 PM",
-            Friday: "11:00 AM - 9:00 PM",
-            Saturday: "11:00 AM - 10:00 PM",
-            Sunday: "12:00 PM - 8:00 PM"
-        },
+
         menu: [
             {
                 id: "1",
@@ -350,32 +339,11 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
     }
 
     return (
-        <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: ' #f7f9e6' }}>
-            {/* Background SVG Pattern for the entire page */}
-            <div className="absolute inset-0 pt-30">
-                <svg
-                    viewBox="0 0 1440 800"
-                    className="w-full h-full"
-                    preserveAspectRatio="none"
-                >
-                    <path
-                        d="M 0 200 C 100 150 200 100 400 120 C 600 140 800 180 1000 160 C 1200 140 1300 120 1440 140 L 1440 0 L 0 0 Z"
-                        fill="url(#subscriptionGradient)"
-                        opacity="0.3"
-                    />
-                    <defs>
-                        <linearGradient id="subscriptionGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#D98324" />
-                            <stop offset="100%" stopColor="#EFDCAB" />
-                        </linearGradient>
-                    </defs>
-                </svg>
-            </div>
-
+        <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: ' #f9f5e6' }}>
             {/* Content Wrapper to ensure it's above the SVG background */}
             <div className="relative z-10">
                 {/* Header Section */}
-                <div className="relative">
+                <div className="relative bg-black">
                     <Image
                         src={vendor.coverImage}
                         alt={vendor.name}
@@ -383,7 +351,7 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                         height={400}
                         className="w-full h-64 md:h-80 object-cover"
                     />
-                    <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+                    <div className="absolute inset-0  bg-opacity-40"></div>
                     <div className="absolute bottom-4 left-4 text-white">
                         <h1 className="text-3xl md:text-4xl font-bold mb-2">{vendor.name}</h1>
                         <div className="flex items-center gap-4 text-sm">
@@ -401,7 +369,7 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                 {/* Main Content */}
                 <div className="container mx-auto px-4 py-8">
                     {/* Sidebar */}
-                    <div className="rounded-lg shadow-md p-6 mb-6">
+                    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
                         <h3 className="text-lg font-semibold mb-4">Location Details</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             <div> <p><strong>Address:</strong> {vendor.location.address}</p>

@@ -11,8 +11,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { MapPin, Calendar, User, CreditCard, X, Edit, ShoppingBag, Clock, MapPin as LocationIcon, Loader2 } from 'lucide-react';
 import { toast } from "sonner"
 import { useTransformedUserSubscriptions, useUserInfo } from '../hooks/getUserDetails';
+import { useRouter } from 'next/navigation';
+
+
 
 const Index = () => {
+    const router = useRouter();
     const [pickupPoint, setPickupPoint] = useState('Main Campus Cafeteria');
     const [isEditingPickup, setIsEditingPickup] = useState(false);
     const { subscriptions, isLoading: subscriptionsLoading, error: subscriptionsError, refetch } = useTransformedUserSubscriptions();
@@ -47,18 +51,51 @@ const Index = () => {
         'TSC'
     ];
 
-    const handleCancelSubscription = (subscriptionId: string) => {
-        // TODO: Implement API call to cancel subscription
-        toast("Subscription Cancelled", {
-            description: "Your subscription has been cancelled. You can still use remaining meals.",
-            action: {
-                label: "Undo",
-                onClick: () => console.log("Undo subscription cancellation"),
-            },
-        });
+    const handleCancelSubscription = async (subscriptionId: string) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                throw new Error('No authentication token found');
+            }
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/subscribe/${subscriptionId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Add authentication header if needed
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
 
-        // Refetch subscriptions after cancellation
-        refetch();
+            if (!response.ok) {
+                // Handle different error status codes
+                if (response.status === 404) {
+                    throw new Error('Subscription not found');
+                } else if (response.status === 403) {
+                    throw new Error('You are not authorized to cancel this subscription');
+                } else if (response.status === 409) {
+                    throw new Error('Subscription cannot be cancelled at this time');
+                } else {
+                    throw new Error('Failed to cancel subscription');
+                }
+            }
+
+            toast("Subscription Cancelled", {
+                description: "Your subscription has been cancelled!",
+                action: {
+                    label: "Undo",
+                    onClick: () => console.log("Undo subscription cancellation"),
+                },
+            });
+
+            // Refetch subscriptions after cancellation
+            refetch();
+        } catch (error) {
+            console.error('Error cancelling subscription:', error);
+
+            toast("Error", {
+                description: error instanceof Error ? error.message : "Failed to cancel subscription. Please try again.",
+            });
+        }
     };
 
     const handlePickupPointChange = (newPoint: string) => {
@@ -391,7 +428,8 @@ const Index = () => {
                         ) : (
                             <div className="text-center py-8">
                                 <p style={{ color: '#a0896b' }}>No active subscriptions</p>
-                                <Button className="mt-4" style={{ backgroundColor: '#D98324' }}>
+                                <Button className="mt-4" style={{ backgroundColor: '#D98324' }}
+                                    onClick={() => router.push("/vendors")}>
                                     Browse Subscription Plans
                                 </Button>
                             </div>
