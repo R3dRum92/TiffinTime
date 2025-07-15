@@ -69,17 +69,14 @@ async def subscribe(
     return schemas.BaseResponse(message="Subscription successful")
 
 
-async def get_user_subscriptions(
-    user_id: UUID, client: AsyncClient
-) -> List[schemas.UserSubscriptionResponse]:
+async def cancel_subscription(subscription_id: UUID, client: AsyncClient) -> None:
     try:
         response = (
             await client.table("subscription")
-            .select("id, users(id, name), vendors(id, name), starts_from, ends_at")
-            .eq("user_id", user_id)
+            .select("*")
+            .eq("id", subscription_id)
             .execute()
         )
-
     except Exception as e:
         logger.error(f"Database query failed: {str(e)}")
         raise HTTPException(
@@ -87,22 +84,11 @@ async def get_user_subscriptions(
             detail=f"Database query failed: {str(e)}",
         )
 
-    _subscriptions = response.data
-    subscriptions = []
-
-    for subscription in _subscriptions:
-        ends = datetime.fromisoformat(subscription.get("ends_at"))
-        now = datetime.now(timezone.utc)
-
-        days_remaining = max(0, (ends - now).days)
-
-        _subscription = schemas.UserSubscriptionResponse(
-            id=subscription.get("id"),
-            name=subscription.get("vendors").get("name"),
-            duration=days_remaining,
-            start_date=datetime.fromisoformat(subscription.get("starts_from")).date(),
+    _subscription = response.data[0]
+    if not _subscription:
+        logger.error(f"Subscription not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Subscription not found"
         )
 
-        subscriptions.append(_subscription)
-
-    return subscriptions
+    await client.table("subscription").delete().eq("id", subscription_id).execute()

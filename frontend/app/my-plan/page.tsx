@@ -10,21 +10,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { MapPin, Calendar, User, CreditCard, X, Edit, ShoppingBag, Clock, MapPin as LocationIcon, Loader2 } from 'lucide-react';
 import { toast } from "sonner"
-import { useTransformedUserSubscriptions } from '../hooks/getUserSubscription';
+import { useTransformedUserSubscriptions, useUserInfo } from '../hooks/getUserDetails';
 
 const Index = () => {
     const [pickupPoint, setPickupPoint] = useState('Main Campus Cafeteria');
     const [isEditingPickup, setIsEditingPickup] = useState(false);
-    const { subscriptions, isLoading, error, refetch } = useTransformedUserSubscriptions();
+    const { subscriptions, isLoading: subscriptionsLoading, error: subscriptionsError, refetch } = useTransformedUserSubscriptions();
+    const { user, isLoading: userLoading, error: userError } = useUserInfo();
 
-
-    const userData = {
-        name: 'Papry Rahman',
-        email: 'papryrahman@gmail.com',
-        phone: '+880 1234 567890',
-        studentId: 'CSE-2021-22'
-    };
-
+    const isLoading = subscriptionsLoading || userLoading;
+    const error = subscriptionsError || userError;
 
     const singleOrders = [
         {
@@ -98,10 +93,10 @@ const Index = () => {
                             <X className="h-8 w-8 text-red-600" />
                         </div>
                         <h3 className="font-bold text-lg mb-2 text-red-700">
-                            Error Loading Subscriptions
+                            Error Loading Profile
                         </h3>
                         <p className="text-sm text-gray-600 mb-4">
-                            {error.message || 'Failed to load your subscriptions. Please try again.'}
+                            {error.message || 'Failed to load your profile. Please try again.'}
                         </p>
                         <Button onClick={() => refetch()} style={{ backgroundColor: '#D98324' }}>
                             Try Again
@@ -111,6 +106,17 @@ const Index = () => {
             </div>
         );
     }
+
+    if (!user) {
+        return (
+            <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'rgb(249, 245, 230)' }}>
+                <div className="text-center">
+                    <p className="text-lg" style={{ color: '#443627' }}>No user data available</p>
+                </div>
+            </div>
+        );
+    }
+
 
     return (
         <div className="min-h-screen relative bgtheme2" style={{ backgroundColor: 'rgb(249, 245, 230)' }}>
@@ -123,7 +129,7 @@ const Index = () => {
                 {/* Hero Section */}
                 <div className="text-center pt-20">
                     <h2 className="text-3xl font-bold mb-4 darktext">
-                        Welcome back, {userData.name}!
+                        Welcome back, {user.name}!
                     </h2>
                     <p className="text-xl lighttext">
                         Manage your orders, subscriptions, and preferences all in one place
@@ -209,19 +215,19 @@ const Index = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <p className="text-sm" style={{ color: '#a0896b' }}>Full Name</p>
-                                <p className="font-semibold" style={{ color: '#443627' }}>{userData.name}</p>
+                                <p className="font-semibold" style={{ color: '#443627' }}>{user.name}</p>
                             </div>
-                            <div>
+                            {/* <div>
                                 <p className="text-sm" style={{ color: '#a0896b' }}>Student ID</p>
-                                <p className="font-semibold" style={{ color: '#443627' }}>{userData.studentId}</p>
-                            </div>
+                                <p className="font-semibold" style={{ color: '#443627' }}>{user.studentId}</p>
+                            </div> */}
                             <div>
                                 <p className="text-sm" style={{ color: '#a0896b' }}>Email</p>
-                                <p className="font-semibold" style={{ color: '#443627' }}>{userData.email}</p>
+                                <p className="font-semibold" style={{ color: '#443627' }}>{user.email}</p>
                             </div>
                             <div>
                                 <p className="text-sm" style={{ color: '#a0896b' }}>Phone</p>
-                                <p className="font-semibold" style={{ color: '#443627' }}>{userData.phone}</p>
+                                <p className="font-semibold" style={{ color: '#443627' }}>{user.phone_number}</p>
                             </div>
                         </div>
                     </CardContent>
