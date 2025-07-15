@@ -79,9 +79,10 @@ class MenuResponse(BaseModel):
     img_url: str
     price: float
 
+
 class UserSubscriptionResponse(BaseModel):
     id: UUID
     name: str
     duration: int
     start_date: date
-    
+
