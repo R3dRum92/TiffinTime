@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ShoppingBag, User, Star, Clock, ChefHat } from 'lucide-react';
+import { useSubscribers } from '../hooks/useSubscribers';
 
 export default function VendorDashboard() {
     const [vendorStats] = useState({
@@ -11,63 +12,8 @@ export default function VendorDashboard() {
         averageRating: 4.7
     });
 
-    //to fetch subscribers
-    async function fetchSubscribers() {
-        try {
-            const response = await fetch('/api/subscribers', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    // Add authentication headers if needed
-                    // 'Authorization': `Bearer ${token}`
-                }
-            });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            return data;
-        } catch (error) {
-            console.error('Error fetching subscribers:', error);
-            throw error;
-        }
-    }
-
-    // Mock data for subscribers
-    const subscribers = [
-        {
-            id: 1,
-            name: 'John Doe',
-            startDate: '2025-01-15',
-            endDate: '2025-07-15'
-        },
-        {
-            id: 2,
-            name: 'Jane Smith',
-            startDate: '2025-02-01',
-            endDate: '2025-08-01'
-        },
-        {
-            id: 3,
-            name: 'Mike Johnson',
-            startDate: '2025-03-10',
-            endDate: '2025-09-10'
-        },
-        {
-            id: 4,
-            name: 'Sarah Wilson',
-            startDate: '2025-04-05',
-            endDate: '2025-10-05'
-        },
-        {
-            id: 5,
-            name: 'David Brown',
-            startDate: '2025-05-20',
-            endDate: '2025-11-20'
-        }
-    ];
+    const { data: subscribers, isLoading, isError } = useSubscribers();
 
     // Mock data for recent orders (commented out)
     /*
@@ -165,34 +111,42 @@ export default function VendorDashboard() {
                 {/* My Subscribers */}
                 <div className="bg-white rounded-lg shadow-md p-6">
                     <h2 className="text-xl font-bold mb-4 darktext">My Subscribers</h2>
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b">
-                                    <th className="text-left py-3 px-4 font-medium darktext">Subscriber Name</th>
-                                    <th className="text-left py-3 px-4 font-medium darktext">Started</th>
-                                    <th className="text-left py-3 px-4 font-medium darktext">Ends</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {subscribers.map(subscriber => (
-                                    <tr key={subscriber.id} className="border-b hover:bg-gray-50">
-                                        <td className="py-3 px-4">
-                                            <div className="flex items-center space-x-3">
-                                                <div className="w-8 h-8 rounded-full flex items-center justify-center bglight">
-                                                    <User className="w-4 h-4 theme" />
-                                                </div>
-                                                <span className="font-medium darktext">{subscriber.name}</span>
-                                            </div>
-                                        </td>
-                                        <td className="py-3 px-4 lighttext">{subscriber.startDate}</td>
-                                        <td className="py-3 px-4 lighttext">{subscriber.endDate}</td>
+
+                    {isLoading ? (
+                        <p className="lighttext">Loading subscribers...</p>
+                    ) : isError ? (
+                        <p className="text-red-500">Failed to load subscribers.</p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b">
+                                        <th className="text-left py-3 px-4 font-medium darktext">Subscriber Name</th>
+                                        <th className="text-left py-3 px-4 font-medium darktext">Started</th>
+                                        <th className="text-left py-3 px-4 font-medium darktext">Ends</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody>
+                                    {subscribers?.map(subscriber => (
+                                        <tr key={subscriber.id} className="border-b hover:bg-gray-50">
+                                            <td className="py-3 px-4">
+                                                <div className="flex items-center space-x-3">
+                                                    <div className="w-8 h-8 rounded-full flex items-center justify-center bglight">
+                                                        <User className="w-4 h-4 theme" />
+                                                    </div>
+                                                    <span className="font-medium darktext">{subscriber.name}</span>
+                                                </div>
+                                            </td>
+                                            <td className="py-3 px-4 lighttext">{subscriber.start_date}</td>
+                                            <td className="py-3 px-4 lighttext">{subscriber.end_date}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
+
 
                 {/* Recent Orders (commented out) */}
                 {/*
