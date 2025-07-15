@@ -9,16 +9,15 @@ from utils.logger import logger
 router = APIRouter(prefix="/test", tags=["test"])
 
 
-@router.get("/test_db", dependencies=[Depends(user_or_admin_auth)])
+@router.get("/test_db")
 async def test_db(client: AsyncClient = Depends(get_db)):
     try:
         # response = await client.rpc("get_server_time").execute()
 
         response = (
-            await client.table("menus")
-            .select(
-                "id, vendors(id, name), name, date, img_path, img_bucket, description"
-            )
+            await client.table("subscription")
+            .select("id, users(id, name), vendors(id, name), starts_from, ends_at")
+            .eq("user_id", "2f39e84c-3b6b-4c74-83f4-79aa6ad651c5")
             .execute()
         )
 
