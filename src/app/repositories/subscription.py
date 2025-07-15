@@ -69,6 +69,41 @@ async def subscribe(
     return schemas.BaseResponse(message="Subscription successful")
 
 
+async def get_subscriptions_by_vendor(
+    vendor_id: UUID, client: AsyncClient
+) -> List[schemas.VendorSubscriptionResponse]:
+    try:
+        response = (
+            await client.table("subscription")
+            .select("id, users(id, name), starts_from, ends_at")
+            .eq("vendor_id", vendor_id)
+            .execute()
+        )
+    except Exception as e:
+        logger.error(f"Database query failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database query failed: {str(e)}",
+        )
+
+    _subscriptions = response.data
+    subscriptions = []
+
+    for subscription in _subscriptions:
+        start_date = datetime.fromisoformat(subscription.get("starts_from")).date()
+        end_date = datetime.fromisoformat(subscription.get("ends_at")).date()
+
+        _subscription = schemas.VendorSubscriptionResponse(
+            id=subscription.get("id"),
+            name=subscription.get("users").get("id"),
+            start_date=start_date,
+            end_date=end_date,
+        )
+        subscriptions.append(_subscription)
+
+    return subscriptions
+
+
 async def cancel_subscription(subscription_id: UUID, client: AsyncClient) -> None:
     try:
         response = (
@@ -91,4 +126,5 @@ async def cancel_subscription(subscription_id: UUID, client: AsyncClient) -> Non
             status_code=status.HTTP_404_NOT_FOUND, detail="Subscription not found"
         )
 
+    await client.table("subscription").delete().eq("id", subscription_id).execute()
     await client.table("subscription").delete().eq("id", subscription_id).execute()
