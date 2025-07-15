@@ -1,4 +1,6 @@
+import re
 from datetime import date, timedelta
+from typing import List
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, field_validator
@@ -86,3 +88,19 @@ class UserSubscriptionResponse(BaseModel):
     duration: int
     start_date: date
 
+
+BD_PHONE_REGEX = re.compile(r"^(?:\+8801|01)[0-9]{9}$")
+
+
+class UserDetails(BaseModel):
+    id: UUID
+    name: str
+    phone_number: str
+    email: EmailStr
+    subscriptions: List[UserSubscriptionResponse]
+
+    @field_validator("phone_number")
+    def validate_phone_number(cls, v):
+        if not BD_PHONE_REGEX.match(v):
+            raise ValueError("Invalid phone number format")
+        return v

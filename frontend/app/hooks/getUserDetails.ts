@@ -8,45 +8,60 @@ interface UserSubscription {
     start_date: string;
 }
 
-// API configuration - adjust the base URL as needed
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+interface UserResponse {
+    id: string;
+    name: string;
+    phone_number: string;
+    email: string;
+    subscriptions: UserSubscription[];
+}
 
 // Fetching function
-export const fetchUserSubscriptions = async (): Promise<UserSubscription[]> => {
-
+export const fetchUser = async (): Promise<UserResponse> => {
     const token = localStorage.getItem('token');
     if (!token) {
         throw new Error('No authentication token found');
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/subscribe/user_subscriptions/`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            // Add authorization header if needed
             'Authorization': `Bearer ${token}`,
         },
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to fetch user subscriptions: ${response.status} ${response.statusText}`);
+        throw new Error(`Failed to fetch user data: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
     return data;
 };
 
-// React Query hook
-export const useUserSubscriptions = () => {
-    return useQuery<UserSubscription[], Error>({
-        queryKey: ['userSubscriptions'],
-        queryFn: fetchUserSubscriptions,
+// React Query hook for user data
+export const useUser = () => {
+    return useQuery<UserResponse, Error>({
+        queryKey: ['user'],
+        queryFn: fetchUser,
         staleTime: 5 * 60 * 1000, // 5 minutes
         gcTime: 10 * 60 * 1000, // 10 minutes
         refetchOnWindowFocus: false,
         retry: 3,
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     });
+};
+
+// Hook specifically for user subscriptions
+export const useUserSubscriptions = () => {
+    const { data, isLoading, error, refetch } = useUser();
+
+    return {
+        data: data?.subscriptions || [],
+        isLoading,
+        error,
+        refetch,
+    };
 };
 
 // Utility function to transform API data to match your current component structure
@@ -73,11 +88,27 @@ const calculateEndDate = (startDate: string, duration: number): string => {
 // Usage example for your component
 export const useTransformedUserSubscriptions = () => {
     const { data, isLoading, error, refetch } = useUserSubscriptions();
-
     const transformedData = data ? transformSubscriptionData(data) : [];
 
     return {
         subscriptions: transformedData,
+        isLoading,
+        error,
+        refetch,
+    };
+};
+
+// Bonus: Hook to get user info without subscriptions
+export const useUserInfo = () => {
+    const { data, isLoading, error, refetch } = useUser();
+
+    return {
+        user: data ? {
+            id: data.id,
+            name: data.name,
+            phone_number: data.phone_number,
+            email: data.email,
+        } : null,
         isLoading,
         error,
         refetch,

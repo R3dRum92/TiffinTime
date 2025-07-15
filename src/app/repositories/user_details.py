@@ -12,9 +12,10 @@ async def get_user_details(user_id: UUID, client: AsyncClient):
     try:
         response = (
             await client.table("subscription")
-            .select("id, users(id, name), vendors(id, name), starts_from, ends_at")
+            .select("id, vendors(name), starts_from, ends_at")
             .eq("user_id", user_id)
-        ).execute()
+            .execute()
+        )
     except Exception as e:
         logger.error(f"Database query failed: {str(e)}")
         raise HTTPException(
@@ -40,4 +41,33 @@ async def get_user_details(user_id: UUID, client: AsyncClient):
 
         subscriptions.append(_subscription)
 
-    return subscriptions
+    try:
+        response = (
+            await client.table("users")
+            .select("id, name, phone_number, email")
+            .eq("id", user_id)
+            .execute()
+        )
+    except Exception as e:
+        logger.error(f"Database query failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database query failed: {str(e)}",
+        )
+
+    if not response.data[0]:
+        logger.error(f"User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User not found: {str(e)}",
+        )
+
+    _user = response.data[0]
+
+    return schemas.UserDetails(
+        id=_user.get("id"),
+        name=_user.get("name"),
+        phone_number=_user.get("phone_number"),
+        email=_user.get("email"),
+        subscriptions=subscriptions,
+    )

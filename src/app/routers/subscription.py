@@ -27,13 +27,10 @@ async def subscribe(
     )
 
 
-@router.get(
-    "/user_subscriptions/",
-    response_model=List[schemas.UserSubscriptionResponse],
-    status_code=status.HTTP_200_OK,
-)
-async def get_user_subscriptions(
-    user: schemas.UserID = Depends(get_current_user),
-    client: AsyncClient = Depends(get_db),
+@router.delete("/{subscription_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def cancel_subscription(
+    subscription_id: UUID, client: AsyncClient = Depends(get_db)
 ):
-    return await subscription.get_user_subscriptions(user_id=user.id, client=client)
+    return await subscription.cancel_subscription(
+        subscription_id=subscription_id, client=client
+    )
