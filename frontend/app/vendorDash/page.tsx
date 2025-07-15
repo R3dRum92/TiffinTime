@@ -11,7 +11,66 @@ export default function VendorDashboard() {
         averageRating: 4.7
     });
 
-    // Mock data for recent orders
+    //to fetch subscribers
+    async function fetchSubscribers() {
+        try {
+            const response = await fetch('/api/subscribers', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Add authentication headers if needed
+                    // 'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error fetching subscribers:', error);
+            throw error;
+        }
+    }
+
+    // Mock data for subscribers
+    const subscribers = [
+        {
+            id: 1,
+            name: 'John Doe',
+            startDate: '2025-01-15',
+            endDate: '2025-07-15'
+        },
+        {
+            id: 2,
+            name: 'Jane Smith',
+            startDate: '2025-02-01',
+            endDate: '2025-08-01'
+        },
+        {
+            id: 3,
+            name: 'Mike Johnson',
+            startDate: '2025-03-10',
+            endDate: '2025-09-10'
+        },
+        {
+            id: 4,
+            name: 'Sarah Wilson',
+            startDate: '2025-04-05',
+            endDate: '2025-10-05'
+        },
+        {
+            id: 5,
+            name: 'David Brown',
+            startDate: '2025-05-20',
+            endDate: '2025-11-20'
+        }
+    ];
+
+    // Mock data for recent orders (commented out)
+    /*
     const recentOrders = [
         {
             id: 1,
@@ -47,6 +106,7 @@ export default function VendorDashboard() {
             pickupPoint: 'Gulshan 1'
         }
     ];
+    */
 
     return (
         <div>
@@ -102,7 +162,40 @@ export default function VendorDashboard() {
                     </div>
                 </div>
 
-                {/* Recent Orders */}
+                {/* My Subscribers */}
+                <div className="bg-white rounded-lg shadow-md p-6">
+                    <h2 className="text-xl font-bold mb-4 darktext">My Subscribers</h2>
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="border-b">
+                                    <th className="text-left py-3 px-4 font-medium darktext">Subscriber Name</th>
+                                    <th className="text-left py-3 px-4 font-medium darktext">Started</th>
+                                    <th className="text-left py-3 px-4 font-medium darktext">Ends</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {subscribers.map(subscriber => (
+                                    <tr key={subscriber.id} className="border-b hover:bg-gray-50">
+                                        <td className="py-3 px-4">
+                                            <div className="flex items-center space-x-3">
+                                                <div className="w-8 h-8 rounded-full flex items-center justify-center bglight">
+                                                    <User className="w-4 h-4 theme" />
+                                                </div>
+                                                <span className="font-medium darktext">{subscriber.name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="py-3 px-4 lighttext">{subscriber.startDate}</td>
+                                        <td className="py-3 px-4 lighttext">{subscriber.endDate}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* Recent Orders (commented out) */}
+                {/*
                 <div className="bg-white rounded-lg shadow-md p-6">
                     <h2 className="text-xl font-bold mb-4 darktext">Recent Orders</h2>
                     <div className="space-y-4">
@@ -128,6 +221,7 @@ export default function VendorDashboard() {
                         ))}
                     </div>
                 </div>
+                */}
             </div>
         </div>
     );
