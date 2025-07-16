@@ -95,7 +95,7 @@ async def get_subscriptions_by_vendor(
 
         _subscription = schemas.VendorSubscriptionResponse(
             id=subscription.get("id"),
-            name=subscription.get("users").get("id"),
+            name=subscription.get("users").get("name"),
             start_date=start_date,
             end_date=end_date,
         )
