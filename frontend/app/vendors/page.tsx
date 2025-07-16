@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useVendors, Vendor } from '../hooks/useVendors'; // Adjust path if needed
+import { Loader2 } from 'lucide-react';
 
 interface VendorCardProps {
   vendor: Vendor;
@@ -78,12 +79,13 @@ const VendorsPage = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-500"></div>
-        </div>
-      </div>
-    );
+            <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'rgb(249, 245, 230)' }}>
+                <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" style={{ color: '#D98324' }} />
+                    <p className="text-lg" style={{ color: '#443627' }}>Loading vendors...</p>
+                </div>
+            </div>
+        );
   }
 
   if (error) {

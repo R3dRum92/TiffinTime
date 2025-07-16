@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Check, Crown, Clock, Calendar, Utensils } from 'lucide-react';
+import { Check, Crown, Clock, Calendar, Utensils, Loader2 } from 'lucide-react';
 import { useVendor } from "@/app/hooks/singleVendor";
 import { useVendorSubscription } from "@/app/hooks/useVendorSubscription";
 import { toast } from "sonner";
@@ -141,26 +141,8 @@ const transformVendorData = (apiData: ApiVendorData): VendorDetails => {
                 isVeg: true,
                 isAvailable: true
             },
-            {
-                id: "5",
-                name: "Mutton Kosha",
-                description: "Tender mutton pieces cooked in thick spicy gravy",
-                price: 280,
-                image: "/api/placeholder/300/200",
-                category: "Main Course",
-                isVeg: false,
-                isAvailable: false
-            },
-            {
-                id: "6",
-                name: "Rasgulla",
-                description: "Soft cottage cheese balls soaked in sugar syrup",
-                price: 60,
-                image: "/api/placeholder/300/200",
-                category: "Dessert",
-                isVeg: true,
-                isAvailable: true
-            }
+            
+           
         ],
         subscriptionPlans: [
             {
@@ -316,9 +298,10 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
 
     if (isLoading) {
         return (
-            <div className="container mx-auto px-4 py-8">
-                <div className="flex justify-center items-center h-64">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-300"></div>
+            <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'rgb(249, 245, 230)' }}>
+                <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" style={{ color: '#D98324' }} />
+                    <p className="text-lg" style={{ color: '#443627' }}>Loading vendor details...</p>
                 </div>
             </div>
         );
@@ -343,7 +326,7 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
             {/* Content Wrapper to ensure it's above the SVG background */}
             <div className="relative z-10">
                 {/* Header Section */}
-                <div className="container mx-auto px-4 py-6">
+                <div className="container mx-auto px-4 py-6 pt-20">
                     <div className="flex items-center gap-4 bg-white rounded-lg shadow-md p-4">
                         <Image
                             src={vendor.coverImage}

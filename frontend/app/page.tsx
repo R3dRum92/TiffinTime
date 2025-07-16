@@ -37,10 +37,10 @@ export default function HomePage() {
               We deliver 100% organic and fresh food. You can order right now!
             </p>
 
-            <button className="px-8 py-4 bgtheme text-gray-800 rounded-full font-semibold hover:bg-yellow-600 transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center space-x-2">
+            {/* <button className="px-8 py-4 bgtheme text-gray-800 rounded-full font-semibold hover:bg-yellow-600 transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center space-x-2">
               <span>Our Menu</span>
               <span className="ml-2">→</span>
-            </button>
+            </button> */}
           </div>
 
           {/* Feature Icons */}
