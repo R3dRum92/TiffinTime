@@ -280,7 +280,7 @@ const FoodSearch = () => {
                         {selectedFood && (
                             <div className="space-y-6">
                                 <div className="h-64 bg-gray-200 rounded-lg overflow-hidden">
-                                    <img
+                                    <Image
                                         src={selectedFood.image}
                                         alt={selectedFood.name}
                                         className="w-full h-full object-cover"

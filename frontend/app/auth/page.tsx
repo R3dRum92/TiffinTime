@@ -1,6 +1,14 @@
 "use client"
 import React, { useState } from 'react';
 
+// Loading Spinner Component
+const LoadingSpinner: React.FC = () => (
+    <div className="flex items-center justify-center space-x-2">
+        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+        <span>Processing...</span>
+    </div>
+);
+
 // Define types for roles
 type UserRole = 'student' | 'vendor';
 
@@ -18,6 +26,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ toggleAuthMode, handleRoleSelec
         password: '',
         role: selectedRole
     });
+    const [isLoading, setIsLoading] = useState(false);
 
     // Update form data when role changes from parent
     React.useEffect(() => {
@@ -33,6 +42,8 @@ const SignInForm: React.FC<SignInFormProps> = ({ toggleAuthMode, handleRoleSelec
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setIsLoading(true);
+        
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
                 method: 'POST',
@@ -55,6 +66,8 @@ const SignInForm: React.FC<SignInFormProps> = ({ toggleAuthMode, handleRoleSelec
         } catch (error) {
             console.error('Auth error:', error);
             // Handle network or other unexpected errors
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -69,7 +82,10 @@ const SignInForm: React.FC<SignInFormProps> = ({ toggleAuthMode, handleRoleSelec
                     <button
                         type="button"
                         onClick={() => handleRoleSelect('student')}
-                        className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 border-2 ${selectedRole === 'student'
+                        disabled={isLoading}
+                        className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 border-2 ${
+                            isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                        } ${selectedRole === 'student'
                             ? 'bg-[#D98324] text-white border-[#D98324] shadow-lg transform scale-105'
                             : 'bg-white text-[#443627] border-gray-200 hover:border-[#D98324] hover:shadow-md'
                             }`}
@@ -79,7 +95,10 @@ const SignInForm: React.FC<SignInFormProps> = ({ toggleAuthMode, handleRoleSelec
                     <button
                         type="button"
                         onClick={() => handleRoleSelect('vendor')}
-                        className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 border-2 ${selectedRole === 'vendor'
+                        disabled={isLoading}
+                        className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 border-2 ${
+                            isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                        } ${selectedRole === 'vendor'
                             ? 'bg-[#D98324] text-white border-[#D98324] shadow-lg transform scale-105'
                             : 'bg-white text-[#443627] border-gray-200 hover:border-[#D98324] hover:shadow-md'
                             }`}
@@ -98,7 +117,10 @@ const SignInForm: React.FC<SignInFormProps> = ({ toggleAuthMode, handleRoleSelec
                     type="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white"
+                    disabled={isLoading}
+                    className={`w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white ${
+                        isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                     placeholder="Enter your email"
                     required
                 />
@@ -113,7 +135,10 @@ const SignInForm: React.FC<SignInFormProps> = ({ toggleAuthMode, handleRoleSelec
                     type="password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white"
+                    disabled={isLoading}
+                    className={`w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white ${
+                        isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                     placeholder="Enter your password"
                     required
                 />
@@ -122,7 +147,10 @@ const SignInForm: React.FC<SignInFormProps> = ({ toggleAuthMode, handleRoleSelec
             <div className="flex justify-end">
                 <button
                     type="button"
-                    className="text-sm hover:underline transition-all duration-200 text-[#D98324]"
+                    disabled={isLoading}
+                    className={`text-sm hover:underline transition-all duration-200 text-[#D98324] ${
+                        isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                 >
                     Forgot Password?
                 </button>
@@ -130,9 +158,12 @@ const SignInForm: React.FC<SignInFormProps> = ({ toggleAuthMode, handleRoleSelec
 
             <button
                 type="submit"
-                className="w-full py-3 px-4 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 bg-[#D98324]"
+                disabled={isLoading}
+                className={`w-full py-3 px-4 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 bg-[#D98324] ${
+                    isLoading ? 'opacity-75 cursor-not-allowed transform-none' : ''
+                }`}
             >
-                Sign In
+                {isLoading ? <LoadingSpinner /> : 'Sign In'}
             </button>
 
             <div className="mt-6 text-center">
@@ -141,7 +172,10 @@ const SignInForm: React.FC<SignInFormProps> = ({ toggleAuthMode, handleRoleSelec
                     <button
                         type="button"
                         onClick={toggleAuthMode}
-                        className="font-semibold hover:underline transition-all duration-200 text-[#D98324]"
+                        disabled={isLoading}
+                        className={`font-semibold hover:underline transition-all duration-200 text-[#D98324] ${
+                            isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
                     >
                         Sign Up
                     </button>
@@ -168,6 +202,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ toggleAuthMode, handleRoleSelec
         phone_number: '',
         role: selectedRole
     });
+    const [isLoading, setIsLoading] = useState(false);
 
     // Update form data when role changes from parent
     React.useEffect(() => {
@@ -188,6 +223,8 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ toggleAuthMode, handleRoleSelec
             // You might want to display an error message on the UI
             return;
         }
+
+        setIsLoading(true);
 
         try {
             // Assuming a /api/auth/register endpoint for sign-up
@@ -215,6 +252,8 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ toggleAuthMode, handleRoleSelec
         } catch (error) {
             console.error('Auth error:', error);
             // Handle network or other unexpected errors
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -229,7 +268,10 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ toggleAuthMode, handleRoleSelec
                     <button
                         type="button"
                         onClick={() => handleRoleSelect('student')}
-                        className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 border-2 ${selectedRole === 'student'
+                        disabled={isLoading}
+                        className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 border-2 ${
+                            isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                        } ${selectedRole === 'student'
                             ? 'bg-[#D98324] text-white border-[#D98324] shadow-lg transform scale-105'
                             : 'bg-white text-[#443627] border-gray-200 hover:border-[#D98324] hover:shadow-md'
                             }`}
@@ -239,7 +281,10 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ toggleAuthMode, handleRoleSelec
                     <button
                         type="button"
                         onClick={() => handleRoleSelect('vendor')}
-                        className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 border-2 ${selectedRole === 'vendor'
+                        disabled={isLoading}
+                        className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 border-2 ${
+                            isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                        } ${selectedRole === 'vendor'
                             ? 'bg-[#D98324] text-white border-[#D98324] shadow-lg transform scale-105'
                             : 'bg-white text-[#443627] border-gray-200 hover:border-[#D98324] hover:shadow-md'
                             }`}
@@ -258,7 +303,10 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ toggleAuthMode, handleRoleSelec
                     type="text"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white"
+                    disabled={isLoading}
+                    className={`w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white ${
+                        isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                     placeholder="Enter your full name"
                     required
                 />
@@ -273,7 +321,10 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ toggleAuthMode, handleRoleSelec
                     type="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white"
+                    disabled={isLoading}
+                    className={`w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white ${
+                        isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                     placeholder="Enter your email"
                     required
                 />
@@ -288,7 +339,10 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ toggleAuthMode, handleRoleSelec
                     type="tel"
                     value={formData.phone_number || ''}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white"
+                    disabled={isLoading}
+                    className={`w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white ${
+                        isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                     placeholder="Enter your phone number"
                     required
                     autoComplete="tel"
@@ -304,7 +358,10 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ toggleAuthMode, handleRoleSelec
                     type="password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white"
+                    disabled={isLoading}
+                    className={`w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white ${
+                        isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                     placeholder="Enter your password"
                     required
                 />
@@ -319,7 +376,10 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ toggleAuthMode, handleRoleSelec
                     type="password"
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white"
+                    disabled={isLoading}
+                    className={`w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-2 focus:border-[#D98324] focus:outline-none transition-all duration-200 bg-white ${
+                        isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                     placeholder="Confirm your password"
                     required
                 />
@@ -327,9 +387,12 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ toggleAuthMode, handleRoleSelec
 
             <button
                 type="submit"
-                className="w-full py-3 px-4 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 bg-[#D98324]"
+                disabled={isLoading}
+                className={`w-full py-3 px-4 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 bg-[#D98324] ${
+                    isLoading ? 'opacity-75 cursor-not-allowed transform-none' : ''
+                }`}
             >
-                Create Account
+                {isLoading ? <LoadingSpinner /> : 'Create Account'}
             </button>
 
             <div className="mt-6 text-center">
@@ -338,7 +401,10 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ toggleAuthMode, handleRoleSelec
                     <button
                         type="button"
                         onClick={toggleAuthMode}
-                        className="font-semibold hover:underline transition-all duration-200 text-[#D98324]"
+                        disabled={isLoading}
+                        className={`font-semibold hover:underline transition-all duration-200 text-[#D98324] ${
+                            isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
                     >
                         Sign In
                     </button>
