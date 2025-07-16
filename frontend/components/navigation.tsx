@@ -94,15 +94,12 @@ const Navigation = () => {
 
         {/* Auth Buttons */}
         <div className="hidden md:flex items-center space-x-4">
-          <Link
-            href="/auth">
-            <button className="bgtheme text-white font-bold px-6 py-2 rounded-full hover:bg-orange-500 transition-colors">
-              Sign up
+          <Link href="/auth" onClick={() => setIsMenuOpen(false)}>
+            <button className="w-full bgtheme text-white font-bold px-6 py-2 rounded-full hover:bg-orange-500 hover:scale-105 hover:shadow-lg transition-all duration-300 ease-in-out transform cursor-pointer">
+              Sign up/ Login
             </button>
           </Link>
-          <button className="bg-white darktext font-bold border border-gray-300 text-gray-700 px-6 py-2 rounded-full hover:bg-gray-50 transition-colors">
-            Login
-          </button>
+          
         </div>
 
         {/* Mobile menu button */}
@@ -173,12 +170,10 @@ const Navigation = () => {
             <div className="pt-4 border-t border-gray-200 space-y-3">
               <Link href="/auth" onClick={() => setIsMenuOpen(false)}>
                 <button className="w-full bgtheme text-white font-bold px-6 py-2 rounded-full hover:bg-orange-500 transition-colors">
-                  Sign up
+                  Sign up/ Login
                 </button>
               </Link>
-              <button className="w-full bg-white darktext font-bold border border-gray-300 text-gray-700 px-6 py-2 rounded-full hover:bg-gray-50 transition-colors">
-                Login
-              </button>
+             
             </div>
           </div>
         </div>
