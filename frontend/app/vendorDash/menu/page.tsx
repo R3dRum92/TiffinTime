@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Plus,
     Edit3,
@@ -20,18 +22,17 @@ import {
     Save,
     X,
     Store,
-    Loader2
+    Loader2,
+    Calculator,
+    CalendarDays
 } from 'lucide-react';
 import {
     useVendorMenu,
     MenuItem,
     BackendMenuItem,
 } from '@/app/hooks/useVendorMenu';
-import { getAuthToken } from '@/app/utils/auth'; // Ensure this path is correct
+import { getAuthToken } from '@/app/utils/auth';
 
-// ========== TYPES FOR THIS COMPONENT ==========
-
-// Form state for adding a new item
 interface NewMenuItemForm {
     name: string;
     price: string; // From input
@@ -40,14 +41,12 @@ interface NewMenuItemForm {
     preparationTime: string; // From input
 }
 
-// Type for the /user/vendor/ response
 interface VendorInfo {
     id: string;
     name: string;
     // Add other fields as they become available
 }
 
-// ========== VENDOR INFO HOOK (as requested) ==========
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -81,7 +80,6 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
 };
 
 
-// Simple hook to fetch vendor info
 const useVendorInfo = () => {
     return useQuery<VendorInfo>({
         queryKey: ['vendorInfo'],
@@ -95,9 +93,8 @@ const useVendorInfo = () => {
 // ========== COMPONENT ==========
 
 const VendorDashboard = () => {
-    // --- 1. HOOK USAGE ---
     const {
-        menuData, // This is now MenuItem[]
+        menuData,
         isLoading,
         error: menuError,
         addMenuItem,
@@ -114,19 +111,33 @@ const VendorDashboard = () => {
         error: vendorError
     } = useVendorInfo();
 
+    const [activeTab, setActiveTab] = useState('all-items');
     const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
     const [isEditMenuOpen, setIsEditMenuOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
 
-    const categories = ['rice', 'curry', 'snacks', 'drinks', 'desserts'];
+    const [todayMenuIds, setTodayMenuIds] = useState<Set<string>>(new Set());
+    const [weeklyMenuIds, setWeeklyMenuIds] = useState<Set<string>>(new Set());
+    const [isTodayDialogOpen, setIsTodayDialogOpen] = useState(false);
+    const [isWeeklyDialogOpen, setIsWeeklyDialogOpen] = useState(false);
+
+    const categories = ['Rice', 'Curry', 'Snacks', 'Drinks', 'Desserts'];
 
     const [newMenuItem, setNewMenuItem] = useState<NewMenuItemForm>({
         name: '',
         price: '', // Price is string from input
-        category: 'rice',
+        category: '',
         description: '',
         preparationTime: '', // Prep time is string from input
     });
+
+    useEffect(() => {
+        localStorage.setItem('todayMenu', JSON.stringify([...todayMenuIds]));
+    }, [todayMenuIds]);
+
+    useEffect(() => {
+        localStorage.setItem('weeklyMenu', JSON.stringify([...weeklyMenuIds]));
+    }, [weeklyMenuIds]);
 
     // --- 2. CRUD HANDLERS (Updated for new hook) ---
 
@@ -137,7 +148,6 @@ const VendorDashboard = () => {
         }
 
         try {
-            // Transform form state (strings) to BackendMenuItem payload (numbers)
             const payload: Omit<BackendMenuItem, 'id' | 'vendor_id'> = {
                 name: newMenuItem.name,
                 price: parseFloat(newMenuItem.price),
@@ -149,7 +159,7 @@ const VendorDashboard = () => {
             await addMenuItem(payload);
 
             // Reset state and close dialog
-            setNewMenuItem({ name: '', price: '', category: 'rice', description: '', preparationTime: '' });
+            setNewMenuItem({ name: '', price: '', category: '', description: '', preparationTime: '' });
             setIsAddMenuOpen(false);
             console.log("Menu Item Added successfully");
         } catch (e) {
@@ -171,10 +181,10 @@ const VendorDashboard = () => {
             const updatePayload: Partial<BackendMenuItem> & { id: string } = {
                 id: editingItem.id,
                 name: editingItem.name,
-                price: editingItem.price, // Already a number in editingItem state
+                price: editingItem.price,
                 category: editingItem.category,
                 description: editingItem.description,
-                preparation_time: editingItem.preparationTime, // Already a number
+                preparation_time: editingItem.preparationTime,
             };
 
             await updateMenuItem(updatePayload);
@@ -193,12 +203,117 @@ const VendorDashboard = () => {
 
         try {
             await deleteMenuItem(itemId);
-            console.log("Menu item has been removed");
+            setTodayMenuIds(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(itemId);
+                return newSet;
+            });
+            setWeeklyMenuIds(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(itemId);
+                return newSet;
+            });
         } catch (e) {
             console.error(e);
             alert("Failed to delete item: " + (e as Error).message);
         }
     };
+    const handleToggleTodayMenu = (itemId: string) => {
+        setTodayMenuIds(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(itemId)) {
+                newSet.delete(itemId);
+            } else {
+                newSet.add(itemId);
+            }
+            return newSet;
+        });
+    };
+
+    const handleToggleWeeklyMenu = (itemId: string) => {
+        setWeeklyMenuIds(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(itemId)) {
+                newSet.delete(itemId);
+            } else {
+                newSet.add(itemId);
+            }
+            return newSet;
+        });
+    };
+
+    // ========== RENDER HELPERS ==========
+
+    const renderMenuItem = (item: MenuItem, showActions: boolean = true) => (
+        <Card key={item.id} className="shadow-lg border-0 relative overflow-hidden">
+            <div
+                className="absolute inset-0 opacity-5"
+                style={{
+                    backgroundImage: `radial-gradient(circle at 8px 8px, #D98324 0.5px, transparent 0.5px)`,
+                    backgroundSize: '16px 16px'
+                }}
+            />
+            <div className="relative z-10">
+                <div className="h-48 bg-gray-200 rounded-t-lg overflow-hidden flex items-center justify-center">
+                    <ChefHat className="h-24 w-24" style={{ color: '#a0896b' }} />
+                </div>
+
+                <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-bold text-lg" style={{ color: '#443627' }}>
+                            {item.name}
+                        </h3>
+                        {showActions && (
+                            <div className="flex gap-1">
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleEditMenuItem(item)}
+                                    className="p-1"
+                                    title="Edit item"
+                                    disabled={isUpdating}
+                                >
+                                    <Edit3 className="h-4 w-4" style={{ color: '#D98324' }} />
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleDeleteMenuItem(item.id)}
+                                    className="p-1"
+                                    title="Delete item"
+                                    disabled={isDeleting}
+                                >
+                                    {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-red-500" />}
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+
+                    <p className="text-sm mb-3 h-10 overflow-y-auto" style={{ color: '#443627' }}>
+                        {item.description || <span className="text-gray-400 italic">No description</span>}
+                    </p>
+
+                    <div className="flex items-center justify-between mb-3">
+                        <Badge variant="outline" style={{ color: '#a0896b' }}>
+                            {item.category}
+                        </Badge>
+                        <div className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" style={{ color: '#a0896b' }} />
+                            <span className="text-sm" style={{ color: '#a0896b' }}>
+                                {item.preparationTime} min
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="text-center">
+                        <span className="text-xl font-bold" style={{ color: '#D98324' }}>
+                            ৳{item.price}
+                        </span>
+                    </div>
+                </CardContent>
+            </div>
+        </Card>
+    );
 
     // --- 3. LOADING / ERROR STATES ---
 
@@ -228,6 +343,8 @@ const VendorDashboard = () => {
         );
     }
 
+    const todayMenuItems = menuData.filter(item => todayMenuIds.has(item.id));
+    const weeklyMenuItems = menuData.filter(item => weeklyMenuIds.has(item.id));
     // --- 4. RENDER ---
 
     return (
@@ -261,126 +378,220 @@ const VendorDashboard = () => {
                     </div>
                 </div>
 
-                {/* Control Bar - Removed Today/Weekly toggle */}
-                <Card className="shadow-lg border-0 relative overflow-hidden">
-                    <div
-                        className="absolute inset-0 opacity-5"
-                        style={{
-                            backgroundImage: `radial-gradient(circle at 12px 12px, #D98324 1px, transparent 1px)`,
-                            backgroundSize: '24px 24px'
-                        }}
-                    />
-                    <CardContent className="p-6 relative z-10">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-2xl font-bold" style={{ color: '#443627' }}>
-                                Manage Your Menu
-                            </h2>
-                            <Button
-                                style={{ backgroundColor: '#D98324' }}
-                                onClick={() => {
-                                    setNewMenuItem({ name: '', price: '', category: 'rice', description: '', preparationTime: '' });
-                                    setIsAddMenuOpen(true);
+                {/* Tabs */}
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList className="grid w-full grid-cols-3 mb-6">
+                        <TabsTrigger value="all-items">All Menu Items</TabsTrigger>
+                        <TabsTrigger value="today">Today's Menu</TabsTrigger>
+                        <TabsTrigger value="weekly">Weekly Menu</TabsTrigger>
+                    </TabsList>
+
+                    {/* All menu items tab */}
+                    <TabsContent value="all-items" className="space-y-6">
+                        <Card className="shadow-lg border-0 relative overflow-hidden">
+                            <div
+                                className="absolute inset-0 opacity-5"
+                                style={{
+                                    backgroundImage: `radial-gradient(circle at 12px 12px, #D98324 1px, transparent 1px)`,
+                                    backgroundSize: '24px 24px'
                                 }}
-                                disabled={isAdding}
-                            >
-                                {isAdding ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-                                Add New Item
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-
-
-                {/* Menu Item List */}
-                <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {menuData.map((item) => (
-                            <Card
-                                key={item.id} // Use string ID
-                                className="shadow-lg border-0 relative overflow-hidden"
-                            >
-                                <div
-                                    className="absolute inset-0 opacity-5"
-                                    style={{
-                                        backgroundImage: `radial-gradient(circle at 8px 8px, #D98324 0.5px, transparent 0.5px)`,
-                                        backgroundSize: '16px 16px'
-                                    }}
-                                />
-                                <div className="relative z-10">
-
-                                    {/* Image removed, replaced with placeholder icon */}
-                                    <div className="h-48 bg-gray-200 rounded-t-lg overflow-hidden flex items-center justify-center">
-                                        <ChefHat className="h-24 w-24" style={{ color: '#a0896b' }} />
-                                    </div>
-
-                                    <CardContent className="p-4">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <h3 className="font-bold text-lg" style={{ color: '#443627' }}>
-                                                {item.name}
-                                            </h3>
-                                            <div className="flex gap-1">
-                                                {/* Availability Toggle Removed */}
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    onClick={() => handleEditMenuItem(item)}
-                                                    className="p-1"
-                                                    title="Edit item"
-                                                    disabled={isUpdating}
-                                                >
-                                                    <Edit3 className="h-4 w-4" style={{ color: '#D98324' }} />
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    onClick={() => handleDeleteMenuItem(item.id)} // Pass string ID
-                                                    className="p-1"
-                                                    title="Delete item"
-                                                    disabled={isDeleting}
-                                                >
-                                                    {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-red-500" />}
-                                                </Button>
-                                            </div>
-                                        </div>
-
-                                        {/* Availability Badge Removed */}
-
-                                        <p className="text-sm mb-3 h-10 overflow-y-auto" style={{ color: '#443627' }}>
-                                            {item.description || <span className="text-gray-400 italic">No description</span>}
-                                        </p>
-
-                                        <div className="flex items-center justify-between mb-3">
-                                            <Badge variant="outline" style={{ color: '#a0896b' }}>
-                                                {item.category}
-                                            </Badge>
-                                            <div className="flex items-center gap-1">
-                                                <Clock className="h-4 w-4" style={{ color: '#a0896b' }} />
-                                                <span className="text-sm" style={{ color: '#a0896b' }}>
-                                                    {item.preparationTime} min
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <div className="text-center">
-                                            <span className="text-xl font-bold" style={{ color: '#D98324' }}>
-                                                ৳{item.price}
-                                            </span>
-                                        </div>
-                                    </CardContent>
+                            />
+                            <CardContent className="p-6 relative z-10">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-2xl font-bold" style={{ color: '#443627' }}>
+                                        All Menu Items
+                                    </h2>
+                                    <Button
+                                        style={{ backgroundColor: '#D98324' }}
+                                        onClick={() => {
+                                            setNewMenuItem({ name: '', price: '', category: '', description: '', preparationTime: '' });
+                                            setIsAddMenuOpen(true);
+                                        }}
+                                        disabled={isAdding}
+                                    >
+                                        {isAdding ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+                                        Add New Item
+                                    </Button>
                                 </div>
-                            </Card>
-                        ))}
-                    </div>
+                            </CardContent>
+                        </Card>
 
-                    {menuData.length === 0 && (
-                        <div className="text-center py-12">
-                            <ChefHat className="h-16 w-16 mx-auto mb-4" style={{ color: '#a0896b' }} />
-                            <p className="text-lg" style={{ color: '#a0896b' }}>
-                                You have no menu items. Add some to get started!
-                            </p>
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {menuData.map((item) => (
+                                    <Card
+                                        key={item.id}
+                                        className="shadow-lg border-0 relative overflow-hidden"
+                                    >
+                                        <div
+                                            className="absolute inset-0 opacity-5"
+                                            style={{
+                                                backgroundImage: `radial-gradient(circle at 8px 8px, #D98324 0.5px, transparent 0.5px)`,
+                                                backgroundSize: '16px 16px'
+                                            }}
+                                        />
+                                        <div className="relative z-10">
+                                            <div className="h-48 bg-gray-200 rounded-t-lg overflow-hidden flex items-center justify-center">
+                                                <ChefHat className="h-24 w-24" style={{ color: '#a0896b' }} />
+                                            </div>
+
+                                            <CardContent className="p-4">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <h3 className="font-bold text-lg" style={{ color: '#443627' }}>
+                                                        {item.name}
+                                                    </h3>
+                                                    <div className="flex gap-1">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => handleEditMenuItem(item)}
+                                                            className="p-1"
+                                                            title="Edit item"
+                                                            disabled={isUpdating}
+                                                        >
+                                                            <Edit3 className="h-4 w-4" style={{ color: '#D98324' }} />
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => handleDeleteMenuItem(item.id)}
+                                                            className="p-1"
+                                                            title="Delete item"
+                                                            disabled={isDeleting}
+                                                        >
+                                                            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-red-500" />}
+                                                        </Button>
+                                                    </div>
+                                                </div>
+
+                                                <p className="text-sm mb-3 h-10 overflow-y-auto" style={{ color: '#443627' }}>
+                                                    {item.description || <span className="text-gray-400 italic">No description</span>}
+                                                </p>
+
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <Badge variant="outline" style={{ color: '#a0896b' }}>
+                                                        {item.category}
+                                                    </Badge>
+                                                    <div className="flex items-center gap-1">
+                                                        <Clock className="h-4 w-4" style={{ color: '#a0896b' }} />
+                                                        <span className="text-sm" style={{ color: '#a0896b' }}>
+                                                            {item.preparationTime} min
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="text-center">
+                                                    <span className="text-xl font-bold" style={{ color: '#D98324' }}>
+                                                        ৳{item.price}
+                                                    </span>
+                                                </div>
+                                            </CardContent>
+                                        </div>
+                                    </Card>
+                                ))}
+                            </div>
+
+                            {menuData.length === 0 && (
+                                <div className="text-center py-12">
+                                    <ChefHat className="h-16 w-16 mx-auto mb-4" style={{ color: '#a0896b' }} />
+                                    <p className="text-lg" style={{ color: '#a0896b' }}>
+                                        You have no menu items. Add some to get started!
+                                    </p>
+                                </div>
+                            )}
                         </div>
-                    )}
-                </div>
+                    </TabsContent>
+
+                    {/* Today's Menu Tab */}
+                    <TabsContent value="today" className="space-y-6">
+                        <Card className="shadow-lg border-0 relative overflow-hidden">
+                            <div
+                                className="absolute inset-0 opacity-5"
+                                style={{
+                                    backgroundImage: `radial-gradient(circle at 12px 12px, #D98324 1px, transparent 1px)`,
+                                    backgroundSize: '24px 24px'
+                                }}
+                            />
+                            <CardContent className="p-6 relative z-10">
+                                <div className="flex items-center justify-between">
+                                    <div className='flex items-center gap-3'>
+                                        <h2 className="text-2xl font-bold" style={{ color: '#443627' }}>
+                                            Today's Menu
+                                        </h2>
+                                    </div>
+                                    <Button
+                                        style={{ backgroundColor: '#D98324' }}
+                                        onClick={() => setIsTodayDialogOpen(true)}
+                                    >
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Select Items
+                                    </Button>
+                                </div>
+                                <p className='text-sm mt-2' style={{ color: '#a0896b' }}>
+                                    {todayMenuItems.length} item(s) selected for today's menu.
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+                            {todayMenuItems.map(item => renderMenuItem(item, false))}
+                        </div>
+                        {todayMenuItems.length === 0 && (
+                            <div className="text-center py-12">
+                                <Calculator className='h-16 w-16 mx-auto mb-4' style={{ color: '#a0896b' }} />
+                                <p className="text-lg" style={{ color: '#a0896b' }}>
+                                    No items selected for today's menu.
+                                </p>
+                            </div>
+                        )}
+                    </TabsContent>
+
+                    {/* Weekly Menu Tab */}
+                    <TabsContent value="weekly" className="space-y-6">
+                        <Card className="shadow-lg border-0 relative overflow-hidden">
+                            <div
+                                className="absolute inset-0 opacity-5"
+                                style={{
+                                    backgroundImage: `radial-gradient(circle at 12px 12px, #D98324 1px, transparent 1px)`,
+                                    backgroundSize: '24px 24px'
+                                }}
+                            />
+                            <CardContent className="p-6 relative z-10">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <CalendarDays className="h-6 w-6" style={{ color: '#D98324' }} />
+                                        <h2 className="text-2xl font-bold" style={{ color: '#443627' }}>
+                                            Weekly Menu
+                                        </h2>
+                                    </div>
+                                    <Button
+                                        style={{ backgroundColor: '#D98324' }}
+                                        onClick={() => setIsWeeklyDialogOpen(true)}
+                                    >
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Select Items
+                                    </Button>
+                                </div>
+                                <p className="text-sm mt-2" style={{ color: '#a0896b' }}>
+                                    {weeklyMenuItems.length} items selected
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {weeklyMenuItems.map((item) => renderMenuItem(item, false))}
+                        </div>
+
+                        {weeklyMenuItems.length === 0 && (
+                            <div className="text-center py-12">
+                                <CalendarDays className="h-16 w-16 mx-auto mb-4" style={{ color: '#a0896b' }} />
+                                <p className="text-lg" style={{ color: '#a0896b' }}>
+                                    No items selected for weekly menu. Click "Select Items" to add items.
+                                </p>
+                            </div>
+                        )}
+                    </TabsContent>
+                </Tabs>
+                {/* Control Bar - Removed Today/Weekly toggle */}
 
 
                 {/* Add Menu Item Dialog (Simplified) */}
@@ -391,10 +602,11 @@ const VendorDashboard = () => {
                                 Add New Menu Item
                             </DialogTitle>
                         </DialogHeader>
-                        <div className="space-y-4">
+                        <div className="space-y-5">
                             <div>
                                 <Label>Item Name *</Label>
                                 <Input
+                                    className='mt-2'
                                     value={newMenuItem.name}
                                     onChange={(e) => setNewMenuItem({ ...newMenuItem, name: e.target.value })}
                                     placeholder="Enter item name"
@@ -403,6 +615,7 @@ const VendorDashboard = () => {
                             <div>
                                 <Label>Price (৳) *</Label>
                                 <Input
+                                    className='mt-2'
                                     type="number"
                                     value={newMenuItem.price}
                                     onChange={(e) => setNewMenuItem({ ...newMenuItem, price: e.target.value })}
@@ -410,7 +623,7 @@ const VendorDashboard = () => {
                                 />
                             </div>
                             <div>
-                                <Label>Category</Label>
+                                <Label className='mb-2'>Category</Label>
                                 <Select
                                     value={newMenuItem.category}
                                     onValueChange={(value) => setNewMenuItem({ ...newMenuItem, category: value })}
@@ -430,6 +643,7 @@ const VendorDashboard = () => {
                             <div>
                                 <Label>Description</Label>
                                 <Textarea
+                                    className='mt-2'
                                     value={newMenuItem.description}
                                     onChange={(e) => setNewMenuItem({ ...newMenuItem, description: e.target.value })}
                                     placeholder="Describe your dish"
@@ -439,6 +653,7 @@ const VendorDashboard = () => {
                             <div>
                                 <Label>Preparation Time (in minutes) *</Label>
                                 <Input
+                                    className='mt-2'
                                     type="number"
                                     value={newMenuItem.preparationTime}
                                     onChange={(e) => setNewMenuItem({ ...newMenuItem, preparationTime: e.target.value })}
@@ -555,6 +770,81 @@ const VendorDashboard = () => {
                                 </div>
                             </div>
                         )}
+                    </DialogContent>
+                </Dialog>
+                {/* Todays Menu selection Dialog*/}
+                <Dialog open={isTodayDialogOpen} onOpenChange={setIsTodayDialogOpen}>
+                    <DialogContent className="max-w-lg">
+                        <DialogHeader>
+                            <DialogTitle style={{ color: '#443627' }}>
+                                Select Items for Today's Menu
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                            {menuData.map(item => (
+                                <div key={item.id} className="flex items-center gap-3">
+                                    <Checkbox
+                                        checked={todayMenuIds.has(item.id)}
+                                        onCheckedChange={() => handleToggleTodayMenu(item.id)}
+                                    />
+                                    <span style={{ color: '#443627' }}>{item.name}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="flex gap-3 pt-4">
+                            <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => setIsTodayDialogOpen(false)}
+                            >
+                                Close
+                            </Button>
+                            <Button
+                                className="flex-1"
+                                onClick={() => setIsTodayDialogOpen(false)}
+                                style={{ backgroundColor: '#D98324' }}
+                            >
+                                Save
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Weekly Menu selection Dialog*/}
+                <Dialog open={isWeeklyDialogOpen} onOpenChange={setIsWeeklyDialogOpen}>
+                    <DialogContent className="max-w-lg">
+                        <DialogHeader>
+                            <DialogTitle style={{ color: '#443627' }}>
+                                Select Items for Weekly Menu
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                            {menuData.map(item => (
+                                <div key={item.id} className="flex items-center gap-3">
+                                    <Checkbox
+                                        checked={weeklyMenuIds.has(item.id)}
+                                        onCheckedChange={() => handleToggleWeeklyMenu(item.id)}
+                                    />
+                                    <span style={{ color: '#443627' }}>{item.name}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="flex gap-3 pt-4">
+                            <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => setIsWeeklyDialogOpen(false)}
+                            >
+                                Close
+                            </Button>
+                            <Button
+                                className="flex-1"
+                                onClick={() => setIsWeeklyDialogOpen(false)}
+                                style={{ backgroundColor: '#D98324' }}
+                            >
+                                Save
+                            </Button>
+                        </div>
                     </DialogContent>
                 </Dialog>
             </div>

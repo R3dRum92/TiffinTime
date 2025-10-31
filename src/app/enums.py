@@ -7,8 +7,8 @@ class Role(enum.Enum):
 
 
 class MenuCategory(str, enum.Enum):
-    RICE = "rice"
-    CURRY = "curry"
-    SNACKS = "snacks"
-    DRINKS = "drinks"
-    DESSERTS = "desserts"
+    RICE = "Rice"
+    CURRY = "Curry"
+    SNACKS = "Snacks"
+    DRINKS = "Drinks"
+    DESSERTS = "Desserts"
