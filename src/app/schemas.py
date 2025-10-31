@@ -3,7 +3,9 @@ from datetime import date, timedelta
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
+
+from app import enums
 
 
 class BaseResponse(BaseModel):
@@ -16,6 +18,38 @@ class UserID(BaseModel):
 
 class VendorID(BaseModel):
     id: UUID
+
+
+class UserBase(BaseModel):
+    id: UUID
+    role: enums.Role
+
+
+class MenuItemBase(BaseModel):
+    name: str
+    price: float
+    category: enums.MenuCategory
+    description: Optional[str] = None
+    preparation_time: int  # In minutes
+
+
+class MenuItemAddRequest(MenuItemBase):
+    pass
+
+
+class MenuItemUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    price: Optional[float] = None
+    category: Optional[enums.MenuCategory] = None
+    description: Optional[str] = None
+    preparation_time: Optional[int] = None
+
+
+class MenuItemResponse(MenuItemBase):
+    id: UUID
+    vendor_id: UUID
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SubscriptionRequest(BaseModel):
@@ -134,4 +168,5 @@ class UserDetails(BaseModel):
     def validate_phone_number(cls, v):
         if not BD_PHONE_REGEX.match(v):
             raise ValueError("Invalid phone number format")
+        return v
         return v
