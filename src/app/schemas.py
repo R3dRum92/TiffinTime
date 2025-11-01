@@ -230,3 +230,12 @@ class OrderCreateResponse(BaseModel):
 # Add new schema for updating order status
 class OrderStatusUpdate(BaseModel):
     is_delivered: bool
+
+
+class VendorDetailsResponse(BaseModel):
+    id: UUID
+    name: str
+    email: EmailStr
+    phone_number: str
+    description: str | None
+    is_open: bool

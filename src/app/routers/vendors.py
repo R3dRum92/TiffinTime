@@ -22,14 +22,7 @@ async def get_all_vendors(client: AsyncClient = Depends(get_db)):
     return await vendors.get_all_vendors(client=client)
 
 
-@router.get(
-    "/{vendor_id}",
-    response_model=schemas.VendorsResponse,
-    dependencies=[Depends(user_or_admin_auth)],
-    status_code=status.HTTP_200_OK,
-)
-async def get_vendor_by_id(vendor_id: UUID, client: AsyncClient = Depends(get_db)):
-    return await vendors.get_vendor_by_id(vendor_id=vendor_id, client=client)
+
 
 
 @router.get(
@@ -40,4 +33,13 @@ async def get_vendor_by_token(
     client: AsyncClient = Depends(get_db),
 ):
     vendor_id = request.id
+    return await vendors.get_vendor_by_id(vendor_id=vendor_id, client=client)
+
+@router.get(
+    "/{vendor_id}",
+    response_model=schemas.VendorsResponse,
+    dependencies=[Depends(user_or_admin_auth)],
+    status_code=status.HTTP_200_OK,
+)
+async def get_vendor_by_id(vendor_id: UUID, client: AsyncClient = Depends(get_db)):
     return await vendors.get_vendor_by_id(vendor_id=vendor_id, client=client)
