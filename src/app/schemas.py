@@ -100,6 +100,7 @@ class VendorsResponse(BaseModel):
 
 class MenuResponse(BaseModel):
     id: UUID
+    vendor_id: UUID  # Add this
     vendor_name: str
     name: str
     date: date | None  # Changed from 'date' to 'date | None'

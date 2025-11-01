@@ -1,14 +1,19 @@
+
+
+
 "use client"
 
 import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, MapPin, Clock, Star, Plus, Minus, ShoppingCart, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from "sonner";
-import { useMenu, MenuItem } from '@/app/hooks/allmenu'; // Adjust import path as needed
+import { useMenu, MenuItem } from '@/app/hooks/allmenu';
+import { useCreateOrder, OrderRequest } from '@/app/hooks/useOrder';
+import { useUserInfo } from '@/app/hooks/getUserDetails'; // Import your hook
 import Image from 'next/image';
 
 
@@ -21,8 +26,15 @@ const FoodSearch = () => {
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [selectedVendor, setSelectedVendor] = useState('All');
 
-    // Fetch vendors and menu data
+    // Get current user from your getUserDetails hook
+    const { user, isLoading: userLoading, error: userError } = useUserInfo();
+    const isAuthenticated = !!user && !userError;
+
+    // Fetch menu data
     const { data: menuItems, isLoading: menuLoading, error: menuError } = useMenu();
+    
+    // Order mutation
+    const createOrderMutation = useCreateOrder();
 
     const pickupPoints = [
         'Main Campus Cafeteria',
@@ -32,21 +44,21 @@ const FoodSearch = () => {
         'TSC'
     ];
 
-    // Extract unique categories from menu items
+    // Extract unique categories
     const categories = useMemo(() => {
         if (!menuItems) return ['All'];
         const uniqueCategories = [...new Set(menuItems.map(item => item.category).filter((category): category is string => category !== undefined && category !== null))];
         return ['All', ...uniqueCategories];
     }, [menuItems]);
 
-    // Extract unique vendors from menu items
+    // Extract unique vendors
     const vendorOptions = useMemo(() => {
         if (!menuItems) return ['All'];
         const uniqueVendors = [...new Set(menuItems.map(item => item.vendorName))];
         return ['All', ...uniqueVendors];
     }, [menuItems]);
 
-    // Filter menu items based on search and filters
+    // Filter menu items
     const filteredFoods = useMemo(() => {
         if (!menuItems) return [];
         
@@ -67,31 +79,63 @@ const FoodSearch = () => {
 
     const handleAddToCart = () => {
         if (selectedFood) {
-            toast("Added to Cart", {
+            // TODO: Implement cart functionality
+            toast.success("Added to Cart", {
                 description: `${quantity}x ${selectedFood.name} added to your cart`,
             });
             setIsDetailsOpen(false);
         }
     };
 
-    const handleOrderNow = () => {
-        if (selectedFood) {
-            toast("Order Placed", {
-                description: `Your order for ${quantity}x ${selectedFood.name} has been placed successfully!`,
+    const handleOrderNow = async () => {
+        // Check if user is authenticated
+        if (!isAuthenticated || !user) {
+            toast.error("Authentication Required", {
+                description: "Please log in to place an order",
             });
+            // TODO: Redirect to login page
+            // router.push('/login');
+            return;
+        }
+
+        if (!selectedFood || !selectedFood.vendorId) {
+            toast.error("Error", {
+                description: "Missing required order information",
+            });
+            return;
+        }
+
+        // Prepare order data
+        const orderData: OrderRequest = {
+            user_id: user.id,
+            vendor_id: selectedFood.vendorId,
+            menu_id: selectedFood.id,
+            quantity: quantity,
+            unit_price: selectedFood.price,
+            pickup: pickupPoint,
+        };
+
+        try {
+            await createOrderMutation.mutateAsync(orderData);
             setIsDetailsOpen(false);
+            setQuantity(1);
+            setSelectedFood(null);
+        } catch (error) {
+            console.error('Order failed:', error);
         }
     };
 
     const totalPrice = selectedFood ? (selectedFood.price * quantity) : 0;
 
-    // Loading state
-    if (menuLoading) {
+    // Loading state - show if either menu or user is loading
+    if (menuLoading || userLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'rgb(249, 245, 230)' }}>
                 <div className="text-center">
                     <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" style={{ color: '#D98324' }} />
-                    <p className="text-lg" style={{ color: '#443627' }}>Loading menu...</p>
+                    <p className="text-lg" style={{ color: '#443627' }}>
+                        {userLoading ? 'Loading user data...' : 'Loading menu...'}
+                    </p>
                 </div>
             </div>
         );
@@ -112,7 +156,6 @@ const FoodSearch = () => {
 
     return (
         <div className="min-h-screen relative" style={{ backgroundColor: 'rgb(249, 245, 230)' }}>
-            {/* Background Pattern */}
             <div className="absolute inset-0 opacity-20" />
 
             <div className="max-w-6xl mx-auto p-6 space-y-6 relative z-10">
@@ -124,6 +167,16 @@ const FoodSearch = () => {
                     <p className="text-xl" style={{ color: '#a0896b' }}>
                         Discover delicious meals from your favorite campus vendors
                     </p>
+                    {isAuthenticated && user && (
+                        <p className="text-sm mt-2" style={{ color: '#a0896b' }}>
+                            Welcome, {user.name}!
+                        </p>
+                    )}
+                    {!isAuthenticated && !userLoading && (
+                        <p className="text-sm mt-2 text-yellow-600">
+                            Please log in to place orders
+                        </p>
+                    )}
                 </div>
 
                 {/* Search and Filter Section */}
@@ -197,7 +250,7 @@ const FoodSearch = () => {
                                         src={food.image}
                                         alt={food.name}
                                         className="w-full h-full object-cover"
-                                       width={400}
+                                        width={400}
                                         height={240}
                                     />
                                 </div>
@@ -217,7 +270,7 @@ const FoodSearch = () => {
                                         by {food.vendorName}
                                     </p>
                                     
-                                    <p className="text-sm mb-3" style={{ color: '#443627' }}>
+                                    <p className="text-sm mb-3 line-clamp-2" style={{ color: '#443627' }}>
                                         {food.description || 'No description available'}
                                     </p>
                                     
@@ -282,10 +335,6 @@ const FoodSearch = () => {
                                         width={600}
                                         height={256}
                                         className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                            const target = e.target as HTMLImageElement;
-                                            target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop';
-                                        }}
                                     />
                                 </div>
                                 
@@ -366,6 +415,15 @@ const FoodSearch = () => {
                                         </Select>
                                     </div>
                                     
+                                    {/* Authentication Warning */}
+                                    {!isAuthenticated && (
+                                        <div className="p-4 rounded-lg bg-yellow-50 border border-yellow-200">
+                                            <p className="text-sm text-yellow-800">
+                                                Please log in to place an order
+                                            </p>
+                                        </div>
+                                    )}
+                                    
                                     {/* Total Price */}
                                     {selectedFood.price > 0 && (
                                         <div className="p-4 rounded-lg" style={{ backgroundColor: '#f8f6f3' }}>
@@ -374,7 +432,7 @@ const FoodSearch = () => {
                                                     Total Amount:
                                                 </span>
                                                 <span className="text-2xl font-bold" style={{ color: '#D98324' }}>
-                                                    ৳{totalPrice}
+                                                    ৳{totalPrice.toFixed(2)}
                                                 </span>
                                             </div>
                                         </div>
@@ -386,7 +444,7 @@ const FoodSearch = () => {
                                             onClick={handleAddToCart}
                                             variant="outline"
                                             className="flex-1"
-                                            disabled={selectedFood.price <= 0}
+                                            disabled={selectedFood.price <= 0 || !isAuthenticated}
                                         >
                                             <ShoppingCart className="h-4 w-4 mr-2" />
                                             Add to Cart
@@ -395,9 +453,16 @@ const FoodSearch = () => {
                                             onClick={handleOrderNow}
                                             className="flex-1"
                                             style={{ backgroundColor: '#D98324' }}
-                                            disabled={selectedFood.price <= 0}
+                                            disabled={selectedFood.price <= 0 || createOrderMutation.isPending || !isAuthenticated}
                                         >
-                                            Order Now
+                                            {createOrderMutation.isPending ? (
+                                                <>
+                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                    Placing Order...
+                                                </>
+                                            ) : (
+                                                'Order Now'
+                                            )}
                                         </Button>
                                     </div>
                                 </div>
