@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app import test
-from app.routers import auth, menu, subscription, user_details, vendors
+from app.routers import auth, menu, order, subscription, user_details, vendors
 from app.settings import settings
 
 app = FastAPI(
@@ -26,6 +26,8 @@ app.include_router(test.router)
 app.include_router(subscription.router)
 app.include_router(menu.router)
 app.include_router(user_details.router)
+app.include_router(order.router)
+
 
 
 @app.get("/")

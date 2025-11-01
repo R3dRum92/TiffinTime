@@ -250,20 +250,19 @@ const Navigation = () => {
   if (!shouldShowNavigation) {
     return null
   }
+  const navStyle = isScrolled ? { /* scrolled styles */ } : {
+    backgroundColor: "transparent",
+    backdropFilter: "none",
+    WebkitBackdropFilter: "none",
+};
 
   return (
     <nav
       className={`fixed left-0 right-0 z-50 px-1 py-4 pointer-events-none transition-all duration-300 ${isScrolled
-          ? 'backdrop-blur-md border border-white/20 '
-          : 'bg-transparent'
-        }`}
-      style={{
-        backgroundColor: isScrolled ? 'rgba(249, 245, 230)' : 'transparent',
-        backdropFilter: isScrolled ? 'blur(12px)' : 'none',
-        WebkitBackdropFilter: isScrolled ? 'blur(12px)' : 'none',
-      }}
-
-    >
+        ? 'bg-white/50 backdrop-blur-md border border-white/20' // <-- Add bg-white/50 (or your desired scrolled background)
+        : 'bg-transparent'
+      }`}
+  >
       <div className="max-w-7xl mx-auto flex items-center justify-between pointer-events-auto">
         {/* Logo */}
         <Link href="/" className="text-3xl font-bold">

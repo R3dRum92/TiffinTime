@@ -22,7 +22,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <Providers>
           <Navigation />
-          <main>
+          <main suppressHydrationWarning={true}>
             {children}
           </main>
           <Toaster

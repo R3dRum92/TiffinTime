@@ -1,7 +1,3 @@
-
-
-
-
 "use client"
 
 import React, { useState, useMemo } from 'react';
@@ -283,6 +279,8 @@ const FoodSearch = () => {
                                     <Image
                                         src={selectedFood.image}
                                         alt={selectedFood.name}
+                                        width={600}
+                                        height={256}
                                         className="w-full h-full object-cover"
                                         onError={(e) => {
                                             const target = e.target as HTMLImageElement;
@@ -413,4 +411,3 @@ const FoodSearch = () => {
 };
 
 export default FoodSearch;
-
