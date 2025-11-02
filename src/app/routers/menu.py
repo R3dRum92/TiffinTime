@@ -1,7 +1,6 @@
 from typing import List
-from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import AsyncClient
 
 from app import schemas
@@ -17,4 +16,5 @@ router = APIRouter(prefix="/menu", tags=["menu"])
     status_code=status.HTTP_200_OK,
 )
 async def get_all_menus(client: AsyncClient = Depends(get_db)):
+    """Get all available menu items from all vendors"""
     return await menu.get_all_menus(client=client)

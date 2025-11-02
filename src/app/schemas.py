@@ -2,6 +2,8 @@ import re
 from datetime import date, timedelta
 from typing import List, Optional
 from uuid import UUID
+from datetime import datetime 
+
 
 from pydantic import BaseModel, EmailStr, field_validator
 
@@ -98,12 +100,15 @@ class VendorsResponse(BaseModel):
 
 class MenuResponse(BaseModel):
     id: UUID
+    vendor_id: UUID  # Add this
     vendor_name: str
     name: str
-    date: date
+    date: date | None  # Changed from 'date' to 'date | None'
     description: str | None
-    img_url: str
+    img_url: str | None
     price: float
+    category: str | None
+    preparation_time: int | None
 
 
 class UserSubscriptionResponse(BaseModel):
@@ -135,3 +140,102 @@ class UserDetails(BaseModel):
         if not BD_PHONE_REGEX.match(v):
             raise ValueError("Invalid phone number format")
         return v
+    
+
+# Add these to your schemas.py file
+
+# class OrderRequest(BaseModel):
+#     user_id: UUID
+#     vendor_id: UUID
+#     menu_id: UUID  # Changed from 'menu' to 'menu_id' for clarity
+#     quantity: int
+#     unit_price: float
+#     pickup: str
+
+#     @field_validator("quantity")
+#     @classmethod
+#     def validate_quantity(cls, v):
+#         if v <= 0:
+#             raise ValueError("Quantity must be greater than 0")
+#         return v
+
+#     @field_validator("unit_price")
+#     @classmethod
+#     def validate_unit_price(cls, v):
+#         if v <= 0:
+#             raise ValueError("Unit price must be greater than 0")
+#         return v
+
+
+# class OrderResponse(BaseModel):
+#     id: UUID
+#     user_id: UUID
+#     vendor_id: UUID
+#     menu_id: UUID
+#     order_date: datetime
+#     quantity: int
+#     unit_price: float
+#     total_price: float
+#     pickup: str
+
+
+# class OrderCreateResponse(BaseModel):
+#     success: bool
+#     message: str
+#     order_id: UUID
+
+class OrderRequest(BaseModel):
+    user_id: UUID
+    vendor_id: UUID
+    menu_id: UUID
+    quantity: int
+    unit_price: float
+    pickup: str
+
+    @field_validator("quantity")
+    @classmethod
+    def validate_quantity(cls, v):
+        if v <= 0:
+            raise ValueError("Quantity must be greater than 0")
+        return v
+
+    @field_validator("unit_price")
+    @classmethod
+    def validate_unit_price(cls, v):
+        if v <= 0:
+            raise ValueError("Unit price must be greater than 0")
+        return v
+
+
+# Update OrderResponse - add is_delivered field
+class OrderResponse(BaseModel):
+    id: UUID
+    user_id: UUID
+    vendor_id: UUID
+    menu_id: UUID
+    order_date: datetime
+    quantity: int
+    unit_price: float
+    total_price: float
+    pickup: str
+    is_delivered: bool  # Add this
+
+
+class OrderCreateResponse(BaseModel):
+    success: bool
+    message: str
+    order_id: UUID
+
+
+# Add new schema for updating order status
+class OrderStatusUpdate(BaseModel):
+    is_delivered: bool
+
+
+class VendorDetailsResponse(BaseModel):
+    id: UUID
+    name: str
+    email: EmailStr
+    phone_number: str
+    description: str | None
+    is_open: bool
