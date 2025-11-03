@@ -554,7 +554,7 @@ const VendorDashboard = () => {
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                     <TabsList className="grid w-full grid-cols-3 mb-6">
                         <TabsTrigger value="all-items">All Menu Items</TabsTrigger>
-                        <TabsTrigger value="today">Today's Specials</TabsTrigger>
+                        <TabsTrigger value="today">Today&apos;s Specials</TabsTrigger>
                         <TabsTrigger value="weekly">Weekly Menu</TabsTrigger>
                     </TabsList>
 
@@ -598,7 +598,7 @@ const VendorDashboard = () => {
                                 <div className="flex items-center justify-between">
                                     <div className='flex items-center gap-3'>
                                         <h2 className="text-2xl font-bold" style={{ color: '#443627' }}>
-                                            Today's Specials
+                                            Today&apos;ss Specials
                                         </h2>
                                     </div>
                                     <Button
@@ -692,7 +692,7 @@ const VendorDashboard = () => {
                                 {menuData.length === 0 && (
                                     <div className="text-center py-12">
                                         <p className="text-lg" style={{ color: '#a0896b' }}>
-                                            Add items in the "All Menu Items" tab to set their weekly schedule.
+                                            Add items in the &quot;All Menu Items&quot; tab to set their weekly schedule.
                                         </p>
                                     </div>
                                 )}
@@ -863,7 +863,7 @@ const VendorDashboard = () => {
                     <DialogContent className="max-w-md">
                         <DialogHeader>
                             <DialogTitle style={{ color: '#443627' }}>
-                                Add Today's Special
+                                Add Today&apos;s Special
                             </DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4">
@@ -931,7 +931,7 @@ const VendorDashboard = () => {
                     <DialogContent className="max-w-md">
                         <DialogHeader>
                             <DialogTitle style={{ color: '#443627' }}>
-                                Edit Today's Special
+                                Edit Today&apos;s Special
                             </DialogTitle>
                         </DialogHeader>
                         {editingSpecial && (
