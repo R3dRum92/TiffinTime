@@ -217,13 +217,17 @@ const VendorDashboard = () => {
     const weeklyAvailabilityMap = useMemo(() => {
         const map = new Map<string, Set<DayOfWeek>>();
         for (const rule of weeklyMenuRules) {
+            // After transformation in the hook, 'id' is the menu_item_id
+            const menuItemId = rule.id;
+
             if (rule.is_available) {
-                if (!map.has(rule.id)) {
-                    map.set(rule.id, new Set());
+                if (!map.has(menuItemId)) {
+                    map.set(menuItemId, new Set());
                 }
-                map.get(rule.id)!.add(rule.day_of_week);
+                map.get(menuItemId)!.add(rule.day_of_week);
             }
         }
+        console.log('Weekly Availability Map:', map);
         return map;
     }, [weeklyMenuRules]);
 
@@ -239,7 +243,7 @@ const VendorDashboard = () => {
             const payload: Omit<BackendMenuItem, 'id' | 'vendor_id'> = {
                 name: newMenuItem.name,
                 price: parseFloat(newMenuItem.price),
-                category: newMenuItem.category.toLowerCase(), // Send lowercase
+                category: newMenuItem.category, // Send lowercase
                 description: newMenuItem.description,
                 preparation_time: parseInt(newMenuItem.preparationTime, 10),
             };
