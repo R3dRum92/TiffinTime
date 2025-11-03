@@ -3,10 +3,10 @@ from datetime import date
 from typing import Any, Dict, List
 
 from fastapi import HTTPException, status
-from supabase import AsyncClient  # Or supabase_async
+from supabase import AsyncClient  # Use supabase_async
 
 from app import schemas
-from utils.logger import logger
+from utils.logger import logger  # Assuming logger is available
 
 # --- Security Helper ---
 
@@ -32,7 +32,7 @@ async def _check_item_owner(
         return False
 
 
-# --- CREATE (Fixed) ---
+# --- CREATE ---
 
 
 async def create_special(
@@ -51,7 +51,7 @@ async def create_special(
         response = (
             await client.table("date_specials")
             .select("id")
-            .eq("menu_item_id", str(request.menu_item_id))  # Use str() here for safety
+            .eq("menu_item_id", str(request.menu_item_id))
             .eq("available_date", request.available_date.isoformat())
             .execute()
         )
@@ -61,18 +61,17 @@ async def create_special(
                 detail="This item is already a special on this date.",
             )
 
-        # 3. Create the item (in 2 steps for reliability)
+        # 3. Create the item
         special_data = request.model_dump()
-        special_data["vendor_id"] = str(vendor_id)
+        # Convert UUID and date to strings for JSON serialization
+        special_data["menu_item_id"] = str(special_data["menu_item_id"])
         special_data["available_date"] = special_data["available_date"].isoformat()
 
-        # ---
-        # THE FIX IS HERE:
-        # Convert the menu_item_id (which is a UUID) to a string
-        # ---
-        special_data["menu_item_id"] = str(special_data["menu_item_id"])
+        # Add vendor_id (from token) to the data to be inserted
+        # Note: This assumes 'date_specials' table has a 'vendor_id' column
+        # If not, this line should be removed.
+        # special_data["vendor_id"] = str(vendor_id)
 
-        # Step 3a: Insert the data
         insert_response = (
             await client.table("date_specials").insert(special_data).execute()
         )
@@ -95,6 +94,8 @@ async def create_special(
         )
 
         if response.data:
+            # FIX: Manually add vendor_id before validation
+            response.data["vendor_id"] = vendor_id
             return schemas.DateSpecialDetailResponse.model_validate(response.data)
         else:
             raise HTTPException(
@@ -122,16 +123,21 @@ async def get_vendor_specials(
         today = date.today().isoformat()
         response = (
             await client.table("date_specials")
-            .select("*, menu_items(*)")
-            .eq("menu_items.vendor_id", str(vendor_id))
+            .select("*, menu_items!inner(*)")  # Use inner join
+            .eq("menu_items.vendor_id", str(vendor_id))  # Filter on joined table
             .gte("available_date", today)
             .execute()
         )
 
-        return [
-            schemas.DateSpecialDetailResponse.model_validate(item)
-            for item in response.data
-        ]
+        # FIX: Manually add vendor_id to each item before validation
+        validated_list = []
+        for item in response.data:
+            item["vendor_id"] = vendor_id
+            validated_list.append(
+                schemas.DateSpecialDetailResponse.model_validate(item)
+            )
+        return validated_list
+
     except Exception as e:
         logger.error(f"Error getting vendor specials: {e}")
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(e))
@@ -149,21 +155,27 @@ async def get_specials_for_date(
     try:
         response = (
             await client.table("date_specials")
-            .select("*, menu_items(*)")
+            .select("*, menu_items!inner(*)")  # Use inner join
             .eq("available_date", query_date.isoformat())
             .execute()
         )
 
-        return [
-            schemas.DateSpecialDetailResponse.model_validate(item)
-            for item in response.data
-        ]
+        # FIX: Manually add vendor_id (from nested object) to each item
+        validated_list = []
+        for item in response.data:
+            if item.get("menu_items") and item["menu_items"].get("vendor_id"):
+                item["vendor_id"] = item["menu_items"]["vendor_id"]
+                validated_list.append(
+                    schemas.DateSpecialDetailResponse.model_validate(item)
+                )
+        return validated_list
+
     except Exception as e:
         logger.error(f"Error getting specials for date {query_date}: {e}")
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(e))
 
 
-# --- UPDATE (Fixed) ---
+# --- UPDATE ---
 
 
 async def update_special(
@@ -177,38 +189,44 @@ async def update_special(
         if not update_data:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "No data to update.")
 
-        # ---
-        # ADDED FIX 1: Check if date is being updated and convert it
-        # ---
-        if "available_date" in update_data and isinstance(
-            update_data["available_date"], date
-        ):
+        # Convert UUIDs/dates if they are in the update data
+        if "menu_item_id" in update_data:
+            update_data["menu_item_id"] = str(update_data["menu_item_id"])
+        if "available_date" in update_data:
             update_data["available_date"] = update_data["available_date"].isoformat()
 
-        # ---
-        # ADDED FIX 2: Check if menu_item_id is being updated and convert it
-        # ---
-        if "menu_item_id" in update_data and isinstance(
-            update_data["menu_item_id"], uuid.UUID
-        ):
-            update_data["menu_item_id"] = str(update_data["menu_item_id"])
+        # Step 1: Verify owner and get special data in one call
+        special_response = (
+            await client.table("date_specials")
+            .select("id, menu_items!inner(vendor_id)")
+            .eq("id", str(special_id))
+            .single()
+            .execute()
+        )
 
-        # Step 1: Update the item
-        # .eq("vendor_id", ...) ensures a vendor can only update THEIR special
+        if not special_response.data:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Special not found.")
+
+        # Check if the nested menu_item's vendor_id matches
+        if str(special_response.data.get("menu_items", {}).get("vendor_id")) != str(
+            vendor_id
+        ):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "No permission.")
+
+        # Step 2: Update the item
         update_response = (
             await client.table("date_specials")
             .update(update_data)
             .eq("id", str(special_id))
-            .eq("vendor_id", str(vendor_id))
             .execute()
         )
 
         if not update_response.data or not update_response.data[0]:
             raise HTTPException(
-                status.HTTP_404_NOT_FOUND, "Special not found or no permission."
+                status.HTTP_404_NOT_FOUND, "Special not found or update failed."
             )
 
-        # Step 2: Fetch the updated item with its join
+        # Step 3: Fetch the updated item with its join
         response = (
             await client.table("date_specials")
             .select("*, menu_items(*)")
@@ -218,9 +236,10 @@ async def update_special(
         )
 
         if response.data:
+            # FIX: Manually add vendor_id before validation
+            response.data["vendor_id"] = vendor_id
             return schemas.DateSpecialDetailResponse.model_validate(response.data)
         else:
-            # This should not happen if update succeeded, but good to check
             raise HTTPException(
                 status.HTTP_404_NOT_FOUND, "Special not found after update."
             )
@@ -237,19 +256,35 @@ async def delete_special(
     special_id: uuid.UUID, vendor_id: uuid.UUID, client: AsyncClient
 ) -> Dict[str, str]:
     try:
-        # .eq("vendor_id", ...) ensures a vendor can only delete THEIR special
+        # Step 1: Verify owner and get special data in one call
+        special_response = (
+            await client.table("date_specials")
+            .select("id, menu_items!inner(vendor_id)")
+            .eq("id", str(special_id))
+            .single()
+            .execute()
+        )
+
+        if not special_response.data:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Special not found.")
+
+        # Check if the nested menu_item's vendor_id matches
+        if str(special_response.data.get("menu_items", {}).get("vendor_id")) != str(
+            vendor_id
+        ):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "No permission.")
+
+        # Step 2: Delete the item
         response = (
             await client.table("date_specials")
             .delete()
             .eq("id", str(special_id))
-            .eq("vendor_id", str(vendor_id))
             .execute()
         )
 
         if not response.data:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Special not found or no permission.",
+                status.HTTP_404_NOT_FOUND, "Special not found or delete failed."
             )
 
         return {"message": "Special deleted successfully"}

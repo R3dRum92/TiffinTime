@@ -1,9 +1,7 @@
 import re
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import List, Optional
 from uuid import UUID
-from datetime import datetime 
-
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
@@ -80,14 +78,37 @@ class DateSpecialResponse(DateSpecialBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-class DateSpecialDetailResponse(DateSpecialResponse):
+class DateSpecialDetailResponse(BaseModel):
     """
-    A full response model that includes the nested menu item details.
-    This is what we'll get from Supabase with a join.
+    Response for a special, nesting the menu item details.
+    'id' here is the id from the 'date_specials' table.
     """
 
-    # Supabase join syntax will nest this as 'menu_items'
-    menu_items: Optional[MenuItemResponse] = None
+    special_id: UUID  # Renamed to avoid clash with menu_item.id
+    available_date: date
+    special_price: Optional[float] = None
+    available_stock: Optional[int] = None
+
+    # This field is required by your repository functions
+    vendor_id: UUID
+
+    # Nested menu item data
+    menu_items: MenuItemBase
+
+    model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
+
+    # Custom validator to flatten the Supabase join response
+    @classmethod
+    def model_validate(cls, data: dict, **kwargs):
+        if "menu_items" in data:
+            menu_item_data = data.pop("menu_items")
+            data["menu_items"] = MenuItemBase.model_validate(menu_item_data)
+
+        # Rename 'id' from date_specials to 'special_id'
+        if "id" in data:
+            data["special_id"] = data.pop("id")
+
+        return super().model_validate(data, **kwargs)
 
 
 class WeeklyAvailabilityBase(BaseModel):
@@ -111,13 +132,32 @@ class WeeklyAvailabilityResponse(WeeklyAvailabilityBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-class WeeklyAvailabilityDetailResponse(WeeklyAvailabilityResponse):
-    """Includes the full menu item details"""
+class WeeklyAvailabilityDetailResponse(BaseModel):
+    """
+    Response for a weekly rule, nesting item details.
+    'id' here is the id from the 'weekly_availability' table.
+    """
 
-    menu_items: "MenuItemResponse"  # Forward reference
+    id: UUID
+    day_of_week: enums.DayOfWeek
+    is_available: bool
 
+    # This field is required by your repository functions
+    vendor_id: UUID
 
-WeeklyAvailabilityDetailResponse.model_rebuild()
+    # Nested menu item data
+    menu_items: MenuItemBase
+
+    model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
+
+    # Custom validator to flatten the Supabase join response
+    @classmethod
+    def model_validate(cls, data: dict, **kwargs):
+        if "menu_items" in data:
+            menu_item_data = data.pop("menu_items")
+            data["menu_items"] = MenuItemBase.model_validate(menu_item_data)
+
+        return super().model_validate(data, **kwargs)  # Forward reference
 
 
 class SubscriptionRequest(BaseModel):
@@ -240,7 +280,7 @@ class UserDetails(BaseModel):
         if not BD_PHONE_REGEX.match(v):
             raise ValueError("Invalid phone number format")
         return v
-    
+
 
 # Add these to your schemas.py file
 
@@ -283,6 +323,7 @@ class UserDetails(BaseModel):
 #     success: bool
 #     message: str
 #     order_id: UUID
+
 
 class OrderRequest(BaseModel):
     user_id: UUID
