@@ -12,3 +12,13 @@ class MenuCategory(str, enum.Enum):
     SNACKS = "Snacks"
     DRINKS = "Drinks"
     DESSERTS = "Desserts"
+
+
+class DayOfWeek(int, enum.Enum):
+    SUNDAY = 0
+    MONDAY = 1
+    TUESDAY = 2
+    WEDNESDAY = 3
+    THURSDAY = 4
+    FRIDAY = 5
+    SATURDAY = 6

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,14 +24,30 @@ import {
     Store,
     Loader2,
     Calculator,
-    CalendarDays
+    CalendarDays,
+    Tag,
+    ArchiveX
 } from 'lucide-react';
 import {
     useVendorMenu,
     MenuItem,
     BackendMenuItem,
 } from '@/app/hooks/useVendorMenu';
+import {
+    useVendorSpecials,
+    DateSpecial,
+    NewDateSpecialPayload,
+    UpdateDateSpecialPayload,
+    DayOfWeek
+} from '@/app/hooks/useVendorSpecials';
+import {
+    useVendorWeeklyMenu,
+    WeeklyAvailability,
+    SetWeeklyAvailabilityPayload, // Import the enum
+} from '@/app/hooks/useVendorWeeklyMenu';
 import { getAuthToken } from '@/app/utils/auth';
+
+// ========== TYPES ==========
 
 interface NewMenuItemForm {
     name: string;
@@ -44,11 +60,25 @@ interface NewMenuItemForm {
 interface VendorInfo {
     id: string;
     name: string;
-    // Add other fields as they become available
 }
 
+// State for the "Add Special" dialog
+interface AddSpecialForm {
+    menu_item_id: string;
+    special_price: string;
+    quantity: string;
+}
+
+// State for the "Edit Special" dialog
+interface EditSpecialForm {
+    special_id: string;
+    special_price: string;
+    quantity: string;
+}
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+// ========== HELPER FUNCTIONS ==========
 
 // Re-using the fetchWithAuth logic for our new hook
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
@@ -79,6 +109,25 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     return response.status === 204 ? null : response.json();
 };
 
+const getTodayISO = (): string => {
+    const today = new Date();
+    // Adjust for local timezone
+    const offset = today.getTimezoneOffset();
+    const adjustedToday = new Date(today.getTime() - (offset * 60 * 1000));
+    return adjustedToday.toISOString().split('T')[0];
+};
+
+const DAYS_OF_WEEK = [
+    { label: 'S', value: DayOfWeek.SUNDAY },
+    { label: 'M', value: DayOfWeek.MONDAY },
+    { label: 'T', value: DayOfWeek.TUESDAY },
+    { label: 'W', value: DayOfWeek.WEDNESDAY },
+    { label: 'T', value: DayOfWeek.THURSDAY },
+    { label: 'F', value: DayOfWeek.FRIDAY },
+    { label: 'S', value: DayOfWeek.SATURDAY },
+];
+
+// ========== VENDOR INFO HOOK ==========
 
 const useVendorInfo = () => {
     return useQuery<VendorInfo>({
@@ -93,9 +142,10 @@ const useVendorInfo = () => {
 // ========== COMPONENT ==========
 
 const VendorDashboard = () => {
+    // --- Data Hooks ---
     const {
         menuData,
-        isLoading,
+        isLoading: isMenuLoading,
         error: menuError,
         addMenuItem,
         isAdding,
@@ -111,35 +161,73 @@ const VendorDashboard = () => {
         error: vendorError
     } = useVendorInfo();
 
+    const {
+        allSpecials,
+        isLoading: isSpecialsLoading,
+        error: specialsError,
+        addSpecial,
+        isAdding: isAddingSpecial,
+        updateSpecial,
+        isUpdating: isUpdatingSpecial,
+        deleteSpecial,
+        isDeleting: isDeletingSpecial,
+    } = useVendorSpecials();
+
+    const {
+        weeklyMenuRules,
+        isLoading: isWeeklyMenuLoading,
+        error: weeklyMenuError,
+        setAvailability,
+        isSetting: isSettingAvailability,
+    } = useVendorWeeklyMenu();
+
+    // --- Component State ---
     const [activeTab, setActiveTab] = useState('all-items');
     const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
     const [isEditMenuOpen, setIsEditMenuOpen] = useState(false);
+    const [isAddSpecialOpen, setIsAddSpecialOpen] = useState(false);
+    const [isEditSpecialOpen, setIsEditSpecialOpen] = useState(false);
+
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
-
-    const [todayMenuIds, setTodayMenuIds] = useState<Set<string>>(new Set());
-    const [weeklyMenuIds, setWeeklyMenuIds] = useState<Set<string>>(new Set());
-    const [isTodayDialogOpen, setIsTodayDialogOpen] = useState(false);
-    const [isWeeklyDialogOpen, setIsWeeklyDialogOpen] = useState(false);
-
-    const categories = ['Rice', 'Curry', 'Snacks', 'Drinks', 'Desserts'];
+    const [editingSpecial, setEditingSpecial] = useState<EditSpecialForm | null>(null);
+    const [addSpecialForm, setAddSpecialForm] = useState<AddSpecialForm>({
+        menu_item_id: '',
+        special_price: '',
+        quantity: '',
+    });
 
     const [newMenuItem, setNewMenuItem] = useState<NewMenuItemForm>({
         name: '',
-        price: '', // Price is string from input
+        price: '',
         category: '',
         description: '',
-        preparationTime: '', // Prep time is string from input
+        preparationTime: '',
     });
 
-    useEffect(() => {
-        localStorage.setItem('todayMenu', JSON.stringify([...todayMenuIds]));
-    }, [todayMenuIds]);
+    const categories = ['Rice', 'Curry', 'Snacks', 'Drinks', 'Desserts'];
 
-    useEffect(() => {
-        localStorage.setItem('weeklyMenu', JSON.stringify([...weeklyMenuIds]));
-    }, [weeklyMenuIds]);
+    // --- Memoized Data Processing ---
 
-    // --- 2. CRUD HANDLERS (Updated for new hook) ---
+    const todaySpecials = useMemo(() => {
+        const today = getTodayISO();
+        return allSpecials.filter(s => s.available_date === today);
+    }, [allSpecials]);
+
+    // Create a Map for fast weekly availability lookup: Map<menu_item_id, Set<day_of_week>>
+    const weeklyAvailabilityMap = useMemo(() => {
+        const map = new Map<string, Set<DayOfWeek>>();
+        for (const rule of weeklyMenuRules) {
+            if (rule.is_available) {
+                if (!map.has(rule.id)) {
+                    map.set(rule.id, new Set());
+                }
+                map.get(rule.id)!.add(rule.day_of_week);
+            }
+        }
+        return map;
+    }, [weeklyMenuRules]);
+
+    // --- CRUD Handlers (Menu Items) ---
 
     const handleAddMenuItem = async () => {
         if (!newMenuItem.name || !newMenuItem.price || !newMenuItem.preparationTime) {
@@ -151,19 +239,15 @@ const VendorDashboard = () => {
             const payload: Omit<BackendMenuItem, 'id' | 'vendor_id'> = {
                 name: newMenuItem.name,
                 price: parseFloat(newMenuItem.price),
-                category: newMenuItem.category,
+                category: newMenuItem.category.toLowerCase(), // Send lowercase
                 description: newMenuItem.description,
                 preparation_time: parseInt(newMenuItem.preparationTime, 10),
             };
 
             await addMenuItem(payload);
-
-            // Reset state and close dialog
             setNewMenuItem({ name: '', price: '', category: '', description: '', preparationTime: '' });
             setIsAddMenuOpen(false);
-            console.log("Menu Item Added successfully");
         } catch (e) {
-            console.error(e);
             alert("Failed to add item: " + (e as Error).message);
         }
     };
@@ -177,159 +261,267 @@ const VendorDashboard = () => {
         if (!editingItem) return;
 
         try {
-            // Prepare payload for the update mutation
             const updatePayload: Partial<BackendMenuItem> & { id: string } = {
                 id: editingItem.id,
                 name: editingItem.name,
                 price: editingItem.price,
-                category: editingItem.category,
+                category: editingItem.category.toLowerCase(),
                 description: editingItem.description,
                 preparation_time: editingItem.preparationTime,
             };
 
             await updateMenuItem(updatePayload);
-
             setIsEditMenuOpen(false);
             setEditingItem(null);
-            console.log("Menu Item Updated successfully");
         } catch (e) {
-            console.error(e);
             alert("Failed to update item: " + (e as Error).message);
         }
     };
 
-    const handleDeleteMenuItem = async (itemId: string) => { // ID is now string
-        if (!window.confirm("Are you sure you want to delete this item?")) return;
+    const handleDeleteMenuItem = async (itemId: string) => {
+        if (!window.confirm("Are you sure? This will remove the item and all its specials and weekly rules.")) return;
 
         try {
             await deleteMenuItem(itemId);
-            setTodayMenuIds(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(itemId);
-                return newSet;
-            });
-            setWeeklyMenuIds(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(itemId);
-                return newSet;
-            });
         } catch (e) {
-            console.error(e);
             alert("Failed to delete item: " + (e as Error).message);
         }
     };
-    const handleToggleTodayMenu = (itemId: string) => {
-        setTodayMenuIds(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(itemId)) {
-                newSet.delete(itemId);
-            } else {
-                newSet.add(itemId);
-            }
-            return newSet;
-        });
+
+    // --- CRUD Handlers (Date Specials) ---
+
+    const handleOpenAddSpecial = () => {
+        setAddSpecialForm({ menu_item_id: '', special_price: '', quantity: '' });
+        setIsAddSpecialOpen(true);
     };
 
-    const handleToggleWeeklyMenu = (itemId: string) => {
-        setWeeklyMenuIds(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(itemId)) {
-                newSet.delete(itemId);
-            } else {
-                newSet.add(itemId);
-            }
-            return newSet;
-        });
+    const handleAddSpecial = async () => {
+        if (!addSpecialForm.menu_item_id) {
+            alert("Please select an item.");
+            return;
+        }
+
+        const selectedItem = menuData.find(m => m.id === addSpecialForm.menu_item_id);
+        if (!selectedItem) return;
+
+        // Use special price/qty if provided, otherwise null
+        const price = addSpecialForm.special_price ? parseFloat(addSpecialForm.special_price) : null;
+        const qty = addSpecialForm.quantity ? parseInt(addSpecialForm.quantity, 10) : null;
+
+        const payload: NewDateSpecialPayload = {
+            menu_item_id: addSpecialForm.menu_item_id,
+            available_date: getTodayISO(),
+            special_price: price,
+            quantity: qty,
+        };
+
+        try {
+            await addSpecial(payload);
+            setIsAddSpecialOpen(false);
+        } catch (e) {
+            alert("Failed to add special: " + (e as Error).message);
+        }
     };
+
+    const handleOpenEditSpecial = (special: DateSpecial) => {
+        setEditingSpecial({
+            special_id: special.special_id,
+            special_price: special.special_price?.toString() || '',
+            quantity: special.quantity?.toString() || '',
+        });
+        setIsEditSpecialOpen(true);
+    };
+
+    const handleUpdateSpecial = async () => {
+        if (!editingSpecial) return;
+
+        const price = editingSpecial.special_price ? parseFloat(editingSpecial.special_price) : null;
+        const qty = editingSpecial.quantity ? parseInt(editingSpecial.quantity, 10) : null;
+
+        const payload: UpdateDateSpecialPayload = {
+            id: editingSpecial.special_id,
+            special_price: price,
+            quantity: qty,
+        };
+
+        try {
+            await updateSpecial(payload);
+            setIsEditSpecialOpen(false);
+            setEditingSpecial(null);
+        } catch (e) {
+            alert("Failed to update special: " + (e as Error).message);
+        }
+    };
+
+    const handleDeleteSpecial = async (special_id: string) => {
+        if (!window.confirm("Remove this item from today's specials?")) return;
+
+        try {
+            await deleteSpecial(special_id);
+        } catch (e) {
+            alert("Failed to remove special: " + (e as Error).message);
+        }
+    };
+
+    // --- CRUD Handlers (Weekly Menu) ---
+
+    const handleWeeklyAvailabilityChange = async (
+        menu_item_id: string,
+        day: DayOfWeek,
+        is_available: boolean
+    ) => {
+        const payload: SetWeeklyAvailabilityPayload = {
+            menu_item_id,
+            day_of_week: day,
+            is_available,
+        };
+        try {
+            await setAvailability(payload);
+        } catch (e) {
+            alert("Failed to update weekly menu: " + (e as Error).message);
+        }
+    };
+
 
     // ========== RENDER HELPERS ==========
 
-    const renderMenuItem = (item: MenuItem, showActions: boolean = true) => (
+    // Renders a generic menu item card
+    const renderMenuItemCard = (item: MenuItem, showActions: boolean = true) => (
         <Card key={item.id} className="shadow-lg border-0 relative overflow-hidden">
-            <div
-                className="absolute inset-0 opacity-5"
-                style={{
-                    backgroundImage: `radial-gradient(circle at 8px 8px, #D98324 0.5px, transparent 0.5px)`,
-                    backgroundSize: '16px 16px'
-                }}
-            />
-            <div className="relative z-10">
-                <div className="h-48 bg-gray-200 rounded-t-lg overflow-hidden flex items-center justify-center">
-                    <ChefHat className="h-24 w-24" style={{ color: '#a0896b' }} />
-                </div>
-
-                <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-bold text-lg" style={{ color: '#443627' }}>
-                            {item.name}
-                        </h3>
-                        {showActions && (
-                            <div className="flex gap-1">
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handleEditMenuItem(item)}
-                                    className="p-1"
-                                    title="Edit item"
-                                    disabled={isUpdating}
-                                >
-                                    <Edit3 className="h-4 w-4" style={{ color: '#D98324' }} />
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handleDeleteMenuItem(item.id)}
-                                    className="p-1"
-                                    title="Delete item"
-                                    disabled={isDeleting}
-                                >
-                                    {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-red-500" />}
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-
-                    <p className="text-sm mb-3 h-10 overflow-y-auto" style={{ color: '#443627' }}>
-                        {item.description || <span className="text-gray-400 italic">No description</span>}
-                    </p>
-
-                    <div className="flex items-center justify-between mb-3">
-                        <Badge variant="outline" style={{ color: '#a0896b' }}>
-                            {item.category}
-                        </Badge>
-                        <div className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" style={{ color: '#a0896b' }} />
-                            <span className="text-sm" style={{ color: '#a0896b' }}>
-                                {item.preparationTime} min
-                            </span>
+            <CardContent className="p-4">
+                <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-bold text-lg" style={{ color: '#443627' }}>
+                        {item.name}
+                    </h3>
+                    {showActions && (
+                        <div className="flex gap-1">
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleEditMenuItem(item)}
+                                className="p-1"
+                                title="Edit item"
+                                disabled={isUpdating}
+                            >
+                                <Edit3 className="h-4 w-4" style={{ color: '#D98324' }} />
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeleteMenuItem(item.id)}
+                                className="p-1"
+                                title="Delete item"
+                                disabled={isDeleting}
+                            >
+                                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-red-500" />}
+                            </Button>
                         </div>
-                    </div>
-
-                    <div className="text-center">
-                        <span className="text-xl font-bold" style={{ color: '#D98324' }}>
-                            ৳{item.price}
+                    )}
+                </div>
+                <p className="text-sm mb-3 h-10 overflow-y-auto" style={{ color: '#443627' }}>
+                    {item.description || <span className="text-gray-400 italic">No description</span>}
+                </p>
+                <div className="flex items-center justify-between mb-3">
+                    <Badge variant="outline" className="capitalize" style={{ color: '#a0896b' }}>
+                        {item.category}
+                    </Badge>
+                    <div className="flex items-center gap-1">
+                        <Clock className="h-4 w-4" style={{ color: '#a0896b' }} />
+                        <span className="text-sm" style={{ color: '#a0896b' }}>
+                            {item.preparationTime} min
                         </span>
                     </div>
-                </CardContent>
-            </div>
+                </div>
+                <div className="text-center">
+                    <span className="text-xl font-bold" style={{ color: '#D98324' }}>
+                        ৳{item.price}
+                    </span>
+                </div>
+            </CardContent>
         </Card>
     );
 
-    // --- 3. LOADING / ERROR STATES ---
+    // Renders a special item card for "Today's Menu"
+    const renderSpecialItemCard = (item: DateSpecial) => (
+        <Card key={item.special_id} className="shadow-lg border-0 relative overflow-hidden">
+            <CardContent className="p-4">
+                <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-bold text-lg" style={{ color: '#443627' }}>
+                        {item.name}
+                    </h3>
+                    <div className="flex gap-1">
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleOpenEditSpecial(item)}
+                            className="p-1"
+                            title="Edit special"
+                            disabled={isUpdatingSpecial}
+                        >
+                            <Edit3 className="h-4 w-4" style={{ color: '#D98324' }} />
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeleteSpecial(item.special_id)}
+                            className="p-1"
+                            title="Remove special"
+                            disabled={isDeletingSpecial}
+                        >
+                            {isDeletingSpecial ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-red-500" />}
+                        </Button>
+                    </div>
+                </div>
 
-    if (isLoading || isVendorLoading) {
+                <div className="flex items-center justify-between mb-3">
+                    <Badge variant="outline" className="capitalize" style={{ color: '#a0896b' }}>
+                        {item.category}
+                    </Badge>
+                    {item.quantity !== null && (
+                        <div className="flex items-center gap-1">
+                            <ArchiveX className="h-4 w-4" style={{ color: '#a0896b' }} />
+                            <span className="text-sm" style={{ color: '#a0896b' }}>
+                                {item.quantity} left
+                            </span>
+                        </div>
+                    )}
+                </div>
+
+                <div className="text-center">
+                    {item.special_price !== null ? (
+                        <>
+                            <span className="text-xl font-bold line-through text-gray-400 mr-2">
+                                ৳{item.price}
+                            </span>
+                            <span className="text-2xl font-bold" style={{ color: '#D98324' }}>
+                                ৳{item.special_price}
+                            </span>
+                        </>
+                    ) : (
+                        <span className="text-2xl font-bold" style={{ color: '#D98324' }}>
+                            ৳{item.price}
+                        </span>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+    );
+
+    // --- Loading / Error States ---
+    const isLoading = isMenuLoading || isVendorLoading || isSpecialsLoading || isWeeklyMenuLoading;
+    const dataError = menuError || vendorError || specialsError || weeklyMenuError;
+
+    if (isLoading) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ backgroundColor: 'rgb(249, 245, 230)' }}>
                 <Loader2 className="h-12 w-12 animate-spin mb-4" style={{ color: '#D98324' }} />
                 <p className="text-xl font-medium" style={{ color: '#443627' }}>
-                    {isLoading ? "Loading Menu Data..." : "Loading Vendor Info..."}
+                    Loading Dashboard Data...
                 </p>
             </div>
         );
     }
 
-    // Handle either menu error or vendor info error
-    const dataError = menuError || vendorError;
     if (dataError) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ backgroundColor: 'rgb(249, 245, 230)' }}>
@@ -343,15 +535,9 @@ const VendorDashboard = () => {
         );
     }
 
-    const todayMenuItems = menuData.filter(item => todayMenuIds.has(item.id));
-    const weeklyMenuItems = menuData.filter(item => weeklyMenuIds.has(item.id));
-    // --- 4. RENDER ---
-
+    // --- RENDER ---
     return (
         <div className="min-h-screen relative" style={{ backgroundColor: 'rgb(249, 245, 230)' }}>
-            {/* Background pattern */}
-            <div className="absolute inset-0 opacity-20" />
-
             <div className="max-w-7xl mx-auto p-6 space-y-6 relative z-10">
 
                 {/* Vendor Header */}
@@ -362,40 +548,19 @@ const VendorDashboard = () => {
                             {vendorInfo?.name || 'Vendor Dashboard'}
                         </h1>
                     </div>
-                    <p className="text-xl mb-4" style={{ color: '#a0896b' }}>
-                        Manage your menu items
-                    </p>
-
-                    {/* Placeholder for future stats */}
-                    <div className="flex items-center justify-center gap-6 text-sm">
-                        <div className="flex items-center gap-1">
-                            <Star className="h-4 w-4 text-gray-400" />
-                            <span style={{ color: '#a0896b' }}>(Rating not available)</span>
-                        </div>
-                        <div style={{ color: '#a0896b' }}>
-                            📍 (Location not available)
-                        </div>
-                    </div>
                 </div>
 
                 {/* Tabs */}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                     <TabsList className="grid w-full grid-cols-3 mb-6">
                         <TabsTrigger value="all-items">All Menu Items</TabsTrigger>
-                        <TabsTrigger value="today">Today's Menu</TabsTrigger>
+                        <TabsTrigger value="today">Today's Specials</TabsTrigger>
                         <TabsTrigger value="weekly">Weekly Menu</TabsTrigger>
                     </TabsList>
 
                     {/* All menu items tab */}
                     <TabsContent value="all-items" className="space-y-6">
-                        <Card className="shadow-lg border-0 relative overflow-hidden">
-                            <div
-                                className="absolute inset-0 opacity-5"
-                                style={{
-                                    backgroundImage: `radial-gradient(circle at 12px 12px, #D98324 1px, transparent 1px)`,
-                                    backgroundSize: '24px 24px'
-                                }}
-                            />
+                        <Card className="shadow-lg border-0">
                             <CardContent className="p-6 relative z-10">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-2xl font-bold" style={{ color: '#443627' }}>
@@ -403,10 +568,7 @@ const VendorDashboard = () => {
                                     </h2>
                                     <Button
                                         style={{ backgroundColor: '#D98324' }}
-                                        onClick={() => {
-                                            setNewMenuItem({ name: '', price: '', category: '', description: '', preparationTime: '' });
-                                            setIsAddMenuOpen(true);
-                                        }}
+                                        onClick={() => setIsAddMenuOpen(true)}
                                         disabled={isAdding}
                                     >
                                         {isAdding ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
@@ -416,130 +578,50 @@ const VendorDashboard = () => {
                             </CardContent>
                         </Card>
 
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {menuData.map((item) => (
-                                    <Card
-                                        key={item.id}
-                                        className="shadow-lg border-0 relative overflow-hidden"
-                                    >
-                                        <div
-                                            className="absolute inset-0 opacity-5"
-                                            style={{
-                                                backgroundImage: `radial-gradient(circle at 8px 8px, #D98324 0.5px, transparent 0.5px)`,
-                                                backgroundSize: '16px 16px'
-                                            }}
-                                        />
-                                        <div className="relative z-10">
-                                            <div className="h-48 bg-gray-200 rounded-t-lg overflow-hidden flex items-center justify-center">
-                                                <ChefHat className="h-24 w-24" style={{ color: '#a0896b' }} />
-                                            </div>
-
-                                            <CardContent className="p-4">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <h3 className="font-bold text-lg" style={{ color: '#443627' }}>
-                                                        {item.name}
-                                                    </h3>
-                                                    <div className="flex gap-1">
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            onClick={() => handleEditMenuItem(item)}
-                                                            className="p-1"
-                                                            title="Edit item"
-                                                            disabled={isUpdating}
-                                                        >
-                                                            <Edit3 className="h-4 w-4" style={{ color: '#D98324' }} />
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            onClick={() => handleDeleteMenuItem(item.id)}
-                                                            className="p-1"
-                                                            title="Delete item"
-                                                            disabled={isDeleting}
-                                                        >
-                                                            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-red-500" />}
-                                                        </Button>
-                                                    </div>
-                                                </div>
-
-                                                <p className="text-sm mb-3 h-10 overflow-y-auto" style={{ color: '#443627' }}>
-                                                    {item.description || <span className="text-gray-400 italic">No description</span>}
-                                                </p>
-
-                                                <div className="flex items-center justify-between mb-3">
-                                                    <Badge variant="outline" style={{ color: '#a0896b' }}>
-                                                        {item.category}
-                                                    </Badge>
-                                                    <div className="flex items-center gap-1">
-                                                        <Clock className="h-4 w-4" style={{ color: '#a0896b' }} />
-                                                        <span className="text-sm" style={{ color: '#a0896b' }}>
-                                                            {item.preparationTime} min
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="text-center">
-                                                    <span className="text-xl font-bold" style={{ color: '#D98324' }}>
-                                                        ৳{item.price}
-                                                    </span>
-                                                </div>
-                                            </CardContent>
-                                        </div>
-                                    </Card>
-                                ))}
-                            </div>
-
-                            {menuData.length === 0 && (
-                                <div className="text-center py-12">
-                                    <ChefHat className="h-16 w-16 mx-auto mb-4" style={{ color: '#a0896b' }} />
-                                    <p className="text-lg" style={{ color: '#a0896b' }}>
-                                        You have no menu items. Add some to get started!
-                                    </p>
-                                </div>
-                            )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {menuData.map((item) => renderMenuItemCard(item, true))}
                         </div>
+                        {menuData.length === 0 && (
+                            <div className="text-center py-12">
+                                <ChefHat className="h-16 w-16 mx-auto mb-4" style={{ color: '#a0896b' }} />
+                                <p className="text-lg" style={{ color: '#a0896b' }}>
+                                    You have no menu items. Add some to get started!
+                                </p>
+                            </div>
+                        )}
                     </TabsContent>
 
                     {/* Today's Menu Tab */}
                     <TabsContent value="today" className="space-y-6">
-                        <Card className="shadow-lg border-0 relative overflow-hidden">
-                            <div
-                                className="absolute inset-0 opacity-5"
-                                style={{
-                                    backgroundImage: `radial-gradient(circle at 12px 12px, #D98324 1px, transparent 1px)`,
-                                    backgroundSize: '24px 24px'
-                                }}
-                            />
+                        <Card className="shadow-lg border-0">
                             <CardContent className="p-6 relative z-10">
                                 <div className="flex items-center justify-between">
                                     <div className='flex items-center gap-3'>
                                         <h2 className="text-2xl font-bold" style={{ color: '#443627' }}>
-                                            Today's Menu
+                                            Today's Specials
                                         </h2>
                                     </div>
                                     <Button
                                         style={{ backgroundColor: '#D98324' }}
-                                        onClick={() => setIsTodayDialogOpen(true)}
+                                        onClick={handleOpenAddSpecial}
                                     >
                                         <Plus className="h-4 w-4 mr-2" />
-                                        Select Items
+                                        Add Special
                                     </Button>
                                 </div>
                                 <p className='text-sm mt-2' style={{ color: '#a0896b' }}>
-                                    {todayMenuItems.length} item(s) selected for today's menu.
+                                    {todaySpecials.length} item(s) on special for today.
                                 </p>
                             </CardContent>
                         </Card>
                         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-                            {todayMenuItems.map(item => renderMenuItem(item, false))}
+                            {todaySpecials.map(item => renderSpecialItemCard(item))}
                         </div>
-                        {todayMenuItems.length === 0 && (
+                        {todaySpecials.length === 0 && (
                             <div className="text-center py-12">
                                 <Calculator className='h-16 w-16 mx-auto mb-4' style={{ color: '#a0896b' }} />
                                 <p className="text-lg" style={{ color: '#a0896b' }}>
-                                    No items selected for today's menu.
+                                    No items on special for today.
                                 </p>
                             </div>
                         )}
@@ -547,14 +629,7 @@ const VendorDashboard = () => {
 
                     {/* Weekly Menu Tab */}
                     <TabsContent value="weekly" className="space-y-6">
-                        <Card className="shadow-lg border-0 relative overflow-hidden">
-                            <div
-                                className="absolute inset-0 opacity-5"
-                                style={{
-                                    backgroundImage: `radial-gradient(circle at 12px 12px, #D98324 1px, transparent 1px)`,
-                                    backgroundSize: '24px 24px'
-                                }}
-                            />
+                        <Card className="shadow-lg border-0">
                             <CardContent className="p-6 relative z-10">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
@@ -563,38 +638,70 @@ const VendorDashboard = () => {
                                             Weekly Menu
                                         </h2>
                                     </div>
-                                    <Button
-                                        style={{ backgroundColor: '#D98324' }}
-                                        onClick={() => setIsWeeklyDialogOpen(true)}
-                                    >
-                                        <Plus className="h-4 w-4 mr-2" />
-                                        Select Items
-                                    </Button>
                                 </div>
                                 <p className="text-sm mt-2" style={{ color: '#a0896b' }}>
-                                    {weeklyMenuItems.length} items selected
+                                    Set the default availability for your items for each day of the week.
                                 </p>
                             </CardContent>
                         </Card>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {weeklyMenuItems.map((item) => renderMenuItem(item, false))}
-                        </div>
-
-                        {weeklyMenuItems.length === 0 && (
-                            <div className="text-center py-12">
-                                <CalendarDays className="h-16 w-16 mx-auto mb-4" style={{ color: '#a0896b' }} />
-                                <p className="text-lg" style={{ color: '#a0896b' }}>
-                                    No items selected for weekly menu. Click "Select Items" to add items.
-                                </p>
-                            </div>
-                        )}
+                        {/* Weekly Menu Table-like UI */}
+                        <Card className="shadow-lg border-0">
+                            <CardContent className="p-0">
+                                <div className="space-y-2">
+                                    {/* Header Row */}
+                                    <div className="flex items-center p-4 bg-gray-50 rounded-t-lg">
+                                        <div className="flex-1 font-bold" style={{ color: '#443627' }}>Menu Item</div>
+                                        <div className="flex gap-2 text-center">
+                                            {DAYS_OF_WEEK.map(day => (
+                                                <div key={day.value} className="w-8 font-bold" style={{ color: '#a0896b' }}>
+                                                    {day.label}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    {/* Item Rows */}
+                                    {menuData.map(item => {
+                                        const availableDays = weeklyAvailabilityMap.get(item.id) || new Set();
+                                        return (
+                                            <div key={item.id} className="flex items-center p-4 border-t">
+                                                <div className="flex-1 font-medium" style={{ color: '#443627' }}>
+                                                    {item.name}
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    {DAYS_OF_WEEK.map(day => (
+                                                        <div key={day.value} className="w-8 flex justify-center">
+                                                            <Checkbox
+                                                                checked={availableDays.has(day.value)}
+                                                                onCheckedChange={(checked: boolean) => {
+                                                                    handleWeeklyAvailabilityChange(
+                                                                        item.id,
+                                                                        day.value,
+                                                                        !!checked
+                                                                    );
+                                                                }}
+                                                                disabled={isSettingAvailability}
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                {menuData.length === 0 && (
+                                    <div className="text-center py-12">
+                                        <p className="text-lg" style={{ color: '#a0896b' }}>
+                                            Add items in the "All Menu Items" tab to set their weekly schedule.
+                                        </p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
                     </TabsContent>
                 </Tabs>
-                {/* Control Bar - Removed Today/Weekly toggle */}
 
-
-                {/* Add Menu Item Dialog (Simplified) */}
+                {/* Add Menu Item Dialog */}
                 <Dialog open={isAddMenuOpen} onOpenChange={setIsAddMenuOpen}>
                     <DialogContent className="max-w-md">
                         <DialogHeader>
@@ -602,65 +709,50 @@ const VendorDashboard = () => {
                                 Add New Menu Item
                             </DialogTitle>
                         </DialogHeader>
-                        <div className="space-y-5">
+                        <div className="space-y-4">
                             <div>
                                 <Label>Item Name *</Label>
                                 <Input
-                                    className='mt-2'
                                     value={newMenuItem.name}
                                     onChange={(e) => setNewMenuItem({ ...newMenuItem, name: e.target.value })}
-                                    placeholder="Enter item name"
                                 />
                             </div>
                             <div>
                                 <Label>Price (৳) *</Label>
                                 <Input
-                                    className='mt-2'
                                     type="number"
                                     value={newMenuItem.price}
                                     onChange={(e) => setNewMenuItem({ ...newMenuItem, price: e.target.value })}
-                                    placeholder="e.g., 50"
                                 />
                             </div>
                             <div>
-                                <Label className='mb-2'>Category</Label>
+                                <Label>Category</Label>
                                 <Select
                                     value={newMenuItem.category}
                                     onValueChange={(value) => setNewMenuItem({ ...newMenuItem, category: value })}
                                 >
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
+                                    <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
                                     <SelectContent>
-                                        {categories.map((category) => (
-                                            <SelectItem key={category} value={category}>
-                                                {category}
-                                            </SelectItem>
-                                        ))}
+                                        {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>
                             <div>
                                 <Label>Description</Label>
                                 <Textarea
-                                    className='mt-2'
                                     value={newMenuItem.description}
                                     onChange={(e) => setNewMenuItem({ ...newMenuItem, description: e.target.value })}
-                                    placeholder="Describe your dish"
                                     rows={3}
                                 />
                             </div>
                             <div>
                                 <Label>Preparation Time (in minutes) *</Label>
                                 <Input
-                                    className='mt-2'
                                     type="number"
                                     value={newMenuItem.preparationTime}
                                     onChange={(e) => setNewMenuItem({ ...newMenuItem, preparationTime: e.target.value })}
-                                    placeholder="e.g., 15"
                                 />
                             </div>
-                            {/* Image URL Removed */}
                             <div className="flex gap-3 pt-4">
                                 <Button
                                     variant="outline"
@@ -683,7 +775,7 @@ const VendorDashboard = () => {
                     </DialogContent>
                 </Dialog>
 
-                {/* Edit Menu Item Dialog (Simplified) */}
+                {/* Edit Menu Item Dialog */}
                 <Dialog open={isEditMenuOpen} onOpenChange={(open) => {
                     setIsEditMenuOpen(open);
                     if (!open) setEditingItem(null);
@@ -717,15 +809,9 @@ const VendorDashboard = () => {
                                         value={editingItem.category}
                                         onValueChange={(value) => setEditingItem({ ...editingItem, category: value })}
                                     >
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
                                         <SelectContent>
-                                            {categories.map((category) => (
-                                                <SelectItem key={category} value={category}>
-                                                    {category}
-                                                </SelectItem>
-                                            ))}
+                                            {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -745,7 +831,6 @@ const VendorDashboard = () => {
                                         onChange={(e) => setEditingItem({ ...editingItem, preparationTime: parseInt(e.target.value, 10) || 0 })}
                                     />
                                 </div>
-                                {/* Image URL Removed */}
                                 <div className="flex gap-3 pt-4">
                                     <Button
                                         variant="outline"
@@ -772,84 +857,130 @@ const VendorDashboard = () => {
                         )}
                     </DialogContent>
                 </Dialog>
-                {/* Todays Menu selection Dialog*/}
-                <Dialog open={isTodayDialogOpen} onOpenChange={setIsTodayDialogOpen}>
-                    <DialogContent className="max-w-lg">
+
+                {/* Add Special Dialog */}
+                <Dialog open={isAddSpecialOpen} onOpenChange={setIsAddSpecialOpen}>
+                    <DialogContent className="max-w-md">
                         <DialogHeader>
                             <DialogTitle style={{ color: '#443627' }}>
-                                Select Items for Today's Menu
+                                Add Today's Special
                             </DialogTitle>
                         </DialogHeader>
-                        <div className="space-y-3 max-h-96 overflow-y-auto">
-                            {menuData.map(item => (
-                                <div key={item.id} className="flex items-center gap-3">
-                                    <Checkbox
-                                        checked={todayMenuIds.has(item.id)}
-                                        onCheckedChange={() => handleToggleTodayMenu(item.id)}
-                                    />
-                                    <span style={{ color: '#443627' }}>{item.name}</span>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="flex gap-3 pt-4">
-                            <Button
-                                variant="outline"
-                                className="flex-1"
-                                onClick={() => setIsTodayDialogOpen(false)}
-                            >
-                                Close
-                            </Button>
-                            <Button
-                                className="flex-1"
-                                onClick={() => setIsTodayDialogOpen(false)}
-                                style={{ backgroundColor: '#D98324' }}
-                            >
-                                Save
-                            </Button>
+                        <div className="space-y-4">
+                            <div>
+                                <Label>Menu Item *</Label>
+                                <Select
+                                    value={addSpecialForm.menu_item_id}
+                                    onValueChange={(value) => setAddSpecialForm(f => ({ ...f, menu_item_id: value }))}
+                                >
+                                    <SelectTrigger><SelectValue placeholder="Select an item" /></SelectTrigger>
+                                    <SelectContent>
+                                        {menuData.map(item => (
+                                            <SelectItem key={item.id} value={item.id}>
+                                                {item.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <Label>Special Price (৳)</Label>
+                                <Input
+                                    type="number"
+                                    value={addSpecialForm.special_price}
+                                    onChange={(e) => setAddSpecialForm(f => ({ ...f, special_price: e.target.value }))}
+                                    placeholder={`Regular: ৳${menuData.find(m => m.id === addSpecialForm.menu_item_id)?.price || '...'}`}
+                                />
+                            </div>
+                            <div>
+                                <Label>Quantity Available</Label>
+                                <Input
+                                    type="number"
+                                    value={addSpecialForm.quantity}
+                                    onChange={(e) => setAddSpecialForm(f => ({ ...f, quantity: e.target.value }))}
+                                    placeholder="Leave blank for unlimited"
+                                />
+                            </div>
+                            <div className="flex gap-3 pt-4">
+                                <Button
+                                    variant="outline"
+                                    className="flex-1"
+                                    onClick={() => setIsAddSpecialOpen(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    className="flex-1"
+                                    onClick={handleAddSpecial}
+                                    style={{ backgroundColor: '#D98324' }}
+                                    disabled={isAddingSpecial}
+                                >
+                                    {isAddingSpecial ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+                                    Add Special
+                                </Button>
+                            </div>
                         </div>
                     </DialogContent>
                 </Dialog>
 
-                {/* Weekly Menu selection Dialog*/}
-                <Dialog open={isWeeklyDialogOpen} onOpenChange={setIsWeeklyDialogOpen}>
-                    <DialogContent className="max-w-lg">
+                {/* Edit Special Dialog */}
+                <Dialog open={isEditSpecialOpen} onOpenChange={(open) => {
+                    setIsEditSpecialOpen(open);
+                    if (!open) setEditingSpecial(null);
+                }}>
+                    <DialogContent className="max-w-md">
                         <DialogHeader>
                             <DialogTitle style={{ color: '#443627' }}>
-                                Select Items for Weekly Menu
+                                Edit Today's Special
                             </DialogTitle>
                         </DialogHeader>
-                        <div className="space-y-3 max-h-96 overflow-y-auto">
-                            {menuData.map(item => (
-                                <div key={item.id} className="flex items-center gap-3">
-                                    <Checkbox
-                                        checked={weeklyMenuIds.has(item.id)}
-                                        onCheckedChange={() => handleToggleWeeklyMenu(item.id)}
+                        {editingSpecial && (
+                            <div className="space-y-4">
+                                <div>
+                                    <Label>Special Price (৳)</Label>
+                                    <Input
+                                        type="number"
+                                        value={editingSpecial.special_price}
+                                        onChange={(e) => setEditingSpecial(f => ({ ...f!, special_price: e.target.value }))}
+                                        placeholder="Leave blank to use regular price"
                                     />
-                                    <span style={{ color: '#443627' }}>{item.name}</span>
                                 </div>
-                            ))}
-                        </div>
-                        <div className="flex gap-3 pt-4">
-                            <Button
-                                variant="outline"
-                                className="flex-1"
-                                onClick={() => setIsWeeklyDialogOpen(false)}
-                            >
-                                Close
-                            </Button>
-                            <Button
-                                className="flex-1"
-                                onClick={() => setIsWeeklyDialogOpen(false)}
-                                style={{ backgroundColor: '#D98324' }}
-                            >
-                                Save
-                            </Button>
-                        </div>
+                                <div>
+                                    <Label>Quantity Available</Label>
+                                    <Input
+                                        type="number"
+                                        value={editingSpecial.quantity}
+                                        onChange={(e) => setEditingSpecial(f => ({ ...f!, quantity: e.target.value }))}
+                                        placeholder="Leave blank for unlimited"
+                                    />
+                                </div>
+                                <div className="flex gap-3 pt-4">
+                                    <Button
+                                        variant="outline"
+                                        className="flex-1"
+                                        onClick={() => setIsEditSpecialOpen(false)}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        className="flex-1"
+                                        onClick={handleUpdateSpecial}
+                                        style={{ backgroundColor: '#D98324' }}
+                                        disabled={isUpdatingSpecial}
+                                    >
+                                        {isUpdatingSpecial ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                                        Update Special
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </DialogContent>
                 </Dialog>
+
             </div>
         </div>
     );
 };
 
 export default VendorDashboard;
+
