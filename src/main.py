@@ -10,7 +10,7 @@ from app.routers import (
     subscription,
     user_details,
     vendors,
-    orders
+    orders,
     weekly_menu,
 )
 from app.settings import settings
