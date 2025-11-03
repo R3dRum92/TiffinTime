@@ -58,10 +58,10 @@ const FoodSearch = () => {
     // Filter menu items
     const filteredFoods = useMemo(() => {
         if (!menuItems) return [];
-        
+
         return menuItems.filter(food => {
             const matchesSearch = food.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                food.vendorName.toLowerCase().includes(searchQuery.toLowerCase());
+                food.vendorName.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesCategory = selectedCategory === 'All' || food.category === selectedCategory;
             const matchesVendor = selectedVendor === 'All' || food.vendorName === selectedVendor;
             return matchesSearch && matchesCategory && matchesVendor;
@@ -229,9 +229,8 @@ const FoodSearch = () => {
                     {filteredFoods.map((food) => (
                         <Card
                             key={food.id}
-                            className={`shadow-lg border-0 cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-105 relative overflow-hidden ${
-                                !food.available ? 'opacity-60' : ''
-                            }`}
+                            className={`shadow-lg border-0 cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-105 relative overflow-hidden ${!food.available ? 'opacity-60' : ''
+                                }`}
                             onClick={() => food.available && handleFoodClick(food)}
                         >
                             <div
@@ -262,7 +261,7 @@ const FoodSearch = () => {
                                             {food.available ? 'Available' : 'Unavailable'}
                                         </Badge>
                                     </div>
-                                    
+
                                     <p className="text-sm mb-2" style={{ color: '#a0896b' }}>
                                         by {food.vendorName}
                                     </p>
@@ -270,7 +269,7 @@ const FoodSearch = () => {
                                     <p className="text-sm mb-3 line-clamp-2" style={{ color: '#443627' }}>
                                         {food.description || 'No description available'}
                                     </p>
-                                    
+
                                     <div className="flex items-center justify-between mb-3">
                                         <div className="flex items-center gap-1">
                                             <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
@@ -285,7 +284,7 @@ const FoodSearch = () => {
                                             </span>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="flex justify-between items-center">
                                         <span className="text-xl font-bold" style={{ color: '#D98324' }}>
                                             {food.price > 0 ? `৳${food.price}` : 'Price TBD'}
@@ -322,7 +321,7 @@ const FoodSearch = () => {
                                 {selectedFood?.name}
                             </DialogTitle>
                         </DialogHeader>
-                        
+
                         {selectedFood && (
                             <div className="space-y-6">
                                 <div className="h-64 bg-gray-200 rounded-lg overflow-hidden">
@@ -334,7 +333,7 @@ const FoodSearch = () => {
                                         className="w-full h-full object-cover"
                                     />
                                 </div>
-                                
+
                                 <div className="space-y-4">
                                     <div>
                                         <h3 className="font-semibold mb-2" style={{ color: '#443627' }}>
@@ -344,7 +343,7 @@ const FoodSearch = () => {
                                             {selectedFood.description || 'No description available'}
                                         </p>
                                     </div>
-                                    
+
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-4">
                                             <div className="flex items-center gap-1">
@@ -362,7 +361,7 @@ const FoodSearch = () => {
                                             {selectedFood.price > 0 ? `৳${selectedFood.price}` : 'Price TBD'}
                                         </span>
                                     </div>
-                                    
+
                                     {/* Quantity Selector */}
                                     <div className="space-y-2">
                                         <label className="font-semibold" style={{ color: '#443627' }}>
@@ -389,7 +388,7 @@ const FoodSearch = () => {
                                             </Button>
                                         </div>
                                     </div>
-                                    
+
                                     {/* Pickup Point */}
                                     <div className="space-y-2">
                                         <label className="font-semibold" style={{ color: '#443627' }}>
@@ -434,7 +433,7 @@ const FoodSearch = () => {
                                             </div>
                                         </div>
                                     )}
-                                    
+
                                     {/* Action Buttons */}
                                     <div className="flex gap-3 pt-4">
                                         <Button
