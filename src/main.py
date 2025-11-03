@@ -7,10 +7,10 @@ from app.routers import (
     auth,
     date_specials,
     menu,
+    order,
     subscription,
     user_details,
     vendors,
-    orders,
     weekly_menu,
 )
 from app.settings import settings
@@ -37,6 +37,7 @@ app.include_router(menu.router)
 app.include_router(user_details.router)
 app.include_router(date_specials.router)
 app.include_router(weekly_menu.router)
+app.include_router(order.router)
 
 
 @app.get("/")
@@ -45,8 +46,6 @@ async def root():
         content={"message": "TiffinTime API is up and running"},
         status_code=status.HTTP_200_OK,
     )
-app.include_router(order.router)
-
 
 
 @app.get("/")
