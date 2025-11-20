@@ -12,5 +12,6 @@ dependencies = [
     "python-dotenv>=1.1.1",
     "python-jose>=3.5.0",
     "ruff>=0.12.0",
+    "sslcommerz-lib>=1.0",
     "supabase>=2.16.0",
 ]
