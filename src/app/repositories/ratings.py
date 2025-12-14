@@ -1,4 +1,5 @@
 from uuid import UUID
+from typing import Optional
 from fastapi import HTTPException, status
 from supabase import AsyncClient
 from app import schemas

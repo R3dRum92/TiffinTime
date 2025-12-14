@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Check, Crown, Clock, Calendar, Utensils, Loader2 } from 'lucide-react';
 import { useVendor } from "@/app/hooks/singleVendor";
 import { useVendorSubscription } from "@/app/hooks/useVendorSubscription";
+import RatingStars from "@/components/ui/RatingStars";
 import { toast } from "sonner";
 
 interface MenuItem {
@@ -141,8 +142,8 @@ const transformVendorData = (apiData: ApiVendorData): VendorDetails => {
                 isVeg: true,
                 isAvailable: true
             },
-            
-           
+
+
         ],
         subscriptionPlans: [
             {
@@ -338,9 +339,12 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                         <div className="flex-1">
                             <h1 className="text-2xl font-bold mb-2 darktext">{vendor.name}</h1>
                             <div className="flex items-center gap-4 text-sm lighttext">
-                                <span className="flex items-center gap-1">
-                                    ⭐ {vendor.rating} ({vendor.totalReviews} reviews)
-                                </span>
+
+                                {/* Header Rating Section (readonly) */}
+                                <RatingStars
+                                    vendorId={vendor.id}
+                                    variant="readonly"
+                                />
                                 <span>🕒 {vendor.deliveryTime}</span>
                                 <span className={`px-2 py-1 rounded text-white ${vendor.isOpen ? 'bg-green-500' : 'bg-red-500'}`}>
                                     {vendor.isOpen ? 'Open' : 'Closed'}
@@ -349,6 +353,7 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                         </div>
                     </div>
                 </div>
+
 
                 {/* Main Content */}
                 <div className="container mx-auto px-4 py-8">
@@ -625,6 +630,22 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                         </div>
                     </div>
                     {/* </div> */}
+                    {/* 2. NEW RATE US SECTION (Interactive) */}
+                    <div className="container mx-auto py-4 ">
+                        <div className="bg-white rounded-lg shadow-sm p-4 border border-orange-100 flex items-center justify-between">
+                            <div>
+                                <h3 className="font-semibold text-gray-800">Have you eaten here?</h3>
+                                <p className="text-xs text-gray-500">Share your experience with others</p>
+                            </div>
+                            <div className="flex flex-col items-end">
+                                <RatingStars
+                                    vendorId={vendor.id}
+                                    variant="input"
+                                    size={24} // Slightly larger stars for interaction
+                                />
+                            </div>
+                        </div>
+                    </div>
 
                     {/* Footer Info */}
                     <div className="rounded-3xl p-8 shadow-md">
