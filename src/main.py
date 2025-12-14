@@ -12,6 +12,7 @@ from app.routers import (
     user_details,
     vendors,
     weekly_menu,
+    reviews
 )
 from app.settings import settings
 
@@ -38,6 +39,7 @@ app.include_router(user_details.router)
 app.include_router(date_specials.router)
 app.include_router(weekly_menu.router)
 app.include_router(order.router)
+app.include_router(reviews.router)
 
 
 @app.get("/")
