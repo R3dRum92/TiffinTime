@@ -12,12 +12,12 @@ from app.routers import (
     menu,
     order,
     payment,
+    ratings,
+    reviews,
     subscription,
     user_details,
     vendors,
     weekly_menu,
-    reviews
-    ratings
 )
 from app.settings import settings
 from db.supabase import create_supabase
@@ -56,7 +56,8 @@ app.include_router(order.router)
 app.include_router(payment.router)
 app.include_router(reviews.router)
 
-app.include_router(ratings.router)  
+app.include_router(ratings.router)
+
 
 @app.get("/")
 async def root():
