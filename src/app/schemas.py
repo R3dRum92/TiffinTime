@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, UUID4
 
 from app import enums
 
@@ -380,3 +380,17 @@ class VendorDetailsResponse(BaseModel):
     phone_number: str
     description: str | None
     is_open: bool
+
+class RatingCreate(BaseModel):
+    vendor_id: UUID4
+    # Changed to float to match float8, allowing half-stars if you want (e.g. 4.5)
+    rating_val: float = Field(..., ge=1, le=5, description="Rating must be between 1 and 5")
+
+class RatingResponse(BaseModel):
+    vendor_id: UUID4
+    average_rating: float
+    total_ratings: int
+
+class UserRatingResponse(BaseModel):
+    vendor_id: UUID4
+    rating_val: float

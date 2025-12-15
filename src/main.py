@@ -13,6 +13,7 @@ from app.routers import (
     vendors,
     weekly_menu,
     reviews
+    ratings
 )
 from app.settings import settings
 
@@ -41,6 +42,7 @@ app.include_router(weekly_menu.router)
 app.include_router(order.router)
 app.include_router(reviews.router)
 
+app.include_router(ratings.router)  
 
 @app.get("/")
 async def root():
