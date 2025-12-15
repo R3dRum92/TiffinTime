@@ -122,6 +122,7 @@ import { ShoppingBag, User, Star, Clock, Package } from 'lucide-react';
 import { useSubscribers } from '../hooks/useSubscribers';
 import { useVendorOrders } from '@/app/hooks/useOrder';
 import { useVendorInfo } from '@/app/hooks/getVendorDetails';
+import { useVendorRatings } from '@/app/hooks/useVendorRating';
 import { format } from 'date-fns';
 
 export default function VendorDashboard() {
@@ -134,6 +135,9 @@ export default function VendorDashboard() {
     // Fetch subscribers and orders
     const { data: subscribers, isLoading, isError } = useSubscribers();
     const { data: singleOrders } = useVendorOrders(vendorId);
+
+    // Fetch Real Ratings (Reusing your existing hook!)
+    const { average, count: reviewCount } = useVendorRatings(vendorId || '');
 
     // Calculate statistics
     const stats = useMemo(() => {
@@ -316,11 +320,20 @@ export default function VendorDashboard() {
                         </div>
                     </div>
 
+                    {/* Rating card */}
                     <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-orange-300">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="lighttext text-sm font-medium">Average Rating</p>
-                                <p className="text-2xl font-bold darktext">{stats.averageRating}/5</p>
+                                <div className="flex items-baseline gap-2">
+                                    <p className="text-2xl font-bold darktext">
+                                        {average > 0 ? average.toFixed(1) : "N/A"}
+                                        <span className="text-sm text-gray-400 font-normal">/5</span>
+                                    </p>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Based on {reviewCount} reviews
+                                </p>
                             </div>
                             <Star className="w-8 h-8 theme" />
                         </div>
@@ -342,11 +355,10 @@ export default function VendorDashboard() {
                                 <nav className="flex space-x-8">
                                     <button
                                         onClick={() => setActiveTab('active')}
-                                        className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
-                                            activeTab === 'active'
-                                                ? 'border-orange-500 theme'
-                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                        }`}
+                                        className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'active'
+                                            ? 'border-orange-500 theme'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            }`}
                                     >
                                         Active Subscribers
                                         {activeSubscribers.length > 0 && (
@@ -357,11 +369,10 @@ export default function VendorDashboard() {
                                     </button>
                                     <button
                                         onClick={() => setActiveTab('expired')}
-                                        className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
-                                            activeTab === 'expired'
-                                                ? 'border-orange-500 theme'
-                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                        }`}
+                                        className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'expired'
+                                            ? 'border-orange-500 theme'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            }`}
                                     >
                                         Expired Subscribers
                                         {expiredSubscribers.length > 0 && (
