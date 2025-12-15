@@ -28,7 +28,4 @@ export async function generateStaticParams() {
 
 export default function VendorDetailPage({ params }: VendorDetailPageProps) {
   return <ClientVendorPage params={params} />;
-}
-
-
-
+} 
