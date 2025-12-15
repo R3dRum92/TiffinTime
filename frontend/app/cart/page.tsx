@@ -16,10 +16,28 @@ import { useMutation } from '@tanstack/react-query';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 
+// --- Type Definitions ---
+interface PaymentPayload {
+    order_ids: string[];
+    total_amount: number;
+    tran_id: string;
+    cus_add1: string;
+    cus_city: string;
+    num_of_item: number;
+    product_name: string;
+    product_category: string;
+}
+
+interface OrderResponse {
+    order_id: string;
+    [key: string]: unknown; // Allow other properties but ensure order_id is present
+}
+
 // --- Payment Hook ---
 const useInitPayment = () => {
     return useMutation({
-        mutationFn: async (paymentData: any) => {
+        // Fix 1: Replaced 'any' with 'PaymentPayload' interface
+        mutationFn: async (paymentData: PaymentPayload) => {
             const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/payment/init`, paymentData, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -54,11 +72,9 @@ export default function CartPage() {
         }
 
         setIsCheckingOut(true);
-        // 1. Generate Transaction ID on frontend for idempotency/tracking
         const transactionId = uuidv4();
 
         try {
-            // 2. Create individual orders in the database first
             const orderPromises = cartItems.map(item => {
                 return createOrderMutation.mutateAsync({
                     user_id: user.id,
@@ -71,15 +87,15 @@ export default function CartPage() {
             });
 
             // Wait for all orders to be created
+            // We cast the result to unknown first if the mutation type isn't generic, 
+            // but mapping over the result with a specific type is safer.
             const createdOrders = await Promise.all(orderPromises);
 
-            // 3. Extract the new IDs from the created orders
-            // createdOrders is an array of objects returned by your API, assuming they have an 'id' field
-            const orderIds = createdOrders.map((order: any) => order.order_id);
+            // Fix 2: Replaced 'any' with 'OrderResponse' (or a shape matching your API return)
+            const orderIds = createdOrders.map((order: unknown) => (order as OrderResponse).order_id);
 
-            // 4. Prepare Payment Data with the LIST of Order IDs
-            const paymentPayload = {
-                order_ids: orderIds, // UPDATED: Sending the list of IDs
+            const paymentPayload: PaymentPayload = {
+                order_ids: orderIds,
                 total_amount: cartTotal,
                 tran_id: transactionId,
                 cus_add1: pickupPoint,
@@ -89,12 +105,10 @@ export default function CartPage() {
                 product_category: "Food"
             };
 
-            // 5. Initiate Payment
             const paymentResponse = await initPaymentMutation.mutateAsync(paymentPayload);
 
             if (paymentResponse?.status === 'SUCCESS' && paymentResponse?.GatewayPageURL) {
                 toast.success("Redirecting to payment gateway...");
-                // Note: We don't clear the cart here yet. We clear it on the success page.
                 window.location.href = paymentResponse.GatewayPageURL;
             } else {
                 throw new Error("Failed to get payment gateway URL");
@@ -116,7 +130,8 @@ export default function CartPage() {
                     <ShoppingBag className="h-16 w-16" style={{ color: '#D98324' }} />
                 </div>
                 <h2 className="text-2xl font-bold" style={{ color: '#443627' }}>Your Cart is Empty</h2>
-                <p style={{ color: '#a0896b' }}>Looks like you haven't added any delicious food yet.</p>
+                {/* Fix 3: Escaped the apostrophe in "haven't" */}
+                <p style={{ color: '#a0896b' }}>Looks like you haven&apos;t added any delicious food yet.</p>
                 <Link href="/food">
                     <Button className="mt-4" style={{ backgroundColor: '#D98324' }}>
                         Browse Menu

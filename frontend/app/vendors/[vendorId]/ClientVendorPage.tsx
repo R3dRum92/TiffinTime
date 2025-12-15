@@ -4,12 +4,12 @@ import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 // Added icons
-import { Check, Crown, Clock, Calendar, Utensils, Loader2, MessageSquare } from 'lucide-react'; 
+import { Check, Crown, Clock, Calendar, Utensils, Loader2, MessageSquare } from 'lucide-react';
 // Custom hooks
 import { useVendor } from "@/app/hooks/singleVendor";
 import { useVendorSubscription } from "@/app/hooks/useVendorSubscription";
-import { useReviewSubmission } from "@/app/hooks/useReviewSubmission"; 
-import { useVendorReviews } from "@/app/hooks/useVendorReviews"; 
+import { useReviewSubmission } from "@/app/hooks/useReviewSubmission";
+import { useVendorReviews } from "@/app/hooks/useVendorReviews";
 import RatingStars from "@/components/ui/RatingStars";
 import { toast } from "sonner";
 
@@ -20,7 +20,7 @@ interface ReviewItem {
     delivery_experience: string;
     comment: string | null;
     // created_at HAS BEEN REMOVED HERE
-    username: string; 
+    username: string;
 }
 
 interface MenuItem {
@@ -94,8 +94,8 @@ const transformVendorData = (apiData: ApiVendorData): VendorDetails => {
         name: apiData.name,
         description: apiData.description,
         image: apiData.img_url,
-        coverImage: apiData.img_url, 
-        rating: 4.5, 
+        coverImage: apiData.img_url,
+        rating: 4.5,
         totalReviews: 248,
         deliveryTime: `${apiData.delivery_time.min}-${apiData.delivery_time.max} mins`,
         minimumOrder: 100,
@@ -216,14 +216,14 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, vendorId, ve
     const [foodQuality, setFoodQuality] = useState<string | null>(null);
     const [deliveryExperience, setDeliveryExperience] = useState<string | null>(null);
     const [comment, setComment] = useState<string>('');
-    
-    const { submitReview, isLoading, error } = useReviewSubmission(); 
+
+    const { submitReview, isLoading, error } = useReviewSubmission();
 
     if (!isOpen) return null;
 
-    const handleSubmit = async (e: React.FormEvent) => { 
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!foodQuality || !deliveryExperience) {
             toast.error("Please select ratings for both Food Quality and Delivery Experience.");
             return;
@@ -232,19 +232,19 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, vendorId, ve
             toast.error("Vendor information missing. Please refresh the page.");
             return;
         }
-        
+
         const payload = {
             vendor_id: vendorId,
-            food_quality: foodQuality!, 
-            delivery_experience: deliveryExperience!, 
+            food_quality: foodQuality!,
+            delivery_experience: deliveryExperience!,
             comment: comment || '',
         };
 
         toast.info("Submitting Review...", {
-             description: `Sending your feedback for ${vendorName}.`
+            description: `Sending your feedback for ${vendorName}.`
         });
 
-        const success = await submitReview(payload); 
+        const success = await submitReview(payload);
 
         if (success) {
             toast.success(`Review Submitted! 🎉`, {
@@ -290,7 +290,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, vendorId, ve
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
                 <h2 className="text-2xl font-bold mb-4" style={{ color: '#443627' }}>Add Review for {vendorName}</h2>
                 <form onSubmit={handleSubmit}>
-                    
+
                     <RatingSelection
                         label="Food Quality"
                         selectedOption={foodQuality}
@@ -321,14 +321,14 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, vendorId, ve
                             type="button"
                             onClick={onClose}
                             className="px-6 py-3 border border-gray-300 rounded-full font-semibold text-gray-700 hover:bg-gray-100 transition"
-                            disabled={isLoading} 
+                            disabled={isLoading}
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             className="px-6 py-3 rounded-full font-semibold text-white bg-orange-500 hover:bg-orange-600 transition disabled:opacity-50"
-                            disabled={!foodQuality || !deliveryExperience || isLoading} 
+                            disabled={!foodQuality || !deliveryExperience || isLoading}
                         >
                             {isLoading ? (
                                 <span className="flex items-center gap-2">
@@ -358,11 +358,13 @@ interface ReviewsDisplayModalProps {
 }
 
 const ReviewsDisplayModal: React.FC<ReviewsDisplayModalProps> = ({ isOpen, onClose, vendorId, vendorName, totalReviews }) => {
-    
-    // CRITICAL FIX: The hook is called *only* if the modal is open.
-    if (!isOpen) return null; 
-    
+
+    // FIX: Hook must be called unconditionally at the top level
+    // We move this BEFORE the if (!isOpen) check
     const { data: reviews, isLoading, isError } = useVendorReviews(vendorId);
+
+    // NOW we can check if the modal should be hidden
+    if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
@@ -378,11 +380,9 @@ const ReviewsDisplayModal: React.FC<ReviewsDisplayModalProps> = ({ isOpen, onClo
 
                 <div className="flex-grow overflow-y-auto p-6 space-y-4">
                     {isLoading && <p className="text-center text-gray-500">Loading reviews...</p>}
-                    
-                    {/* Display Error only if loading is finished AND there's an error */}
+
                     {!isLoading && isError && <p className="text-center text-red-500">Failed to load reviews. Please ensure you are logged in.</p>}
-                    
-                    {/* Display "No reviews" only if not loading AND no data */}
+
                     {!isLoading && !isError && reviews && reviews.length === 0 && (
                         <p className="text-center text-gray-500">No reviews yet for this vendor.</p>
                     )}
@@ -390,13 +390,11 @@ const ReviewsDisplayModal: React.FC<ReviewsDisplayModalProps> = ({ isOpen, onClo
                     {!isLoading && !isError && reviews && reviews.map((review) => (
                         <div key={review.review_id} className="p-4 border rounded-lg bg-gray-50">
                             <div className="flex justify-between items-start mb-2">
-                                {/* Display username */}
                                 <span className="text-sm font-semibold" style={{ color: '#443627' }}>
                                     {review.username}
                                 </span>
-                                
+
                                 <div className="flex items-center gap-4 text-sm">
-                                    {/* Simple color coding based on rating */}
                                     <span className={`font-medium ${review.food_quality === 'Very bad' ? 'text-red-600' : 'text-green-700'}`}>
                                         Food: {review.food_quality}
                                     </span>
@@ -551,10 +549,10 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
             <ReviewModal
                 isOpen={isReviewModalOpen}
                 onClose={() => setIsReviewModalOpen(false)}
-                vendorId={vendorId} 
+                vendorId={vendorId}
                 vendorName={vendor.name}
             />
-            
+
             {/* 2. Review Display Modal */}
             <ReviewsDisplayModal
                 isOpen={isReviewsModalOpen}
@@ -580,9 +578,9 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                             <h1 className="text-2xl font-bold mb-2 darktext">{vendor.name}</h1>
                             <div className="flex items-center gap-4 text-sm lighttext">
                                 <span className="flex items-center gap-1">
-                                    ⭐ {vendor.rating} 
+                                    ⭐ {vendor.rating}
                                     {/* Make the review count clickable */}
-                                    <button 
+                                    <button
                                         onClick={() => setIsReviewsModalOpen(true)}
                                         className="text-orange-500 hover:underline"
                                     >
