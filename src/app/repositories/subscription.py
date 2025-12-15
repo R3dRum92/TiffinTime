@@ -10,7 +10,10 @@ from utils.logger import logger
 
 
 async def subscribe(
-    request: schemas.SubscriptionRequest, user_id: UUID, client: AsyncClient
+    request: schemas.SubscriptionRequest,
+    user_id: UUID,
+    client: AsyncClient,
+    vendor_id: UUID,
 ):
     try:
         response = await client.table("users").select("*").eq("id", user_id).execute()
@@ -21,21 +24,18 @@ async def subscribe(
             detail=f"Database query failed: {str(e)}",
         )
 
-    _user = response.data[0]
-
+    _user = response.data
     if not _user:
         logger.error(f"User with id: {user_id} not found")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User with id: {user_id} not found",
         )
+    _user = _user[0]
 
     try:
         response = (
-            await client.table("vendors")
-            .select("*")
-            .eq("id", request.vendor_id)
-            .execute()
+            await client.table("vendors").select("*").eq("id", vendor_id).execute()
         )
     except Exception as e:
         logger.error(f"Database query failed: {str(e)}")
@@ -44,14 +44,14 @@ async def subscribe(
             detail=f"Database query failed: {str(e)}",
         )
 
-    _vendor = response.data[0]
-
+    _vendor = response.data
     if not _vendor:
         logger.error(f"Vendor with id: {request.vendor_id} not found")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Vendor with id: {request.vendor_id} not found",
         )
+    _vendor = _vendor[0]
 
     _now = datetime.now(timezone.utc)
     _ed = request.type_timedelta
@@ -119,12 +119,11 @@ async def cancel_subscription(subscription_id: UUID, client: AsyncClient) -> Non
             detail=f"Database query failed: {str(e)}",
         )
 
-    _subscription = response.data[0]
+    _subscription = response.data
     if not _subscription:
         logger.error(f"Subscription not found")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Subscription not found"
         )
 
-    await client.table("subscription").delete().eq("id", subscription_id).execute()
     await client.table("subscription").delete().eq("id", subscription_id).execute()

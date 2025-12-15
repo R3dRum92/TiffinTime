@@ -254,7 +254,7 @@ async def update_special(
 
 async def delete_special(
     special_id: uuid.UUID, vendor_id: uuid.UUID, client: AsyncClient
-) -> Dict[str, str]:
+) -> None:
     try:
         # Step 1: Verify owner and get special data in one call
         special_response = (
@@ -287,7 +287,7 @@ async def delete_special(
                 status.HTTP_404_NOT_FOUND, "Special not found or delete failed."
             )
 
-        return {"message": "Special deleted successfully"}
+        return None
 
     except Exception as e:
         logger.error(f"Error deleting special {special_id}: {e}")

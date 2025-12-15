@@ -1,32 +1,33 @@
-from fastapi import APIRouter, Depends, status
-from fastapi.responses import JSONResponse
-from supabase import AsyncClient
+from sslcommerz_lib import SSLCOMMERZ
 
-from db.supabase import get_db
-from utils.auth import user_or_admin_auth
-from utils.logger import logger
+from app.settings import settings
 
-router = APIRouter(prefix="/test", tags=["test"])
+sslcommerz_settings = {
+    "store_id": settings.SSLCOMMERZ_STORE_ID,
+    "store_pass": settings.SSLCOMMERZ_STORE_PASS,
+    "issandbox": True,
+}
+sslcz = SSLCOMMERZ(sslcommerz_settings)
+post_body = {}
+post_body["total_amount"] = 100.26
+post_body["currency"] = "BDT"
+post_body["tran_id"] = "12345"
+post_body["success_url"] = "your success url"
+post_body["fail_url"] = "your fail url"
+post_body["cancel_url"] = "your cancel url"
+post_body["emi_option"] = 0
+post_body["cus_name"] = "test"
+post_body["cus_email"] = "test@test.com"
+post_body["cus_phone"] = "01700000000"
+post_body["cus_add1"] = "customer address"
+post_body["cus_city"] = "Dhaka"
+post_body["cus_country"] = "Bangladesh"
+post_body["shipping_method"] = "NO"
+post_body["multi_card_name"] = ""
+post_body["num_of_item"] = 1
+post_body["product_name"] = "Test"
+post_body["product_category"] = "Test Category"
+post_body["product_profile"] = "general"
 
-
-@router.get("/test_db")
-async def test_db(client: AsyncClient = Depends(get_db)):
-    try:
-        # response = await client.rpc("get_server_time").execute()
-
-        response = (
-            await client.table("users")
-            .select("id, name, phone_number, email")
-            .eq("id", "2f39e84c-3b6b-4c74-83f4-79aa6ad651c5")
-            .execute()
-        )
-
-        return JSONResponse(
-            content={"data": response.data},
-            status_code=status.HTTP_200_OK,
-        )
-    except Exception as e:
-        logger.error(f"Database query failed: {e}")
-        return JSONResponse(
-            content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+response = sslcz.createSession(post_body)  # API response
+# print(response)

@@ -41,12 +41,16 @@ export const useCreateOrder = () => {
 
   return useMutation({
     mutationFn: async (orderData: OrderRequest): Promise<OrderCreateResponse> => {
-      const response = await fetch(`${API_BASE_URL}/orders/`, {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      const response = await fetch(`${API_BASE_URL}/orders/${orderData.vendor_id}/${orderData.menu_id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           // Add authorization header if needed
-          // 'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(orderData),
       });
@@ -62,7 +66,7 @@ export const useCreateOrder = () => {
       // Invalidate and refetch user orders
       queryClient.invalidateQueries({ queryKey: ['userOrders'] });
       queryClient.invalidateQueries({ queryKey: ['vendorOrders'] });
-      
+
       toast.success('Order Placed Successfully!', {
         description: data.message,
       });
@@ -139,12 +143,12 @@ export const useUpdateOrderStatus = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      orderId, 
-      statusUpdate 
-    }: { 
-      orderId: string; 
-      statusUpdate: OrderStatusUpdate 
+    mutationFn: async ({
+      orderId,
+      statusUpdate
+    }: {
+      orderId: string;
+      statusUpdate: OrderStatusUpdate
     }): Promise<{ message: string }> => {
       const response = await fetch(`${API_BASE_URL}/orders/${orderId}/status`, {
         method: 'PATCH',
@@ -167,7 +171,7 @@ export const useUpdateOrderStatus = () => {
       // Invalidate and refetch orders
       queryClient.invalidateQueries({ queryKey: ['userOrders'] });
       queryClient.invalidateQueries({ queryKey: ['vendorOrders'] });
-      
+
       toast.success('Order Status Updated', {
         description: data.message,
       });

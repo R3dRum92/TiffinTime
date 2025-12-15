@@ -129,7 +129,7 @@ async def get_all_menus(client: AsyncClient) -> List[schemas.MenuResponse]:
 
 
 async def add_menu_item(
-    request: schemas.MenuItemAddRequest, vendor_id: uuid.UUID, client: AsyncClient
+    request: schemas.MenuItemBase, vendor_id: uuid.UUID, client: AsyncClient
 ) -> schemas.MenuItemResponse:
     try:
         item_data = request.model_dump()
@@ -142,7 +142,7 @@ async def add_menu_item(
         if response.data and len(response.data) > 0:
             new_item = response.data[0]
             logger.info(f"successfully inserted item with id: {new_item.get("id")}")
-            return new_item
+            return schemas.MenuItemResponse.model_validate(new_item)
         else:
             logger.error("Item was not inserted or data was not returned")
             raise HTTPException(
@@ -154,7 +154,7 @@ async def add_menu_item(
         logger.error(f"An unexpected error occured: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occured: {e}",
+            detail=f"An unexpected error occured: {e}",
         )
 
 

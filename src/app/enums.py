@@ -1,7 +1,7 @@
 import enum
 
 
-class Role(enum.Enum):
+class Role(str, enum.Enum):
     STUDENT = "student"
     VENDOR = "vendor"
 
@@ -22,3 +22,20 @@ class DayOfWeek(int, enum.Enum):
     THURSDAY = 4
     FRIDAY = 5
     SATURDAY = 6
+
+
+class SubscriptionType(str, enum.Enum):
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+
+
+class UserRole(str, enum.Enum):
+    STUDENT = "student"
+    VENDOR = "vendor"
+
+
+class PaymentStatus(str, enum.Enum):
+    PENDING = "pending"
+    SUCCESS = "success"
+    FAILED = "failed"
+    CANCELLED = "cancelled"

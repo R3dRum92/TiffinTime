@@ -22,6 +22,8 @@ async def get_all_vendors(client: AsyncClient) -> List[schemas.VendorsResponse]:
         )
 
     _vendors = response.data
+    if not _vendors:
+        return []
     vendors = []
 
     for vendor in _vendors:
@@ -73,7 +75,14 @@ async def get_vendor_by_id(
             detail=f"Database query failed: {str(e)}",
         )
 
-    _vendor = response.data[0]
+    _vendor = response.data
+    if not _vendor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Vendor with id {vendor_id} not found",
+        )
+    _vendor = _vendor[0]
+
     _bucket = _vendor.get("img_bucket")
     _path = _vendor.get("img_path")
 

@@ -25,7 +25,7 @@ async def get_all_menus(client: AsyncClient = Depends(get_db)):
     "/", response_model=schemas.MenuItemResponse, status_code=status.HTTP_201_CREATED
 )
 async def add_menu_item(
-    request: schemas.MenuItemAddRequest,
+    request: schemas.MenuItemBase,
     vendor: schemas.UserBase = Depends(get_vendor),
     client: AsyncClient = Depends(get_db),
 ) -> schemas.MenuItemResponse:

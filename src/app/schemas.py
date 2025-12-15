@@ -7,6 +7,8 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, UU
 
 from app import enums
 
+BD_PHONE_REGEX = re.compile(r"^(?:\+8801|01)[0-9]{9}$")
+
 
 class BaseResponse(BaseModel):
     message: str
@@ -31,10 +33,6 @@ class MenuItemBase(BaseModel):
     category: enums.MenuCategory
     description: Optional[str] = None
     preparation_time: int  # In minutes
-
-
-class MenuItemAddRequest(MenuItemBase):
-    pass
 
 
 class MenuItemUpdateRequest(BaseModel):
@@ -84,7 +82,7 @@ class DateSpecialDetailResponse(BaseModel):
     'id' here is the id from the 'date_specials' table.
     """
 
-    special_id: UUID  # Renamed to avoid clash with menu_item.id
+    special_id: UUID = Field(alias="id")  # Renamed to avoid clash with menu_item.id
     available_date: date
     special_price: Optional[float] = None
     available_stock: Optional[int] = None
@@ -96,19 +94,6 @@ class DateSpecialDetailResponse(BaseModel):
     menu_items: MenuItemBase
 
     model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
-
-    # Custom validator to flatten the Supabase join response
-    @classmethod
-    def model_validate(cls, data: dict, **kwargs):
-        if "menu_items" in data:
-            menu_item_data = data.pop("menu_items")
-            data["menu_items"] = MenuItemBase.model_validate(menu_item_data)
-
-        # Rename 'id' from date_specials to 'special_id'
-        if "id" in data:
-            data["special_id"] = data.pop("id")
-
-        return super().model_validate(data, **kwargs)
 
 
 class WeeklyAvailabilityBase(BaseModel):
@@ -150,36 +135,16 @@ class WeeklyAvailabilityDetailResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
 
-    # Custom validator to flatten the Supabase join response
-    @classmethod
-    def model_validate(cls, data: dict, **kwargs):
-        if "menu_items" in data:
-            menu_item_data = data.pop("menu_items")
-            data["menu_items"] = MenuItemBase.model_validate(menu_item_data)
-
-        return super().model_validate(data, **kwargs)  # Forward reference
-
 
 class SubscriptionRequest(BaseModel):
-    vendor_id: UUID
-    type: str
-
-    @field_validator("type")
-    @classmethod
-    def validate_type(cls, v):
-        allowed = {"weekly", "monthly"}
-        if v not in allowed:
-            raise ValueError(f"type must be one of {allowed}")
-        return v
+    type: enums.SubscriptionType
 
     @property
     def type_timedelta(self) -> timedelta:
-        if self.type == "weekly":
+        if self.type == enums.SubscriptionType.WEEKLY:
             return timedelta(weeks=1)
-        elif self.type == "monthly":
+        elif self.type == enums.SubscriptionType.MONTHLY:
             return timedelta(days=30)
-        else:
-            raise ValueError(f"Unsupported subscription type: {self.type}")
 
 
 class RegistrationRequest(BaseModel):
@@ -188,7 +153,7 @@ class RegistrationRequest(BaseModel):
     password: str
     phone_number: str
     confirm_password: str
-    role: str
+    role: enums.UserRole
 
     @field_validator("phone_number")
     def validate_phone_number(cls, v):
@@ -196,27 +161,11 @@ class RegistrationRequest(BaseModel):
             raise ValueError("Invalid phone number format")
         return v
 
-    @field_validator("role")
-    @classmethod
-    def validate_role(cls, v):
-        allowed = {"student", "vendor"}
-        if v not in allowed:
-            raise ValueError(f"type must be one of {allowed}")
-        return v
-
 
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
-    role: str
-
-    @field_validator("role")
-    @classmethod
-    def validate_role(cls, v):
-        allowed = {"student", "vendor"}
-        if v not in allowed:
-            raise ValueError(f"type must be one of {allowed}")
-        return v
+    role: enums.UserRole
 
 
 class LoginResponse(BaseModel):
@@ -233,9 +182,9 @@ class VendorsResponse(BaseModel):
     id: UUID
     name: str
     description: str | None
-    is_open: bool
-    img_url: Optional[str]
-    delivery_time: VendorDeliveryTime
+    is_open: Optional[bool] = True
+    img_url: Optional[str] = None
+    delivery_time: Optional[VendorDeliveryTime] = None
 
 
 class MenuResponse(BaseModel):
@@ -247,7 +196,7 @@ class MenuResponse(BaseModel):
     description: str | None
     img_url: str | None
     price: float
-    category: str | None
+    category: enums.MenuCategory | None
     preparation_time: int | None
 
 
@@ -282,53 +231,7 @@ class UserDetails(BaseModel):
         return v
 
 
-# Add these to your schemas.py file
-
-# class OrderRequest(BaseModel):
-#     user_id: UUID
-#     vendor_id: UUID
-#     menu_id: UUID  # Changed from 'menu' to 'menu_id' for clarity
-#     quantity: int
-#     unit_price: float
-#     pickup: str
-
-#     @field_validator("quantity")
-#     @classmethod
-#     def validate_quantity(cls, v):
-#         if v <= 0:
-#             raise ValueError("Quantity must be greater than 0")
-#         return v
-
-#     @field_validator("unit_price")
-#     @classmethod
-#     def validate_unit_price(cls, v):
-#         if v <= 0:
-#             raise ValueError("Unit price must be greater than 0")
-#         return v
-
-
-# class OrderResponse(BaseModel):
-#     id: UUID
-#     user_id: UUID
-#     vendor_id: UUID
-#     menu_id: UUID
-#     order_date: datetime
-#     quantity: int
-#     unit_price: float
-#     total_price: float
-#     pickup: str
-
-
-# class OrderCreateResponse(BaseModel):
-#     success: bool
-#     message: str
-#     order_id: UUID
-
-
 class OrderRequest(BaseModel):
-    user_id: UUID
-    vendor_id: UUID
-    menu_id: UUID
     quantity: int
     unit_price: float
     pickup: str
@@ -381,6 +284,34 @@ class VendorDetailsResponse(BaseModel):
     description: str | None
     is_open: bool
 
+
+class PaymentInitiationRequest(BaseModel):
+    order_ids: List[UUID]
+    total_amount: float
+    tran_id: str
+    cus_add1: str
+    cus_city: str
+    num_of_item: int
+    product_name: str
+    product_category: str
+
+
+class PaymentBase(BaseModel):
+    user_id: UUID
+    amount: float
+    status: enums.PaymentStatus = enums.PaymentStatus.PENDING
+
+
+class PaymentCreate(PaymentBase):
+    transaction_id: str
+
+
+class Payment(PaymentBase):
+    id: UUID
+    transaction_id: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
 class RatingCreate(BaseModel):
     vendor_id: UUID4
     # Changed to float to match float8, allowing half-stars if you want (e.g. 4.5)
