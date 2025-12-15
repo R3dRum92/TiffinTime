@@ -57,16 +57,22 @@ async def subscribe(
     _ed = request.type_timedelta
     _end = _now + _ed
 
-    await client.table("subscription").insert(
-        {
-            "user_id": str(user_id),
-            "vendor_id": str(request.vendor_id),
-            "starts_from": str(_now),
-            "ends_at": str(_end),
-        }
-    ).execute()
+    subscription = (
+        await client.table("subscription")
+        .insert(
+            {
+                "user_id": str(user_id),
+                "vendor_id": str(vendor_id),
+                "starts_from": str(_now),
+                "ends_at": str(_end),
+            }
+        )
+        .execute()
+    )
 
-    return schemas.BaseResponse(message="Subscription successful")
+    return schemas.SubscriptionCreateResponse(
+        message="Subscription successful", id=subscription.data[0].get("id")
+    )
 
 
 async def get_subscriptions_by_vendor(
@@ -127,3 +133,16 @@ async def cancel_subscription(subscription_id: UUID, client: AsyncClient) -> Non
         )
 
     await client.table("subscription").delete().eq("id", subscription_id).execute()
+
+
+async def link_subscription_to_payment(
+    db: AsyncClient, subscription_id: UUID, payment_id: UUID
+):
+    data, count = (
+        await db.table("subscription")
+        .update({"payment_id": str(payment_id)})
+        .eq("id", str(subscription_id))
+        .execute()
+    )
+
+    return data

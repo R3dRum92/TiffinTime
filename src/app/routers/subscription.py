@@ -14,7 +14,7 @@ router = APIRouter(prefix="/subscribe", tags=["subscription"])
 
 @router.post(
     "/{vendor_id}",
-    response_model=schemas.BaseResponse,
+    response_model=schemas.SubscriptionCreateResponse,
     status_code=status.HTTP_201_CREATED,
 )
 async def subscribe(

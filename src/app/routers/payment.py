@@ -14,6 +14,7 @@ from app.repositories.payment import (
     update_payment_status,
     validate_transaction,
 )
+from app.repositories.subscription import link_subscription_to_payment
 from app.repositories.user_details import get_user_details
 from app.settings import settings
 from db.supabase import get_db
@@ -64,6 +65,11 @@ async def init_payment(
 
     if request.order_ids:
         await link_orders_to_payment(db, request.order_ids, new_payment.get("id"))
+
+    elif request.subscription_id:
+        await link_subscription_to_payment(
+            db, request.subscription_id, new_payment.get("id")
+        )
 
     return response
 
