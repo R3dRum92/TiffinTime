@@ -31,13 +31,13 @@ function PaymentStatusContent() {
         switch (status) {
             case 'success':
                 return {
-                    icon: <CheckCircle2 className="h-24 w-24 text-green-500 mb-4" />,
+                    icon: <CheckCircle2 className="h-24 w-24 text-orange-400 mb-4" />,
                     title: "Payment Successful!",
                     description: "Your order has been placed successfully. The vendor has been notified.",
-                    color: "text-green-600",
+                    color: "text-orange-400",
                     action: (
                         <Link href="/my-plan">
-                            <Button className="w-full bg-green-600 hover:bg-green-700">
+                            <Button className="w-full bg-orange-400 hover:bg-orange-700">
                                 View My Orders <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
                         </Link>
