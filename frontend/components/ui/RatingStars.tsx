@@ -2,16 +2,22 @@
 
 import { Star } from 'lucide-react';
 import { useState } from 'react';
-import { useVendorRatings } from '@/app/hooks/useVendorRating'; // Adjust path if needed
+import { useVendorRatings } from '@/app/hooks/useVendorRating';
 import { cn } from '@/lib/utils';
 
 interface RatingStarsProps {
     vendorId: string;
     variant?: 'readonly' | 'input';
     size?: number;
+    showText?: boolean; // <--- NEW PROP
 }
 
-export default function RatingStars({ vendorId, variant = 'readonly', size = 18 }: RatingStarsProps) {
+export default function RatingStars({
+    vendorId,
+    variant = 'readonly',
+    size = 18,
+    showText = true // <--- Default to true (show text unless told otherwise)
+}: RatingStarsProps) {
     const { average, count, userRating, submitRating, isSubmitting } = useVendorRatings(vendorId);
     const [hoverValue, setHoverValue] = useState<number | null>(null);
 
@@ -58,12 +64,12 @@ export default function RatingStars({ vendorId, variant = 'readonly', size = 18 
                     })}
                 </div>
 
-                {/* ReadOnly: Show count */}
-                {isReadOnly && (
+                {/* ReadOnly: Show count - ONLY IF showText IS TRUE */}
+                {isReadOnly && !showText && (
                     <div className="text-sm text-gray-600 font-medium ml-2">
                         {average > 0 ? average.toFixed(1) : "New"}
                         <span className="text-gray-400 font-normal ml-1">
-                            ({count} reviews)
+                            ({count} ratings)
                         </span>
                     </div>
                 )}

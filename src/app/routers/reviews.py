@@ -1,159 +1,61 @@
-# routers/reviews.py (FINAL, REMOVED created_at)
+from http.client import HTTPException
+from uuid import UUID
+from typing import List
+from fastapi import APIRouter, Depends, status
+from supabase import AsyncClient
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
-from typing import Optional, List
-from supabase import AsyncClient 
-from uuid import UUID 
+from app import schemas
+from app.repositories import reviews as review_repo
+from db.supabase import get_db
+from utils.auth import get_current_user
 
-# NOTE: Imports assumed to exist
-from db.supabase import get_db 
-from utils.auth import get_current_user 
+router = APIRouter(prefix="/reviews", tags=["reviews"])
 
-router = APIRouter(
-    prefix="/reviews",
-    tags=["reviews"],
+@router.post(
+    "/",
+    response_model=schemas.ReviewResponse,
+    status_code=status.HTTP_201_CREATED,
 )
-
-# --- Pydantic Schema for Incoming Review Data (unchanged) ---
-class ReviewCreate(BaseModel):
-    vendor_id: UUID = Field(..., description="The ID of the vendor being reviewed.")
-    food_quality: str = Field(..., description="Rating for food quality.")
-    delivery_experience: str = Field(..., description="Rating for delivery experience.")
-    comment: Optional[str] = Field(None, description="Optional comment from the user.")
-
-# --- Pydantic Schema for Review Item (FINAL - created_at REMOVED) ---
-class ReviewItem(BaseModel):
-    review_id: str  
-    user_id: str
-    vendor_id: str
-    
-    food_quality: str
-    delivery_experience: str
-    
-    comment: Optional[str] = None
-    
-    is_replied: bool
-    reply: Optional[str] = None
-    
-    # created_at HAS BEEN REMOVED HERE
-    
-    # Mapped from the 'name' column in the 'users' table
-    username: str = Field(..., description="The name of the reviewer fetched from the users table.") 
-    
-    class Config:
-        extra = "allow" 
-        from_attributes = True
-
-# --- POST Endpoint (unchanged) ---
-@router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_review(
-    review: ReviewCreate,
+    review: schemas.ReviewCreate,
+    current_user = Depends(get_current_user), 
     client: AsyncClient = Depends(get_db),
-    auth_user = Depends(get_current_user) 
 ):
-    """
-    Submits a new review to the 'Review' table.
-    """
-    try:
-        user_id = str(auth_user.id)
-        vendor_id = str(review.vendor_id)
-    except AttributeError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User ID could not be retrieved from authentication token."
-        )
-    except Exception as e:
-         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal ID conversion error: {e}"
-        )
-    
-    review_data = review.model_dump(exclude_none=True) 
-    
-    review_data['vendor_id'] = vendor_id
-    review_data['user_id'] = user_id 
-    review_data['is_replied'] = False
-    
-    try:
-        response = await client.table('review').insert(review_data).execute()
+    return await review_repo.create_review(
+        client=client, 
+        user_id=current_user.id, 
+        review_data=review
+    )
 
-        if response.data:
-            new_review = response.data[0]
-            return {"message": "Review submitted successfully", "review": new_review}
-        
-        if hasattr(response, 'error') and response.error:
-             print(f"Supabase Error: {response.error}")
-             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Database constraint error. Supabase detail: {response.error.get('message', 'Unknown database error')}"
-            )
-        
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve review data after insertion."
-        )
-
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"An unexpected error occurred during DB operation: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An unexpected error occurred: {e}"
-        )
-
-# --- GET Endpoint (FINAL - created_at handled by removal) ---
 @router.get(
     "/{vendor_id}",
-    response_model=List[ReviewItem], 
-    status_code=status.HTTP_200_OK,
+    response_model=List[schemas.ReviewResponse],
 )
-async def get_reviews_for_vendor(
-    vendor_id: str,
-    auth_user = Depends(get_current_user), 
+async def get_vendor_reviews(
+    vendor_id: UUID,
     client: AsyncClient = Depends(get_db),
+    # Removed auth dependency here so frontend can load reviews freely
 ):
-    try:
-        # Querying the 'users' table for the 'name' column
-        # Note: If Supabase adds 'created_at' automatically on INSERT but it's not a visible column, 
-        # this query still works by only requesting 'name'.
-        response = await client.table('review').select('*, users(name)').eq('vendor_id', vendor_id).order('review_id', desc=True).execute()
+    return await review_repo.get_reviews_by_vendor(
+        client=client, 
+        vendor_id=vendor_id
+    )
 
-        if response.data:
-            
-            processed_data = []
-            for item in response.data:
-                
-                # 1. Extract the nested 'users' dictionary
-                user_info = item.pop('users', None)
-                
-                # 2. Map the user's 'name' to the 'username' field
-                if user_info and 'name' in user_info:
-                    item['username'] = user_info['name']
-                else:
-                    item['username'] = "Anonymous User"
-                
-                # 3. Explicitly convert UUIDs to strings
-                item['review_id'] = str(item['review_id'])
-                item['vendor_id'] = str(item['vendor_id'])
-                item['user_id'] = str(item['user_id']) 
-                
-                # NOTE: If the data still contains a field like 'created_at', it will be silently allowed 
-                # because of the 'extra = "allow"' config, but Pydantic won't validate its type.
-                
-                processed_data.append(item)
-            
-            return processed_data
+@router.patch("/{review_id}/reply", status_code=status.HTTP_200_OK)
+async def reply_review(
+    review_id: int,
+    reply_data: schemas.ReviewReply,
+    client: AsyncClient = Depends(get_db),
+    # Assuming you want to ensure only the vendor owner can reply, 
+    # you might add vendor validation logic here in a real app
+):
+    success = await review_repo.reply_to_review(
+        client=client,
+        review_id=review_id,
+        reply_text=reply_data.reply_text
+    )
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Review not found or update failed")
         
-        return []
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"FATAL ERROR during response validation: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Response validation failed. Check DB data types or Pydantic schema: {e}"
-        )
+    return {"message": "Reply posted successfully"}

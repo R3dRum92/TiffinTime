@@ -1,26 +1,25 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-// Added icons
 import { Check, Crown, Clock, Calendar, Utensils, Loader2, MessageSquare } from 'lucide-react';
-// Custom hooks
 import { useVendor } from "@/app/hooks/singleVendor";
 import { useVendorSubscription } from "@/app/hooks/useVendorSubscription";
 import { useReviewSubmission } from "@/app/hooks/useReviewSubmission";
 import { useVendorReviews } from "@/app/hooks/useVendorReviews";
 import RatingStars from "@/components/ui/RatingStars";
 import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-// --- Interfaces (Shared Data Structures) ---
 interface ReviewItem {
-    review_id: string;
+    review_id: number; // Ensure this is number now
     food_quality: string;
     delivery_experience: string;
     comment: string | null;
-    // created_at HAS BEEN REMOVED HERE
     username: string;
+    is_replied: boolean;
+    reply: string | null;
 }
 
 interface MenuItem {
@@ -52,8 +51,6 @@ interface VendorDetails {
     description: string;
     image: string;
     coverImage: string;
-    rating: number;
-    totalReviews: number;
     deliveryTime: string;
     minimumOrder: number;
     deliveryFee: number;
@@ -95,8 +92,6 @@ const transformVendorData = (apiData: ApiVendorData): VendorDetails => {
         description: apiData.description,
         image: apiData.img_url,
         coverImage: apiData.img_url,
-        rating: 4.5,
-        totalReviews: 248,
         deliveryTime: `${apiData.delivery_time.min}-${apiData.delivery_time.max} mins`,
         minimumOrder: 100,
         deliveryFee: 25,
@@ -216,20 +211,15 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, vendorId, ve
     const [foodQuality, setFoodQuality] = useState<string | null>(null);
     const [deliveryExperience, setDeliveryExperience] = useState<string | null>(null);
     const [comment, setComment] = useState<string>('');
-
-    const { submitReview, isLoading, error } = useReviewSubmission();
+    const { submitReview, isLoading } = useReviewSubmission();
+    const queryClient = useQueryClient();
 
     if (!isOpen) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
         if (!foodQuality || !deliveryExperience) {
-            toast.error("Please select ratings for both Food Quality and Delivery Experience.");
-            return;
-        }
-        if (!vendorId) {
-            toast.error("Vendor information missing. Please refresh the page.");
+            toast.error("Please select reviews for both Food Quality and Delivery Experience.");
             return;
         }
 
@@ -240,104 +230,62 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, vendorId, ve
             comment: comment || '',
         };
 
-        toast.info("Submitting Review...", {
-            description: `Sending your feedback for ${vendorName}.`
-        });
-
         const success = await submitReview(payload);
-
         if (success) {
-            toast.success(`Review Submitted! 🎉`, {
-                description: `Your feedback for ${vendorName} has been recorded.`,
-            });
+            toast.success(`Review Submitted!`);
+            // 1. Update the Stars (Rating Stats)
+            queryClient.invalidateQueries({ queryKey: ['rating-stats', vendorId] });
+            // 2. Update the Text Reviews List (The Orange Button Count)
+            queryClient.invalidateQueries({ queryKey: ['vendor-reviews', vendorId] });
             onClose();
-        } else if (error) {
-            toast.error("Submission Failed", {
-                description: error.message || "An unexpected error occurred. Please try again.",
-            });
         }
     };
 
-    const RatingSelection = ({ label, selectedOption, setSelectedOption }: {
-        label: string,
-        selectedOption: string | null,
-        setSelectedOption: (option: string) => void
-    }) => (
-        <div className="mb-6">
-            <label className="block text-gray-700 font-medium mb-2">{label}</label>
-            <div className="flex flex-wrap gap-2">
-                {reviewOptions.map((option) => (
-                    <button
-                        key={option}
-                        type="button"
-                        onClick={() => setSelectedOption(option)}
-                        className={`px-4 py-2 text-sm rounded-full transition-colors duration-200 ${selectedOption === option
-                            ? 'bg-orange-600 text-white shadow-md'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
-                        disabled={isLoading}
-                    >
-                        {option}
-                    </button>
-                ))}
-            </div>
-        </div>
-    );
-
-
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
-                <h2 className="text-2xl font-bold mb-4" style={{ color: '#443627' }}>Add Review for {vendorName}</h2>
+        // FIX: Using bg-black/50 and backdrop-blur-sm for better overlay
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative animate-in fade-in zoom-in duration-200">
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 text-gray-400 font-bold text-2xl"
+                >
+                    ✕
+                </button>
+                <h2 className="text-2xl font-bold mb-4 text-[#443627]">Review {vendorName}</h2>
                 <form onSubmit={handleSubmit}>
-
-                    <RatingSelection
-                        label="Food Quality"
-                        selectedOption={foodQuality}
-                        setSelectedOption={setFoodQuality}
-                    />
-
-                    <RatingSelection
-                        label="Delivery Experience"
-                        selectedOption={deliveryExperience}
-                        setSelectedOption={setDeliveryExperience}
-                    />
+                    {/* ... Inputs ... */}
+                    <div className="mb-6">
+                        <label className="block text-gray-700 font-medium mb-2">Food Quality</label>
+                        <div className="flex flex-wrap gap-2">
+                            {reviewOptions.map(opt => (
+                                <button type="button" key={opt} onClick={() => setFoodQuality(opt)}
+                                    className={`px-3 py-1 text-sm rounded-full ${foodQuality === opt ? 'bg-orange-600 text-white' : 'bg-gray-200'}`}>
+                                    {opt}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
 
                     <div className="mb-6">
-                        <label className="block text-gray-700 font-medium mb-2" htmlFor="comment">Comment (Optional)</label>
-                        <textarea
-                            id="comment"
-                            rows={4}
-                            value={comment}
-                            onChange={(e) => setComment(e.target.value)}
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500 transition duration-150"
-                            placeholder="Share your detailed feedback..."
-                            disabled={isLoading}
-                        ></textarea>
+                        <label className="block text-gray-700 font-medium mb-2">Delivery Experience</label>
+                        <div className="flex flex-wrap gap-2">
+                            {reviewOptions.map(opt => (
+                                <button type="button" key={opt} onClick={() => setDeliveryExperience(opt)}
+                                    className={`px-3 py-1 text-sm rounded-full ${deliveryExperience === opt ? 'bg-orange-600 text-white' : 'bg-gray-200'}`}>
+                                    {opt}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="mb-6">
+                        <textarea value={comment} onChange={e => setComment(e.target.value)} className="w-full p-3 border rounded" placeholder="Comment..." />
                     </div>
 
                     <div className="flex justify-end gap-3">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-6 py-3 border border-gray-300 rounded-full font-semibold text-gray-700 hover:bg-gray-100 transition"
-                            disabled={isLoading}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className="px-6 py-3 rounded-full font-semibold text-white bg-orange-500 hover:bg-orange-600 transition disabled:opacity-50"
-                            disabled={!foodQuality || !deliveryExperience || isLoading}
-                        >
-                            {isLoading ? (
-                                <span className="flex items-center gap-2">
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    Submitting...
-                                </span>
-                            ) : (
-                                'Submit Review'
-                            )}
+                        <button type="button" onClick={onClose} className="px-6 py-2 border rounded-full text-black-700 hover:bg-gray-300">Cancel</button>
+                        <button type="submit" disabled={isLoading} className="px-6 py-2 bg-orange-500 text-white rounded-full hover:bg-orange-600 transition-colors duration-200">
+                            {isLoading ? 'Submitting...' : 'Submit'}
                         </button>
                     </div>
                 </form>
@@ -348,30 +296,24 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, vendorId, ve
 // --- End Review Submission Modal ---
 
 
-// --- 2. Review Display Modal (View Reviews) ---
+// --- 2. Review Display Modal ---
 interface ReviewsDisplayModalProps {
     isOpen: boolean;
     onClose: () => void;
     vendorId: string;
     vendorName: string;
-    totalReviews: number;
 }
 
-const ReviewsDisplayModal: React.FC<ReviewsDisplayModalProps> = ({ isOpen, onClose, vendorId, vendorName, totalReviews }) => {
-
-    // FIX: Hook must be called unconditionally at the top level
-    // We move this BEFORE the if (!isOpen) check
+const ReviewsDisplayModal: React.FC<ReviewsDisplayModalProps> = ({ isOpen, onClose, vendorId, vendorName }) => {
     const { data: reviews, isLoading, isError } = useVendorReviews(vendorId);
-
-    // NOW we can check if the modal should be hidden
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex justify-center items-center p-4">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg h-3/4 flex flex-col">
                 <div className="p-6 border-b flex justify-between items-center">
-                    <h2 className="text-xl font-bold" style={{ color: '#443627' }}>
-                        Reviews for {vendorName} ({totalReviews})
+                    <h2 className="text-xl font-bold" style={{ color: '#D98324' }}>
+                        Reviews for {vendorName}
                     </h2>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-800 font-bold text-2xl">
                         &times;
@@ -383,29 +325,36 @@ const ReviewsDisplayModal: React.FC<ReviewsDisplayModalProps> = ({ isOpen, onClo
 
                     {!isLoading && isError && <p className="text-center text-red-500">Failed to load reviews. Please ensure you are logged in.</p>}
 
-                    {!isLoading && !isError && reviews && reviews.length === 0 && (
+                    {!isLoading && !isError && reviews?.length === 0 && (
                         <p className="text-center text-gray-500">No reviews yet for this vendor.</p>
                     )}
 
-                    {!isLoading && !isError && reviews && reviews.map((review) => (
-                        <div key={review.review_id} className="p-4 border rounded-lg bg-gray-50">
+                    {reviews?.map((review) => (
+                        <div key={review.review_id} className="p-4 border rounded-lg bg-grey-50 border-gray-200">
                             <div className="flex justify-between items-start mb-2">
-                                <span className="text-sm font-semibold" style={{ color: '#443627' }}>
-                                    {review.username}
-                                </span>
-
-                                <div className="flex items-center gap-4 text-sm">
-                                    <span className={`font-medium ${review.food_quality === 'Very bad' ? 'text-red-600' : 'text-green-700'}`}>
-                                        Food: {review.food_quality}
-                                    </span>
-                                    <span className={`font-medium ${review.delivery_experience === 'Very bad' ? 'text-red-600' : 'text-blue-700'}`}>
-                                        Delivery: {review.delivery_experience}
-                                    </span>
+                                <span className="text-sm font-bold text-[#443627]">{review.username}</span>
+                                <div className="flex flex-col items-end text-[10px] sm:text-xs gap-1">
+                                    <span className={review.food_quality === 'Very bad' ? 'text-red-600' : 'text-green-700'}>Food: {review.food_quality}</span>
+                                    <span className={review.delivery_experience === 'Very bad' ? 'text-red-600' : 'text-blue-700'}>Delivery: {review.delivery_experience}</span>
                                 </div>
                             </div>
-                            <p className="text-gray-700 text-sm">
-                                {review.comment || <em>No detailed comment provided.</em>}
-                            </p>
+                            <div className="mt-3 pl-3 border-l-2 border-gray-500 bg-gray-100 p-2 rounded-r-md">
+                                <p className="text-gray-700 text-sm">{review.comment}</p>
+                            </div>
+
+
+                            {/* --- NEW: RENDER VENDOR REPLY --- */}
+                            {review.is_replied && review.reply && (
+                                <div className="mt-3 pl-3 border-l-2 border-green-500 bg-green-50 p-2 rounded-r-md">
+                                    <p className="text-xs font-bold text-green-700 mb-1">
+                                        Response from {vendorName}:
+                                    </p>
+                                    <p className="text-sm text-gray-800">
+                                        {review.reply}
+                                    </p>
+                                </div>
+                            )}
+
                         </div>
                     ))}
                 </div>
@@ -423,8 +372,10 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
     const [vendorId, setVendorId] = useState<string>('');
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false); // For adding a review
     const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false); // For viewing reviews
-
     const { subscribe, isLoading: subscriptionLoading, error: subscriptionError, isSuccess } = useVendorSubscription();
+    // Review Hook (For Text Comments - NEW)
+    const { data: reviewsList } = useVendorReviews(vendorId || '');
+    const textReviewCount = reviewsList ? reviewsList.length : 0;
 
     useEffect(() => {
         const getParams = async () => {
@@ -443,7 +394,6 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
     const filteredMenu = vendor?.menu.filter(item =>
         selectedCategory === 'All' || item.category === selectedCategory
     ) || [];
-
 
     const handlePlanSelect = (planId: string) => {
         setSelectedPlan(planId);
@@ -559,7 +509,6 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                 onClose={() => setIsReviewsModalOpen(false)}
                 vendorId={vendorId}
                 vendorName={vendor.name}
-                totalReviews={vendor.totalReviews}
             />
 
             {/* Content Wrapper to ensure it's above the SVG background */}
@@ -577,22 +526,20 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                         <div className="flex-1">
                             <h1 className="text-2xl font-bold mb-2 darktext">{vendor.name}</h1>
                             <div className="flex items-center gap-4 text-sm lighttext">
-                                <span className="flex items-center gap-1">
-                                    ⭐ {vendor.rating}
-                                    {/* Make the review count clickable */}
+                                {/* --- FIX: Separated Logic --- */}
+                                <div className="flex items-center gap-2">
+                                    {/* 1. STARS (Uses rating logic) */}
+                                    <RatingStars vendorId={vendor.id} variant="readonly" showText={false} />
+
+                                    {/* 2. REVIEWS (Uses text review logic) */}
                                     <button
                                         onClick={() => setIsReviewsModalOpen(true)}
-                                        className="text-orange-500 hover:underline"
+                                        className="text-orange-500 hover:underline font-medium"
                                     >
-                                        ({vendor.totalReviews} reviews)
+                                        ({textReviewCount} reviews) {/* <--- NOW USING CORRECT COUNT */}
                                     </button>
-                                </span>
-
-                                {/* Header Rating Section (readonly) */}
-                                <RatingStars
-                                    vendorId={vendor.id}
-                                    variant="readonly"
-                                />
+                                </div>
+                                {/* --- END FIX --- */}
                                 <span>🕒 {vendor.deliveryTime}</span>
                                 <span className={`px-2 py-1 rounded text-white ${vendor.isOpen ? 'bg-green-500' : 'bg-red-500'}`}>
                                     {vendor.isOpen ? 'Open' : 'Closed'}
@@ -603,7 +550,7 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                         {/* ADDED: Add Review Button */}
                         <button
                             onClick={() => setIsReviewModalOpen(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors duration-200"
+                            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-400 transition-colors duration-200"
                         >
                             <MessageSquare className="w-5 h-5" />
                             Add Review
@@ -611,6 +558,15 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                     </div>
                 </div>
 
+                {/* 2. NEW RATE US SECTION (Interactive) */}
+                <div className="container mx-auto py-4 px-4">
+                    <div className="bg-white rounded-lg shadow-sm p-4 border border-orange-100 flex items-center justify-between">
+                        <div>
+                            <h3 className="font-semibold text-gray-800">Have you eaten here?</h3>
+                        </div>
+                        <RatingStars vendorId={vendor.id} variant="input" size={24} />
+                    </div>
+                </div>
 
                 {/* Main Content */}
                 <div className="container mx-auto px-4 py-8">
@@ -875,23 +831,6 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                                     </div>
                                 </div>
                             )}
-                        </div>
-                    </div>
-                    {/* </div> */}
-                    {/* 2. NEW RATE US SECTION (Interactive) */}
-                    <div className="container mx-auto py-4 ">
-                        <div className="bg-white rounded-lg shadow-sm p-4 border border-orange-100 flex items-center justify-between">
-                            <div>
-                                <h3 className="font-semibold text-gray-800">Have you eaten here?</h3>
-                                <p className="text-xs text-gray-500">Share your experience with others</p>
-                            </div>
-                            <div className="flex flex-col items-end">
-                                <RatingStars
-                                    vendorId={vendor.id}
-                                    variant="input"
-                                    size={24} // Slightly larger stars for interaction
-                                />
-                            </div>
                         </div>
                     </div>
 
