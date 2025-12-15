@@ -15,6 +15,12 @@ class Settings(BaseSettings):
 
     APP_MODE: str
 
+    CLIENT_ORIGIN_URL: str
+    API_URL: str
+
+    SSLCOMMERZ_STORE_ID: str
+    SSLCOMMERZ_STORE_PASS: str
+
     @property
     def docs_url(self):
         return None if self.APP_MODE == "production" else "/docs"

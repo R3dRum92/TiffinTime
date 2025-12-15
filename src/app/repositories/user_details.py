@@ -55,11 +55,11 @@ async def get_user_details(user_id: UUID, client: AsyncClient):
             detail=f"Database query failed: {str(e)}",
         )
 
-    if not response.data[0]:
+    if not response.data:
         logger.error(f"User not found")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User not found: {str(e)}",
+            detail=f"User not found",
         )
 
     _user = response.data[0]

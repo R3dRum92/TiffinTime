@@ -13,17 +13,18 @@ router = APIRouter(prefix="/subscribe", tags=["subscription"])
 
 
 @router.post(
-    "/",
+    "/{vendor_id}",
     response_model=schemas.BaseResponse,
     status_code=status.HTTP_201_CREATED,
 )
 async def subscribe(
     request: schemas.SubscriptionRequest,
+    vendor_id: UUID,
     user_id: schemas.UserID = Depends(get_current_user),
     client: AsyncClient = Depends(get_db),
 ):
     return await subscription.subscribe(
-        request=request, user_id=user_id.id, client=client
+        request=request, user_id=user_id.id, client=client, vendor_id=vendor_id
     )
 
 
