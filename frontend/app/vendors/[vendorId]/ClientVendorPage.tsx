@@ -18,6 +18,16 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 
+interface PaymentPayload {
+    subscription_id: string;
+    total_amount: number;
+    tran_id: string;
+    cus_add1: string;
+    cus_city: string;
+    num_of_item: number;
+    product_name: string;
+    product_category: string;
+}
 // --- Interfaces ---
 
 interface ReviewItem {
@@ -156,7 +166,7 @@ const useCreateSubscriptionOrder = () => {
 
 const useInitPayment = () => {
     return useMutation({
-        mutationFn: async (paymentData: any) => {
+        mutationFn: async (paymentData: PaymentPayload) => {
             const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/payment/init`, paymentData, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`
