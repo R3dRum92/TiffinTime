@@ -38,7 +38,7 @@ function PaymentStatusContent() {
                     action: (
                         <Link href="/my-plan">
                             <Button className="w-full bg-orange-400 hover:bg-orange-700">
-                                View My Orders <ArrowRight className="ml-2 h-4 w-4" />
+                                View My Plan <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
                         </Link>
                     )
