@@ -10,7 +10,9 @@ import {
     Settings,
     X,
     LogOut,
+    MessageSquare,
 } from 'lucide-react';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
@@ -64,6 +66,7 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
         { href: '/vendorDash', icon: Home, label: 'Dashboard' },
         { href: '/vendorDash/orders', icon: ShoppingBag, label: 'Orders' },
         { href: '/vendorDash/menu', icon: MenuIcon, label: 'Menu Routine' },
+        { href: '/vendorDash/reviews', icon: MessageSquare, label: 'Reviews' },
         { href: '/vendorDash/settings', icon: Settings, label: 'Settings' },
     ];
 

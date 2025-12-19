@@ -11,6 +11,7 @@ import { useUserInfo } from "@/app/hooks/getUserDetails";
 // UI Components
 import RatingStars from "@/components/ui/RatingStars";
 import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 // Payment & Logic
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
@@ -18,6 +19,18 @@ import { useMutation } from '@tanstack/react-query';
 // We are keeping your existing review hooks/components usage
 import { useReviewSubmission } from "@/app/hooks/useReviewSubmission";
 import { useVendorReviews } from "@/app/hooks/useVendorReviews";
+
+interface ReviewItem {
+    review_id: number; // Ensure this is number now
+    food_quality: string;
+    delivery_experience: string;
+    comment: string | null;
+    username: string;
+    is_replied: boolean;
+    reply: string | null;
+}
+
+
 
 // --- Interfaces ---
 interface MenuItem {
@@ -49,8 +62,6 @@ interface VendorDetails {
     description: string;
     image: string;
     coverImage: string;
-    rating: number;
-    totalReviews: number;
     deliveryTime: string;
     minimumOrder: number;
     deliveryFee: number;
@@ -87,8 +98,6 @@ const transformVendorData = (apiData: ApiVendorData): VendorDetails => {
         description: apiData.description,
         image: apiData.img_url,
         coverImage: apiData.img_url,
-        rating: 4.5,
-        totalReviews: 248,
         deliveryTime: `${apiData.delivery_time.min}-${apiData.delivery_time.max} mins`,
         minimumOrder: 100,
         deliveryFee: 25,
@@ -127,6 +136,175 @@ const transformVendorData = (apiData: ApiVendorData): VendorDetails => {
     };
 };
 
+export interface VendorDetailPageProps {
+    params: Promise<{
+        vendorId: string;
+    }>;
+}
+
+// --- 1. Review Submission Modal (Add Review) ---
+interface ReviewModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    vendorId: string;
+    vendorName: string;
+}
+
+const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, vendorId, vendorName }) => {
+    const reviewOptions = ["Very bad", "Bad", "Average", "Good", "Very good"];
+    const [foodQuality, setFoodQuality] = useState<string | null>(null);
+    const [deliveryExperience, setDeliveryExperience] = useState<string | null>(null);
+    const [comment, setComment] = useState<string>('');
+    const { submitReview, isLoading } = useReviewSubmission();
+    const queryClient = useQueryClient();
+
+    if (!isOpen) return null;
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!foodQuality || !deliveryExperience) {
+            toast.error("Please select reviews for both Food Quality and Delivery Experience.");
+            return;
+        }
+
+        const payload = {
+            vendor_id: vendorId,
+            food_quality: foodQuality!,
+            delivery_experience: deliveryExperience!,
+            comment: comment || '',
+        };
+
+        const success = await submitReview(payload);
+        if (success) {
+            toast.success(`Review Submitted!`);
+            // 1. Update the Stars (Rating Stats)
+            queryClient.invalidateQueries({ queryKey: ['rating-stats', vendorId] });
+            // 2. Update the Text Reviews List (The Orange Button Count)
+            queryClient.invalidateQueries({ queryKey: ['vendor-reviews', vendorId] });
+            onClose();
+        }
+    };
+
+    return (
+        // FIX: Using bg-black/50 and backdrop-blur-sm for better overlay
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative animate-in fade-in zoom-in duration-200">
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 text-gray-400 font-bold text-2xl"
+                >
+                    ✕
+                </button>
+                <h2 className="text-2xl font-bold mb-4 text-[#443627]">Review {vendorName}</h2>
+                <form onSubmit={handleSubmit}>
+                    {/* ... Inputs ... */}
+                    <div className="mb-6">
+                        <label className="block text-gray-700 font-medium mb-2">Food Quality</label>
+                        <div className="flex flex-wrap gap-2">
+                            {reviewOptions.map(opt => (
+                                <button type="button" key={opt} onClick={() => setFoodQuality(opt)}
+                                    className={`px-3 py-1 text-sm rounded-full ${foodQuality === opt ? 'bg-orange-600 text-white' : 'bg-gray-200'}`}>
+                                    {opt}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="mb-6">
+                        <label className="block text-gray-700 font-medium mb-2">Delivery Experience</label>
+                        <div className="flex flex-wrap gap-2">
+                            {reviewOptions.map(opt => (
+                                <button type="button" key={opt} onClick={() => setDeliveryExperience(opt)}
+                                    className={`px-3 py-1 text-sm rounded-full ${deliveryExperience === opt ? 'bg-orange-600 text-white' : 'bg-gray-200'}`}>
+                                    {opt}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="mb-6">
+                        <textarea value={comment} onChange={e => setComment(e.target.value)} className="w-full p-3 border rounded" placeholder="Comment..." />
+                    </div>
+
+                    <div className="flex justify-end gap-3">
+                        <button type="button" onClick={onClose} className="px-6 py-2 border rounded-full text-black-700 hover:bg-gray-300">Cancel</button>
+                        <button type="submit" disabled={isLoading} className="px-6 py-2 bg-orange-500 text-white rounded-full hover:bg-orange-600 transition-colors duration-200">
+                            {isLoading ? 'Submitting...' : 'Submit'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+// --- End Review Submission Modal ---
+
+
+// --- 2. Review Display Modal ---
+interface ReviewsDisplayModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    vendorId: string;
+    vendorName: string;
+}
+
+const ReviewsDisplayModal: React.FC<ReviewsDisplayModalProps> = ({ isOpen, onClose, vendorId, vendorName }) => {
+    const { data: reviews, isLoading, isError } = useVendorReviews(vendorId);
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex justify-center items-center p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg h-3/4 flex flex-col">
+                <div className="p-6 border-b flex justify-between items-center">
+                    <h2 className="text-xl font-bold" style={{ color: '#D98324' }}>
+                        Reviews for {vendorName}
+                    </h2>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800 font-bold text-2xl">
+                        &times;
+                    </button>
+                </div>
+
+                <div className="flex-grow overflow-y-auto p-6 space-y-4">
+                    {isLoading && <p className="text-center text-gray-500">Loading reviews...</p>}
+
+                    {!isLoading && isError && <p className="text-center text-red-500">Failed to load reviews. Please ensure you are logged in.</p>}
+
+                    {!isLoading && !isError && reviews?.length === 0 && (
+                        <p className="text-center text-gray-500">No reviews yet for this vendor.</p>
+                    )}
+
+                    {reviews?.map((review) => (
+                        <div key={review.review_id} className="p-4 border rounded-lg bg-grey-50 border-gray-200">
+                            <div className="flex justify-between items-start mb-2">
+                                <span className="text-sm font-bold text-[#443627]">{review.username}</span>
+                                <div className="flex flex-col items-end text-[10px] sm:text-xs gap-1">
+                                    <span className={review.food_quality === 'Very bad' ? 'text-red-600' : 'text-green-700'}>Food: {review.food_quality}</span>
+                                    <span className={review.delivery_experience === 'Very bad' ? 'text-red-600' : 'text-blue-700'}>Delivery: {review.delivery_experience}</span>
+                                </div>
+                            </div>
+                            <div className="mt-3 pl-3 border-l-2 border-gray-500 bg-gray-100 p-2 rounded-r-md">
+                                <p className="text-gray-700 text-sm">{review.comment}</p>
+                            </div>
+
+
+                            {/* --- NEW: RENDER VENDOR REPLY --- */}
+                            {review.is_replied && review.reply && (
+                                <div className="mt-3 pl-3 border-l-2 border-green-500 bg-green-50 p-2 rounded-r-md">
+                                    <p className="text-xs font-bold text-green-700 mb-1">
+                                        Response from {vendorName}:
+                                    </p>
+                                    <p className="text-sm text-gray-800">
+                                        {review.reply}
+                                    </p>
+                                </div>
+                            )}
+
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
 // --- API Hooks ---
 const useCreateSubscriptionOrder = () => {
     return useMutation({
@@ -166,6 +344,12 @@ export default function ClientVendorPage({ params }: { params: Promise<{ vendorI
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
     const [vendorId, setVendorId] = useState<string>('');
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false); // For adding a review
+    const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false); // For viewing reviews
+    const { subscribe, isLoading: subscriptionLoading, error: subscriptionError, isSuccess } = useVendorSubscription();
+    // Review Hook (For Text Comments - NEW)
+    const { data: reviewsList } = useVendorReviews(vendorId || '');
+    const textReviewCount = reviewsList ? reviewsList.length : 0;
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -186,6 +370,10 @@ export default function ClientVendorPage({ params }: { params: Promise<{ vendorI
     const vendor = vendorData ? transformVendorData(vendorData) : null;
 
     const categories = vendor ? ['All', ...Array.from(new Set(vendor.menu.map(item => item.category)))] : [];
+
+    const filteredMenu = vendor?.menu.filter(item =>
+        selectedCategory === 'All' || item.category === selectedCategory
+    ) || [];
     const filteredMenu = vendor?.menu.filter(item => selectedCategory === 'All' || item.category === selectedCategory) || [];
 
     const handlePlanSelect = (planId: string) => {
@@ -293,6 +481,57 @@ export default function ClientVendorPage({ params }: { params: Promise<{ vendorI
     }
 
     return (
+        <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: ' #f9f5e6' }}>
+            {/* 1. Review Submission Modal */}
+            <ReviewModal
+                isOpen={isReviewModalOpen}
+                onClose={() => setIsReviewModalOpen(false)}
+                vendorId={vendorId}
+                vendorName={vendor.name}
+            />
+
+            {/* 2. Review Display Modal */}
+            <ReviewsDisplayModal
+                isOpen={isReviewsModalOpen}
+                onClose={() => setIsReviewsModalOpen(false)}
+                vendorId={vendorId}
+                vendorName={vendor.name}
+            />
+
+            {/* Content Wrapper to ensure it's above the SVG background */}
+            <div className="relative z-10">
+                {/* Header Section */}
+                <div className="container mx-auto px-4 py-6 pt-20">
+                    <div className="flex items-center gap-4 bg-white rounded-lg shadow-md p-4">
+                        <Image
+                            src={vendor.coverImage}
+                            alt={vendor.name}
+                            width={100}
+                            height={100}
+                            className="w-30 h-30 object-cover rounded-lg"
+                        />
+                        <div className="flex-1">
+                            <h1 className="text-2xl font-bold mb-2 darktext">{vendor.name}</h1>
+                            <div className="flex items-center gap-4 text-sm lighttext">
+                                {/* --- FIX: Separated Logic --- */}
+                                <div className="flex items-center gap-2">
+                                    {/* 1. STARS (Uses rating logic) */}
+                                    <RatingStars vendorId={vendor.id} variant="readonly" showText={false} />
+
+                                    {/* 2. REVIEWS (Uses text review logic) */}
+                                    <button
+                                        onClick={() => setIsReviewsModalOpen(true)}
+                                        className="text-orange-500 hover:underline font-medium"
+                                    >
+                                        ({textReviewCount} reviews) {/* <--- NOW USING CORRECT COUNT */}
+                                    </button>
+                                </div>
+                                {/* --- END FIX --- */}
+                                <span>🕒 {vendor.deliveryTime}</span>
+                                <span className={`px-2 py-1 rounded text-white ${vendor.isOpen ? 'bg-green-500' : 'bg-red-500'}`}>
+                                    {vendor.isOpen ? 'Open' : 'Closed'}
+                                </span>
+                            </div>
         <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#f9f5e6' }}>
             {/* Modals */}
             <ReviewModal isOpen={isReviewModalOpen} onClose={() => setIsReviewModalOpen(false)} vendorId={vendorId} vendorName={vendor.name} />
@@ -345,6 +584,27 @@ export default function ClientVendorPage({ params }: { params: Promise<{ vendorI
                                     Write Review
                                 </button>
                             </div>
+
+                        {/* ADDED: Add Review Button */}
+                        <button
+                            onClick={() => setIsReviewModalOpen(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-400 transition-colors duration-200"
+                        >
+                            <MessageSquare className="w-5 h-5" />
+                            Add Review
+                        </button>
+                    </div>
+                </div>
+
+                {/* 2. NEW RATE US SECTION (Interactive) */}
+                <div className="container mx-auto py-4 px-4">
+                    <div className="bg-white rounded-lg shadow-sm p-4 border border-orange-100 flex items-center justify-between">
+                        <div>
+                            <h3 className="font-semibold text-gray-800">Have you eaten here?</h3>
+                        </div>
+                        <RatingStars vendorId={vendor.id} variant="input" size={24} />
+                    </div>
+                </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2 text-sm text-gray-600 border-t pt-4">
                                 <div className="space-y-1">
@@ -513,6 +773,9 @@ export default function ClientVendorPage({ params }: { params: Promise<{ vendorI
                                         </div>
                                     ))}
                                 </div>
+                            )}
+                        </div>
+                    </div>
 
                                 <div className="mt-12 text-center">
                                     <button

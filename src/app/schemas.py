@@ -356,3 +356,27 @@ class RatingResponse(BaseModel):
 class UserRatingResponse(BaseModel):
     vendor_id: UUID4
     rating_val: float
+
+class ReviewCreate(BaseModel):
+    vendor_id: UUID
+    food_quality: str = Field(..., description="e.g. Good, Bad")
+    delivery_experience: str = Field(..., description="e.g. Fast, Slow")
+    comment: Optional[str] = None
+
+class ReviewResponse(BaseModel):
+    review_id: int   # changed from UUID to int based on your screenshot
+    user_id: UUID
+    vendor_id: UUID
+    food_quality: str
+    delivery_experience: str
+    comment: Optional[str]
+    username: str  # Flattened field for the frontend
+
+    is_replied: bool
+    reply: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+class ReviewReply(BaseModel):
+    reply_text: str
