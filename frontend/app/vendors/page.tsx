@@ -45,7 +45,7 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
           <span>{vendor.deliveryTime}</span>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
           <Link href={`/vendors/${vendor.id}`}>
             <button
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${vendor.isOpen
@@ -57,6 +57,15 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
               onClick={(e) => e.stopPropagation()}
             >
               {vendor.isOpen ? 'Order Now' : 'Closed'}
+            </button>
+          </Link>
+          <Link href={`/vendors/${vendor.id}#subscription`}>
+            <button
+              className="px-4 py-2 rounded-md text-sm font-medium transition-colors text-white hover:opacity-90"
+              style={{ backgroundColor: '#EFDCAB', color: '#443627' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              Subscribe
             </button>
           </Link>
         </div>

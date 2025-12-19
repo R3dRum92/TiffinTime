@@ -135,6 +135,11 @@ async def add_menu_item(
         item_data = request.model_dump()
         item_data["vendor_id"] = str(vendor_id)
 
+        # Set default image if not provided
+        if not item_data.get("img_bucket") or not item_data.get("img_path"):
+            item_data["img_bucket"] = "menu-images"
+            item_data["img_path"] = "default/default-menu.jpg"
+
         logger.info(f"Inserting new menu item: {item_data}")
 
         response = await client.table("menu_items").insert(item_data).execute()
