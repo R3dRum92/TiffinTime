@@ -23,6 +23,7 @@ export async function generateStaticParams() {
     }));
   } catch (error) {
     console.error('Error fetching vendors:', error);
+    return [];
   }
 }
 

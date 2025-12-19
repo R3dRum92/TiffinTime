@@ -3,7 +3,15 @@ from datetime import date, datetime, timedelta
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, UUID4
+from pydantic import (
+    UUID4,
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 from app import enums
 
@@ -151,6 +159,10 @@ class SubscriptionRequest(BaseModel):
             return timedelta(days=30)
 
 
+class SubscriptionCreateResponse(BaseResponse):
+    id: UUID
+
+
 class RegistrationRequest(BaseModel):
     name: str
     email: EmailStr
@@ -290,7 +302,8 @@ class VendorDetailsResponse(BaseModel):
 
 
 class PaymentInitiationRequest(BaseModel):
-    order_ids: List[UUID]
+    order_ids: Optional[List[UUID]] = None
+    subscription_id: Optional[UUID] = None
     total_amount: float
     tran_id: str
     cus_add1: str
@@ -298,6 +311,18 @@ class PaymentInitiationRequest(BaseModel):
     num_of_item: int
     product_name: str
     product_category: str
+
+    @model_validator(mode="after")
+    def check_payload_contains_items(self) -> "PaymentInitiationRequest":
+        order_ids = self.order_ids
+        subscription_id = self.subscription_id
+
+        if not order_ids and not subscription_id:
+            raise ValueError(
+                "Payment request must contain either order_ids or a subscription_id"
+            )
+
+        return self
 
 
 class PaymentBase(BaseModel):
@@ -316,15 +341,21 @@ class Payment(PaymentBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
 class RatingCreate(BaseModel):
     vendor_id: UUID4
     # Changed to float to match float8, allowing half-stars if you want (e.g. 4.5)
-    rating_val: float = Field(..., ge=1, le=5, description="Rating must be between 1 and 5")
+    rating_val: float = Field(
+        ..., ge=1, le=5, description="Rating must be between 1 and 5"
+    )
+
 
 class RatingResponse(BaseModel):
     vendor_id: UUID4
     average_rating: float
     total_ratings: int
+
 
 class UserRatingResponse(BaseModel):
     vendor_id: UUID4
