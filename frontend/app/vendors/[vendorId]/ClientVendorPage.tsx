@@ -4,13 +4,15 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 // Icons
-import { 
-    Check, Crown, Clock, Calendar, Utensils, Loader2, MessageSquare, 
-    MapPin, Phone, Mail, DollarSign, Plus, Minus, ShoppingCart, Star 
+import {
+    Check, Crown, Clock, Calendar, Utensils, Loader2, MessageSquare,
+    MapPin, Phone, Mail, DollarSign, Plus, Minus, ShoppingCart, Star
 } from 'lucide-react';
 
 // Custom hooks
 import { useVendor } from "@/app/hooks/singleVendor";
+// Add this to your imports at the top
+import { MenuItem as AllMenuMenuItem } from "@/app/hooks/allmenu";
 import { useVendorMenu } from "@/app/hooks/vendorMenu";
 import { useVendorSubscription } from "@/app/hooks/useVendorSubscription";
 import { useReviewSubmission } from "@/app/hooks/useReviewSubmission";
@@ -139,15 +141,15 @@ const transformVendorData = (apiData: ApiVendorData): VendorDetails => {
         isOpen: apiData.is_open,
         rating: apiData.rating || 4.5,
         totalReviews: apiData.total_reviews || 0,
-        location: { 
-            address: "123 Food Street, Block A", 
-            area: "Dhanmondi", 
-            city: "Dhaka", 
-            coordinates: { lat: 23.746466, lng: 90.376015 } 
+        location: {
+            address: "123 Food Street, Block A",
+            area: "Dhanmondi",
+            city: "Dhaka",
+            coordinates: { lat: 23.746466, lng: 90.376015 }
         },
-        contact: { 
-            phone: "+880 1234567890", 
-            email: "orders@vendor.com" 
+        contact: {
+            phone: "+880 1234567890",
+            email: "orders@vendor.com"
         },
         menu: [], // Menu fetched via separate hook
         subscriptionPlans: [
@@ -290,7 +292,7 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
     const [activeTab, setActiveTab] = useState<'menu' | 'subscription'>('menu');
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-    
+
     // Modal States
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false);
@@ -299,11 +301,11 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
     // --- Hooks ---
     const { user } = useUserInfo();
     const { addToCart, cartCount } = useCart();
-    
+
     // Payment Mutations
     const createSubscriptionMutation = useCreateSubscriptionOrder();
     const initPaymentMutation = useInitPayment();
-    
+
     // Order State (for Food Details Modal)
     const {
         selectedFood,
@@ -343,18 +345,26 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
 
     // Merge Menu Data with Vendor Info for Cart Items
     const menuItems: MenuItem[] = menuData?.map(item => ({
-        ...item,
-        // Ensure properties exist for UI
+        id: item.id,
+        name: item.name,
+        // FIX: Fallback to empty string if description is null
+        description: item.description || '',
+        price: item.price,
+        image: item.image,
         category: item.category || 'Uncategorized',
         isVeg: item.isVeg || false,
-        isAvailable: item.isAvailable || (item as any).available || false,
+        // Handle variations in API response for availability
+        isAvailable: item.isAvailable || (item as { available?: boolean }).available || false,
+        preparationTime: item.preparationTime,
+        // FIX: Ensure rating is a number (handle null)
+        rating: item.rating || 0,
         vendorId: vendor?.id,
         vendorName: vendor?.name
     })) || [];
 
     const categories = ['All', ...Array.from(new Set(menuItems.map(item => item.category).filter(Boolean)))];
-    
-    const filteredMenu = menuItems.filter(item => 
+
+    const filteredMenu = menuItems.filter(item =>
         selectedCategory === 'All' || item.category === selectedCategory
     );
 
@@ -412,7 +422,7 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
     };
 
     // --- Render Loading/Error ---
-    if (isLoading) return <div className="min-h-screen flex center items-center justify-center bg-[#f9f5e6]"><Loader2 className="animate-spin text-orange-500 w-10 h-10"/></div>;
+    if (isLoading) return <div className="min-h-screen flex center items-center justify-center bg-[#f9f5e6]"><Loader2 className="animate-spin text-orange-500 w-10 h-10" /></div>;
     if (isError || !vendor) return <div className="text-center mt-20">Vendor not found. <Link href="/vendors">Go Back</Link></div>;
 
     // --- Render Main ---
@@ -472,11 +482,11 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                 {/* Tabs */}
                 <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
                     <div className="flex border-b">
-                        <button onClick={() => { setActiveTab('menu'); window.history.replaceState(null, '', window.location.pathname); }} 
+                        <button onClick={() => { setActiveTab('menu'); window.history.replaceState(null, '', window.location.pathname); }}
                             className={`flex-1 py-4 font-bold ${activeTab === 'menu' ? 'border-b-4 border-[#D98324] text-[#D98324]' : 'text-gray-500'}`}>
                             <Utensils className="w-5 inline mr-2" /> Full Menu
                         </button>
-                        <button onClick={() => { setActiveTab('subscription'); window.history.replaceState(null, '', '#subscription'); }} 
+                        <button onClick={() => { setActiveTab('subscription'); window.history.replaceState(null, '', '#subscription'); }}
                             className={`flex-1 py-4 font-bold ${activeTab === 'subscription' ? 'border-b-4 border-[#D98324] text-[#D98324]' : 'text-gray-500'}`}>
                             <Crown className="w-5 inline mr-2" /> Subscriptions
                         </button>
@@ -487,7 +497,7 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                         <div className="p-6">
                             <div className="flex overflow-x-auto gap-3 mb-6 pb-2">
                                 {categories.map(cat => (
-                                    <button key={cat} onClick={() => setSelectedCategory(cat)} 
+                                    <button key={cat} onClick={() => setSelectedCategory(cat)}
                                         className={`px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${selectedCategory === cat ? 'bg-[#D98324] text-white' : 'bg-gray-100'}`}>
                                         {cat}
                                     </button>
@@ -495,7 +505,7 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                             </div>
 
                             {isMenuLoading ? (
-                                <div className="text-center py-10"><Loader2 className="animate-spin mx-auto text-orange-500"/> Loading Menu...</div>
+                                <div className="text-center py-10"><Loader2 className="animate-spin mx-auto text-orange-500" /> Loading Menu...</div>
                             ) : menuError ? (
                                 <div className="text-center text-red-500">Failed to load menu.</div>
                             ) : (
@@ -515,11 +525,11 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                                                 </div>
                                                 <div className="flex justify-between items-end mt-2">
                                                     <span className="text-lg font-bold text-[#D98324]">৳{item.price}</span>
-                                                    <Button size="sm" disabled={!item.isAvailable} 
+                                                    <Button size="sm" disabled={!item.isAvailable}
                                                         onClick={() => {
                                                             // Cast to any to fit generic hook type requirements if strict mismatch occurs
-                                                            handleFoodClick(item as any);
-                                                        }} 
+                                                            handleFoodClick(item as unknown as AllMenuMenuItem);
+                                                        }}
                                                         className="bg-[#D98324] hover:bg-orange-600">
                                                         {item.isAvailable ? 'Add' : 'Sold Out'}
                                                     </Button>
@@ -545,7 +555,7 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                                             <span className="text-[#D98324] font-bold text-xl">৳{plan.price}</span>
                                         </div>
                                         <ul className="mb-4 space-y-2">
-                                            {plan.features.map((f, i) => <li key={i} className="flex gap-2 text-sm"><Check className="w-4 text-green-500"/> {f}</li>)}
+                                            {plan.features.map((f, i) => <li key={i} className="flex gap-2 text-sm"><Check className="w-4 text-green-500" /> {f}</li>)}
                                         </ul>
                                         <button className={`w-full py-2 rounded-lg font-bold ${selectedPlan === plan.id ? 'bg-[#D98324] text-white' : 'bg-gray-100 text-gray-500'}`}>
                                             {selectedPlan === plan.id ? 'Selected' : 'Choose Plan'}
@@ -578,9 +588,9 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                             {/* Quantity */}
                             <div className="flex items-center gap-4">
                                 <span className="font-semibold">Quantity:</span>
-                                <Button size="sm" variant="outline" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={quantity <= 1}><Minus className="w-4"/></Button>
+                                <Button size="sm" variant="outline" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={quantity <= 1}><Minus className="w-4" /></Button>
                                 <span>{quantity}</span>
-                                <Button size="sm" variant="outline" onClick={() => setQuantity(quantity + 1)}><Plus className="w-4"/></Button>
+                                <Button size="sm" variant="outline" onClick={() => setQuantity(quantity + 1)}><Plus className="w-4" /></Button>
                             </div>
                             {/* Total & Add */}
                             <div className="bg-gray-50 p-4 rounded-lg flex justify-between items-center">
