@@ -101,6 +101,12 @@ interface ApiVendorData {
     total_reviews?: number; // Optional in API
 }
 
+export interface VendorDetailPageProps {
+    params: Promise<{
+        vendorId: string;
+    }>;
+}
+
 // --- Data Transformation ---
 const transformVendorData = (apiData: ApiVendorData): VendorDetails => {
     return {
