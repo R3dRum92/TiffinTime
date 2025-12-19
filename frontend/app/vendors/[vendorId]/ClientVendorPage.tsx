@@ -5,23 +5,23 @@ import Image from "next/image";
 import Link from "next/link";
 // Icons
 import { Check, Crown, Clock, Calendar, Utensils, Loader2, MessageSquare, MapPin, Phone, Mail, DollarSign } from 'lucide-react';
-// Custom hooks
+// Custom hooks (Assuming these paths are correct in your project)
 import { useVendor } from "@/app/hooks/singleVendor";
 import { useUserInfo } from "@/app/hooks/getUserDetails";
+import { useReviewSubmission } from "@/app/hooks/useReviewSubmission";
+import { useVendorReviews } from "@/app/hooks/useVendorReviews";
 // UI Components
 import RatingStars from "@/components/ui/RatingStars";
 import { toast } from "sonner";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 // Payment & Logic
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
-import { useMutation } from '@tanstack/react-query';
-// We are keeping your existing review hooks/components usage
-import { useReviewSubmission } from "@/app/hooks/useReviewSubmission";
-import { useVendorReviews } from "@/app/hooks/useVendorReviews";
+
+// --- Interfaces ---
 
 interface ReviewItem {
-    review_id: number; // Ensure this is number now
+    review_id: number;
     food_quality: string;
     delivery_experience: string;
     comment: string | null;
@@ -30,9 +30,6 @@ interface ReviewItem {
     reply: string | null;
 }
 
-
-
-// --- Interfaces ---
 interface MenuItem {
     id: string;
     name: string;
@@ -45,7 +42,7 @@ interface MenuItem {
 }
 
 interface SubscriptionPlan {
-    id: string; // "weekly" or "monthly"
+    id: string;
     name: string;
     duration: string;
     price: number;
@@ -66,6 +63,8 @@ interface VendorDetails {
     minimumOrder: number;
     deliveryFee: number;
     isOpen: boolean;
+    rating: number; // Added to fix TS error
+    totalReviews: number; // Added to fix TS error
     location: {
         address: string;
         area: string;
@@ -88,6 +87,8 @@ interface ApiVendorData {
     img_url: string;
     delivery_time: { min: number; max: number; };
     is_open: boolean;
+    rating?: number; // Optional in API
+    total_reviews?: number; // Optional in API
 }
 
 // --- Data Transformation ---
@@ -102,6 +103,8 @@ const transformVendorData = (apiData: ApiVendorData): VendorDetails => {
         minimumOrder: 100,
         deliveryFee: 25,
         isOpen: apiData.is_open,
+        rating: apiData.rating || 4.5, // Default/Mock value
+        totalReviews: apiData.total_reviews || 120, // Default/Mock value
         location: { address: "123 Food Street, Block A", area: "Dhanmondi", city: "Dhaka", coordinates: { lat: 23.746466, lng: 90.376015 } },
         contact: { phone: "+880 1234567890", email: "orders@vendor.com" },
         menu: [
@@ -111,7 +114,7 @@ const transformVendorData = (apiData: ApiVendorData): VendorDetails => {
         ],
         subscriptionPlans: [
             {
-                id: "weekly", // Matches the 'type'
+                id: "weekly",
                 name: "Weekly Plan",
                 duration: "7 days",
                 price: 299,
@@ -121,7 +124,7 @@ const transformVendorData = (apiData: ApiVendorData): VendorDetails => {
                 discount: 10
             },
             {
-                id: "monthly", // Matches the 'type'
+                id: "monthly",
                 name: "Monthly Plan",
                 duration: "30 days",
                 price: 999,
@@ -136,11 +139,33 @@ const transformVendorData = (apiData: ApiVendorData): VendorDetails => {
     };
 };
 
-export interface VendorDetailPageProps {
-    params: Promise<{
-        vendorId: string;
-    }>;
-}
+// --- API Hooks (Moved Outside Component) ---
+const useCreateSubscriptionOrder = () => {
+    return useMutation({
+        mutationFn: async (data: { vendor_id: string, type: string }) => {
+            const token = localStorage.getItem('token');
+            const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/subscribe/${data.vendor_id}`, data, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            return response.data;
+        }
+    });
+};
+
+const useInitPayment = () => {
+    return useMutation({
+        mutationFn: async (paymentData: any) => {
+            const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/payment/init`, paymentData, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            return response.data;
+        }
+    });
+};
 
 // --- 1. Review Submission Modal (Add Review) ---
 interface ReviewModalProps {
@@ -177,16 +202,13 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, vendorId, ve
         const success = await submitReview(payload);
         if (success) {
             toast.success(`Review Submitted!`);
-            // 1. Update the Stars (Rating Stats)
             queryClient.invalidateQueries({ queryKey: ['rating-stats', vendorId] });
-            // 2. Update the Text Reviews List (The Orange Button Count)
             queryClient.invalidateQueries({ queryKey: ['vendor-reviews', vendorId] });
             onClose();
         }
     };
 
     return (
-        // FIX: Using bg-black/50 and backdrop-blur-sm for better overlay
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative animate-in fade-in zoom-in duration-200">
                 <button
@@ -197,7 +219,6 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, vendorId, ve
                 </button>
                 <h2 className="text-2xl font-bold mb-4 text-[#443627]">Review {vendorName}</h2>
                 <form onSubmit={handleSubmit}>
-                    {/* ... Inputs ... */}
                     <div className="mb-6">
                         <label className="block text-gray-700 font-medium mb-2">Food Quality</label>
                         <div className="flex flex-wrap gap-2">
@@ -227,7 +248,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, vendorId, ve
                     </div>
 
                     <div className="flex justify-end gap-3">
-                        <button type="button" onClick={onClose} className="px-6 py-2 border rounded-full text-black-700 hover:bg-gray-300">Cancel</button>
+                        <button type="button" onClick={onClose} className="px-6 py-2 border rounded-full text-gray-700 hover:bg-gray-300">Cancel</button>
                         <button type="submit" disabled={isLoading} className="px-6 py-2 bg-orange-500 text-white rounded-full hover:bg-orange-600 transition-colors duration-200">
                             {isLoading ? 'Submitting...' : 'Submit'}
                         </button>
@@ -237,8 +258,6 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, vendorId, ve
         </div>
     );
 };
-// --- End Review Submission Modal ---
-
 
 // --- 2. Review Display Modal ---
 interface ReviewsDisplayModalProps {
@@ -246,6 +265,7 @@ interface ReviewsDisplayModalProps {
     onClose: () => void;
     vendorId: string;
     vendorName: string;
+    totalReviews?: number; // Kept to match possible usage, though not strictly needed by logic
 }
 
 const ReviewsDisplayModal: React.FC<ReviewsDisplayModalProps> = ({ isOpen, onClose, vendorId, vendorName }) => {
@@ -274,7 +294,7 @@ const ReviewsDisplayModal: React.FC<ReviewsDisplayModalProps> = ({ isOpen, onClo
                     )}
 
                     {reviews?.map((review) => (
-                        <div key={review.review_id} className="p-4 border rounded-lg bg-grey-50 border-gray-200">
+                        <div key={review.review_id} className="p-4 border rounded-lg bg-gray-50 border-gray-200">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-sm font-bold text-[#443627]">{review.username}</span>
                                 <div className="flex flex-col items-end text-[10px] sm:text-xs gap-1">
@@ -286,8 +306,6 @@ const ReviewsDisplayModal: React.FC<ReviewsDisplayModalProps> = ({ isOpen, onClo
                                 <p className="text-gray-700 text-sm">{review.comment}</p>
                             </div>
 
-
-                            {/* --- NEW: RENDER VENDOR REPLY --- */}
                             {review.is_replied && review.reply && (
                                 <div className="mt-3 pl-3 border-l-2 border-green-500 bg-green-50 p-2 rounded-r-md">
                                     <p className="text-xs font-bold text-green-700 mb-1">
@@ -298,62 +316,26 @@ const ReviewsDisplayModal: React.FC<ReviewsDisplayModalProps> = ({ isOpen, onClo
                                     </p>
                                 </div>
                             )}
-
                         </div>
                     ))}
                 </div>
             </div>
         </div>
     );
-// --- API Hooks ---
-const useCreateSubscriptionOrder = () => {
-    return useMutation({
-        // UPDATED: Now only accepts vendor_id and type
-        mutationFn: async (data: { vendor_id: string, type: string }) => {
-            const token = localStorage.getItem('token');
-            const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/subscribe/${data.vendor_id}`, data, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
-            return response.data;
-        }
-    });
 };
-
-const useInitPayment = () => {
-    return useMutation({
-        mutationFn: async (paymentData: any) => {
-            const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/payment/init`, paymentData, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`
-                }
-            });
-            return response.data;
-        }
-    });
-};
-
-// --- Placeholder Modals ---
-const ReviewModal = ({ isOpen, onClose, vendorId, vendorName }: any) => isOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"><div className="bg-white p-6 rounded">Review Modal Placeholder <button onClick={onClose}>Close</button></div></div> : null;
-const ReviewsDisplayModal = ({ isOpen, onClose, vendorId, vendorName, totalReviews }: any) => isOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"><div className="bg-white p-6 rounded">Reviews List Placeholder <button onClick={onClose}>Close</button></div></div> : null;
 
 // --- Main Page Component ---
 export default function ClientVendorPage({ params }: { params: Promise<{ vendorId: string; }> }) {
+    // State
     const [activeTab, setActiveTab] = useState<'menu' | 'subscription'>('menu');
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
     const [vendorId, setVendorId] = useState<string>('');
-    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false); // For adding a review
-    const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false); // For viewing reviews
-    const { subscribe, isLoading: subscriptionLoading, error: subscriptionError, isSuccess } = useVendorSubscription();
-    // Review Hook (For Text Comments - NEW)
-    const { data: reviewsList } = useVendorReviews(vendorId || '');
-    const textReviewCount = reviewsList ? reviewsList.length : 0;
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
+    // Hooks
     const { user } = useUserInfo();
     const createSubscriptionMutation = useCreateSubscriptionOrder();
     const initPaymentMutation = useInitPayment();
@@ -369,18 +351,18 @@ export default function ClientVendorPage({ params }: { params: Promise<{ vendorI
     const { data: vendorData, isLoading, error, isError } = useVendor(vendorId);
     const vendor = vendorData ? transformVendorData(vendorData) : null;
 
-    const categories = vendor ? ['All', ...Array.from(new Set(vendor.menu.map(item => item.category)))] : [];
+    // Review Data
+    const { data: reviewsList } = useVendorReviews(vendorId || '');
+    const textReviewCount = reviewsList ? reviewsList.length : 0;
 
-    const filteredMenu = vendor?.menu.filter(item =>
-        selectedCategory === 'All' || item.category === selectedCategory
-    ) || [];
+    // Derived Data
+    const categories = vendor ? ['All', ...Array.from(new Set(vendor.menu.map(item => item.category)))] : [];
     const filteredMenu = vendor?.menu.filter(item => selectedCategory === 'All' || item.category === selectedCategory) || [];
 
     const handlePlanSelect = (planId: string) => {
         setSelectedPlan(planId);
     };
 
-    // --- PAYMENT LOGIC ---
     const handleSubscribe = async () => {
         if (!selectedPlan) {
             toast.error("No Plan Selected", { description: "Please select a subscription plan." });
@@ -392,7 +374,6 @@ export default function ClientVendorPage({ params }: { params: Promise<{ vendorI
         }
         if (!vendor) return;
 
-        // We still need plan details locally to calculate the total amount for the Payment Gateway
         const planDetails = vendor.subscriptionPlans.find(p => p.id === selectedPlan);
         if (!planDetails) return;
 
@@ -402,15 +383,11 @@ export default function ClientVendorPage({ params }: { params: Promise<{ vendorI
         try {
             toast.info("Creating Subscription...", { description: "Please wait a moment." });
 
-            // 1. Create Subscription Record (Pending Status)
-            // UPDATED PAYLOAD: Only sending vendor_id and type ('weekly' or 'monthly')
             const subscriptionRecord = await createSubscriptionMutation.mutateAsync({
                 vendor_id: vendorId,
-                type: selectedPlan // selectedPlan is "weekly" or "monthly"
+                type: selectedPlan // "weekly" or "monthly"
             });
 
-            // 2. Prepare Payment Payload
-            // Using 'subscription_id' from step 1, but using local planDetails for the amount
             const paymentPayload = {
                 subscription_id: subscriptionRecord.id,
                 total_amount: planDetails.price,
@@ -424,7 +401,6 @@ export default function ClientVendorPage({ params }: { params: Promise<{ vendorI
 
             toast.info("Redirecting to Payment...", { description: "Handing over to SSLCommerz." });
 
-            // 3. Initiate Payment
             const paymentResponse = await initPaymentMutation.mutateAsync(paymentPayload);
 
             if (paymentResponse?.status === 'SUCCESS' && paymentResponse?.GatewayPageURL) {
@@ -481,61 +457,21 @@ export default function ClientVendorPage({ params }: { params: Promise<{ vendorI
     }
 
     return (
-        <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: ' #f9f5e6' }}>
-            {/* 1. Review Submission Modal */}
+        <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#f9f5e6' }}>
+            {/* Modals */}
             <ReviewModal
                 isOpen={isReviewModalOpen}
                 onClose={() => setIsReviewModalOpen(false)}
                 vendorId={vendorId}
                 vendorName={vendor.name}
             />
-
-            {/* 2. Review Display Modal */}
             <ReviewsDisplayModal
                 isOpen={isReviewsModalOpen}
                 onClose={() => setIsReviewsModalOpen(false)}
                 vendorId={vendorId}
                 vendorName={vendor.name}
+                totalReviews={vendor.totalReviews}
             />
-
-            {/* Content Wrapper to ensure it's above the SVG background */}
-            <div className="relative z-10">
-                {/* Header Section */}
-                <div className="container mx-auto px-4 py-6 pt-20">
-                    <div className="flex items-center gap-4 bg-white rounded-lg shadow-md p-4">
-                        <Image
-                            src={vendor.coverImage}
-                            alt={vendor.name}
-                            width={100}
-                            height={100}
-                            className="w-30 h-30 object-cover rounded-lg"
-                        />
-                        <div className="flex-1">
-                            <h1 className="text-2xl font-bold mb-2 darktext">{vendor.name}</h1>
-                            <div className="flex items-center gap-4 text-sm lighttext">
-                                {/* --- FIX: Separated Logic --- */}
-                                <div className="flex items-center gap-2">
-                                    {/* 1. STARS (Uses rating logic) */}
-                                    <RatingStars vendorId={vendor.id} variant="readonly" showText={false} />
-
-                                    {/* 2. REVIEWS (Uses text review logic) */}
-                                    <button
-                                        onClick={() => setIsReviewsModalOpen(true)}
-                                        className="text-orange-500 hover:underline font-medium"
-                                    >
-                                        ({textReviewCount} reviews) {/* <--- NOW USING CORRECT COUNT */}
-                                    </button>
-                                </div>
-                                {/* --- END FIX --- */}
-                                <span>🕒 {vendor.deliveryTime}</span>
-                                <span className={`px-2 py-1 rounded text-white ${vendor.isOpen ? 'bg-green-500' : 'bg-red-500'}`}>
-                                    {vendor.isOpen ? 'Open' : 'Closed'}
-                                </span>
-                            </div>
-        <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#f9f5e6' }}>
-            {/* Modals */}
-            <ReviewModal isOpen={isReviewModalOpen} onClose={() => setIsReviewModalOpen(false)} vendorId={vendorId} vendorName={vendor.name} />
-            <ReviewsDisplayModal isOpen={isReviewsModalOpen} onClose={() => setIsReviewsModalOpen(false)} vendorId={vendorId} vendorName={vendor.name} totalReviews={vendor.totalReviews} />
 
             <div className="relative z-10">
                 {/* Header Section */}
@@ -555,10 +491,9 @@ export default function ClientVendorPage({ params }: { params: Promise<{ vendorI
                                     <h1 className="text-3xl font-bold mb-2 text-[#443627]">{vendor.name}</h1>
                                     <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-4">
                                         <div className="flex items-center gap-1 bg-yellow-100 px-2 py-1 rounded text-yellow-800">
-                                            <span>⭐ {vendor.rating}</span>
-                                            <button onClick={() => setIsReviewsModalOpen(true)} className="hover:underline font-medium">
-                                                ({vendor.totalReviews} reviews)
-                                            </button>
+                                            {/* Integrated Rating Component */}
+                                            <RatingStars vendorId={vendor.id} variant="readonly" showText={false} />
+                                            <span className="ml-1">({textReviewCount} reviews)</span>
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <Clock className="w-4 h-4 text-[#D98324]" />
@@ -585,48 +520,45 @@ export default function ClientVendorPage({ params }: { params: Promise<{ vendorI
                                 </button>
                             </div>
 
-                        {/* ADDED: Add Review Button */}
-                        <button
-                            onClick={() => setIsReviewModalOpen(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-400 transition-colors duration-200"
-                        >
-                            <MessageSquare className="w-5 h-5" />
-                            Add Review
-                        </button>
+                            {/* Mobile Add Review Button */}
+                            <button
+                                onClick={() => setIsReviewModalOpen(true)}
+                                className="md:hidden w-full mt-4 flex justify-center items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-400 transition-colors duration-200"
+                            >
+                                <MessageSquare className="w-5 h-5" />
+                                Add Review
+                            </button>
+                        </div>
                     </div>
-                </div>
 
-                {/* 2. NEW RATE US SECTION (Interactive) */}
-                <div className="container mx-auto py-4 px-4">
-                    <div className="bg-white rounded-lg shadow-sm p-4 border border-orange-100 flex items-center justify-between">
+                    {/* Rate Us Section */}
+                    <div className="mt-4 bg-white rounded-lg shadow-sm p-4 border border-orange-100 flex flex-col sm:flex-row items-center justify-between gap-4">
                         <div>
                             <h3 className="font-semibold text-gray-800">Have you eaten here?</h3>
+                            <p className="text-sm text-gray-500">Tap stars to rate now</p>
                         </div>
                         <RatingStars vendorId={vendor.id} variant="input" size={24} />
                     </div>
-                </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2 text-sm text-gray-600 border-t pt-4">
-                                <div className="space-y-1">
-                                    <div className="flex items-center gap-2">
-                                        <MapPin className="w-4 h-4 text-gray-400" />
-                                        {vendor.location.address}, {vendor.location.area}
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Phone className="w-4 h-4 text-gray-400" />
-                                        {vendor.contact.phone}
-                                    </div>
-                                </div>
-                                <div className="space-y-1">
-                                    <div className="flex items-center gap-2">
-                                        <Mail className="w-4 h-4 text-gray-400" />
-                                        {vendor.contact.email}
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <DollarSign className="w-4 h-4 text-gray-400" />
-                                        Delivery: ৳{vendor.deliveryFee} (Min ৳{vendor.minimumOrder})
-                                    </div>
-                                </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 text-sm text-gray-600 bg-white p-4 rounded-xl shadow-sm">
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                                <MapPin className="w-4 h-4 text-gray-400" />
+                                {vendor.location.address}, {vendor.location.area}
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Phone className="w-4 h-4 text-gray-400" />
+                                {vendor.contact.phone}
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                                <Mail className="w-4 h-4 text-gray-400" />
+                                {vendor.contact.email}
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <DollarSign className="w-4 h-4 text-gray-400" />
+                                Delivery: ৳{vendor.deliveryFee} (Min ৳{vendor.minimumOrder})
                             </div>
                         </div>
                     </div>
@@ -773,9 +705,6 @@ export default function ClientVendorPage({ params }: { params: Promise<{ vendorI
                                         </div>
                                     ))}
                                 </div>
-                            )}
-                        </div>
-                    </div>
 
                                 <div className="mt-12 text-center">
                                     <button
@@ -807,18 +736,6 @@ export default function ClientVendorPage({ params }: { params: Promise<{ vendorI
                                 </div>
                             </div>
                         )}
-                    </div>
-
-                    {/* Quick Review Section */}
-                    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <div>
-                            <h3 className="font-bold text-[#443627]">Have you eaten here recently?</h3>
-                            <p className="text-sm text-gray-500">Share your experience to help others choose better.</p>
-                        </div>
-                        <div className="flex flex-col items-center">
-                            <span className="text-xs font-bold text-gray-400 mb-1 uppercase tracking-wide">Tap to Rate</span>
-                            <RatingStars vendorId={vendor.id} variant="input" size={28} />
-                        </div>
                     </div>
                 </div>
             </div>
