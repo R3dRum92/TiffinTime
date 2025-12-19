@@ -3,12 +3,19 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Check, Crown, Clock, Calendar, Utensils, Loader2, MessageSquare } from 'lucide-react';
+import { Check, Crown, Clock, Calendar, Utensils, Loader2, MessageSquare, Plus, Minus, ShoppingCart, Star } from 'lucide-react';
 import { useVendor } from "@/app/hooks/singleVendor";
+import { useVendorMenu, MenuItem as VendorMenuItem } from "@/app/hooks/vendorMenu";
 import { useVendorSubscription } from "@/app/hooks/useVendorSubscription";
 import { useReviewSubmission } from "@/app/hooks/useReviewSubmission";
 import { useVendorReviews } from "@/app/hooks/useVendorReviews";
+import { useOrderState } from "@/app/hooks/useOrderState";
+import { useCart } from "@/app/context/CartContext";
+import { MenuItem as AllMenuMenuItem } from "@/app/hooks/allmenu";
+import { useUserInfo } from "@/app/hooks/getUserDetails";
 import RatingStars from "@/components/ui/RatingStars";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -22,6 +29,7 @@ interface ReviewItem {
     reply: string | null;
 }
 
+// MenuItem interface for component use (compatible with vendorMenu hook)
 interface MenuItem {
     id: string;
     name: string;
@@ -31,6 +39,7 @@ interface MenuItem {
     category: string;
     isVeg: boolean;
     isAvailable: boolean;
+    preparationTime?: string | null;
 }
 
 interface SubscriptionPlan {
@@ -109,48 +118,7 @@ const transformVendorData = (apiData: ApiVendorData): VendorDetails => {
             phone: "+880 1234567890",
             email: "orders@vendor.com"
         },
-        menu: [
-            {
-                id: "1",
-                name: "Chicken Biryani",
-                description: "Aromatic basmati rice cooked with tender chicken pieces and traditional spices",
-                price: 180,
-                image: "/api/placeholder/300/200",
-                category: "Main Course",
-                isVeg: false,
-                isAvailable: true
-            },
-            {
-                id: "2",
-                name: "Vegetable Curry",
-                description: "Mixed vegetables cooked in rich curry sauce with aromatic spices",
-                price: 120,
-                image: "/api/placeholder/300/200",
-                category: "Main Course",
-                isVeg: true,
-                isAvailable: true
-            },
-            {
-                id: "3",
-                name: "Fish Curry",
-                description: "Fresh fish cooked in traditional Bengali style with mustard oil and spices",
-                price: 200,
-                image: "/api/placeholder/300/200",
-                category: "Main Course",
-                isVeg: false,
-                isAvailable: true
-            },
-            {
-                id: "4",
-                name: "Dal Tadka",
-                description: "Yellow lentils tempered with cumin, mustard seeds, and curry leaves",
-                price: 80,
-                image: "/api/placeholder/300/200",
-                category: "Dal",
-                isVeg: true,
-                isAvailable: true
-            },
-        ],
+        menu: [], // Menu will be fetched separately using useVendorMenu hook
         subscriptionPlans: [
             {
                 id: "weekly",
@@ -366,12 +334,37 @@ const ReviewsDisplayModal: React.FC<ReviewsDisplayModalProps> = ({ isOpen, onClo
 
 
 export default function ClientVendorPage({ params }: VendorDetailPageProps) {
-    const [activeTab, setActiveTab] = useState<'menu' | 'subscription'>('menu');
+    // Check URL hash to determine initial tab
+    const [activeTab, setActiveTab] = useState<'menu' | 'subscription'>(() => {
+        if (typeof window !== 'undefined') {
+            return window.location.hash === '#subscription' ? 'subscription' : 'menu';
+        }
+        return 'menu';
+    });
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
     const [vendorId, setVendorId] = useState<string>('');
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false); // For adding a review
     const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false); // For viewing reviews
+
+    // Handle hash change to switch tabs
+    useEffect(() => {
+        const handleHashChange = () => {
+            if (window.location.hash === '#subscription') {
+                setActiveTab('subscription');
+            } else if (window.location.hash === '#menu') {
+                setActiveTab('menu');
+            }
+        };
+
+        window.addEventListener('hashchange', handleHashChange);
+        // Check on mount
+        if (window.location.hash === '#subscription') {
+            setActiveTab('subscription');
+        }
+
+        return () => window.removeEventListener('hashchange', handleHashChange);
+    }, []);
     const { subscribe, isLoading: subscriptionLoading, error: subscriptionError, isSuccess } = useVendorSubscription();
     // Review Hook (For Text Comments - NEW)
     const { data: reviewsList } = useVendorReviews(vendorId || '');
@@ -386,14 +379,69 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
     }, [params]);
 
     const { data: vendorData, isLoading, error, isError } = useVendor(vendorId);
+    const { data: menuData, isLoading: isMenuLoading, error: menuError } = useVendorMenu(vendorId);
+    const { user } = useUserInfo();
+    const { addToCart, cartCount } = useCart();
+    
+    // Order state hook
+    const {
+        selectedFood,
+        quantity,
+        isDetailsOpen,
+        totalPrice,
+        canModifyOrder,
+        handleFoodClick,
+        setQuantity,
+        setIsDetailsOpen,
+    } = useOrderState(user?.id || null);
 
     const vendor = vendorData ? transformVendorData(vendorData) : null;
 
-    const categories = vendor ? ['All', ...Array.from(new Set(vendor.menu.map(item => item.category)))] : [];
+    // Transform menu items from hook to match component's expected format
+    const menuItems: MenuItem[] = menuData?.map(item => ({
+        id: item.id,
+        name: item.name,
+        description: item.description || '',
+        price: item.price,
+        image: item.image,
+        category: item.category || 'Uncategorized',
+        isVeg: item.isVeg || false,
+        isAvailable: item.isAvailable || item.available,
+        preparationTime: item.preparationTime
+    })) || [];
 
-    const filteredMenu = vendor?.menu.filter(item =>
+    // Transform menu items to AllMenuMenuItem format for cart/order functionality
+    const allMenuItems: AllMenuMenuItem[] = menuData?.map(item => ({
+        id: item.id,
+        vendorId: item.vendorId,
+        vendorName: item.vendorName,
+        name: item.name,
+        description: item.description,
+        image: item.image,
+        price: item.price,
+        category: item.category,
+        preparationTime: item.preparationTime,
+        rating: item.rating,
+        available: item.available || item.isAvailable || false,
+        date: item.date
+    })) || [];
+
+    // Handle add to cart
+    const handleAddToCart = () => {
+        if (selectedFood) {
+            addToCart(selectedFood, quantity);
+            setIsDetailsOpen(false);
+            setQuantity(1);
+        }
+    };
+
+    const categories = menuItems.length > 0 
+        ? ['All', ...Array.from(new Set(menuItems.map(item => item.category).filter(Boolean)))] 
+        : ['All'];
+
+    const filteredMenu = menuItems.filter(item =>
         selectedCategory === 'All' || item.category === selectedCategory
-    ) || [];
+    );
 
     const handlePlanSelect = (planId: string) => {
         setSelectedPlan(planId);
@@ -570,26 +618,15 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
 
                 {/* Main Content */}
                 <div className="container mx-auto px-4 py-8">
-                    {/* Sidebar */}
-                    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                        <h3 className="text-lg font-semibold mb-4">Location Details</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                            <div> <p><strong>Address:</strong> {vendor.location.address}</p>
-                                <p><strong>Area:</strong> {vendor.location.area}</p>
-                                <p><strong>City:</strong> {vendor.location.city}</p></div>
-                            <div>
-                                <p><strong>Contact:</strong> {vendor.contact.phone}</p>
-                                <p><strong>Email:</strong> {vendor.contact.email}</p>
-                                <p><strong>Delivery Fee:</strong> ৳{vendor.deliveryFee}</p>
-                            </div>
-                        </div>
-                    </div>
                     <div className="lg:col-span-2">
                         {/* Tab Navigation */}
                         <div className="rounded-lg shadow-md mb-6">
                             <div className="flex border-b">
                                 <button
-                                    onClick={() => setActiveTab('menu')}
+                                    onClick={() => {
+                                        setActiveTab('menu');
+                                        window.history.replaceState(null, '', window.location.pathname);
+                                    }}
                                     className={`flex-1 py-4 px-6 text-center font-medium ${activeTab === 'menu'
                                         ? 'border-b-2 border-orange-500 text-orange-500'
                                         : 'text-gray-600 hover:text-orange-500'
@@ -598,7 +635,10 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                                     Menu
                                 </button>
                                 <button
-                                    onClick={() => setActiveTab('subscription')}
+                                    onClick={() => {
+                                        setActiveTab('subscription');
+                                        window.history.replaceState(null, '', `${window.location.pathname}#subscription`);
+                                    }}
                                     className={`flex-1 py-4 px-6 text-center font-medium ${activeTab === 'subscription'
                                         ? 'border-b-2 border-orange-500 text-orange-500'
                                         : 'text-gray-600 hover:text-orange-500'
@@ -627,39 +667,77 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                                         ))}
                                     </div>
 
+                                    {/* Menu Loading State */}
+                                    {isMenuLoading && (
+                                        <div className="flex items-center justify-center py-12">
+                                            <Loader2 className="h-8 w-8 animate-spin mr-3" style={{ color: '#D98324' }} />
+                                            <p className="text-lg" style={{ color: '#443627' }}>Loading menu...</p>
+                                        </div>
+                                    )}
+
+                                    {/* Menu Error State */}
+                                    {menuError && !isMenuLoading && (
+                                        <div className="text-center py-12">
+                                            <p className="text-red-600 mb-2">Failed to load menu items</p>
+                                            <p className="text-sm text-gray-500">{menuError instanceof Error ? menuError.message : 'Unknown error'}</p>
+                                        </div>
+                                    )}
+
                                     {/* Menu Items */}
-                                    <div className="space-y-4">
-                                        {filteredMenu.map(item => (
+                                    {!isMenuLoading && !menuError && (
+                                        <>
+                                            {filteredMenu.length === 0 ? (
+                                                <div className="text-center py-12">
+                                                    <p className="text-gray-500">No menu items available in this category.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-4">
+                                                    {filteredMenu.map(item => (
                                             <div
                                                 key={item.id}
-                                                className={`flex items-center justify-between p-4 border rounded-lg ${item.isAvailable ? 'bg-white' : 'bg-gray-100'
+                                                className={`flex items-center gap-4 p-4 border rounded-lg ${item.isAvailable ? 'bg-white' : 'bg-gray-100'
                                                     }`}
                                             >
-                                                <div className="flex items-center gap-4">
-                                                    <Image
-                                                        src={item.image}
-                                                        alt={item.name}
-                                                        width={80}
-                                                        height={80}
-                                                        className="w-20 h-20 object-cover rounded-lg"
-                                                    />
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <h3 className="font-semibold text-gray-800">{item.name}</h3>
-                                                            <span className={`text-xs px-2 py-1 rounded ${item.isVeg ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                                                }`}>
-                                                                {item.isVeg ? 'VEG' : 'NON-VEG'}
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-sm text-gray-600 mb-2">{item.description}</p>
-                                                        <p className="font-bold text-lg" style={{ color: '#D98324' }}>
-                                                            ৳{item.price}
-                                                        </p>
+                                                <Image
+                                                    src={item.image}
+                                                    alt={item.name}
+                                                    width={80}
+                                                    height={80}
+                                                    className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+                                                />
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <h3 className="font-semibold text-gray-800">{item.name}</h3>
+                                                        <span className={`text-xs px-2 py-1 rounded ${item.isVeg ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                                            }`}>
+                                                            {item.isVeg ? 'VEG' : 'NON-VEG'}
+                                                        </span>
                                                     </div>
+                                                    <p className="text-sm text-gray-600 mb-2">{item.description}</p>
+                                                    <p className="font-bold text-lg" style={{ color: '#D98324' }}>
+                                                        ৳{item.price}
+                                                    </p>
                                                 </div>
+                                                <Button
+                                                    size="sm"
+                                                    disabled={!item.isAvailable}
+                                                    onClick={() => {
+                                                        const allMenuItem = allMenuItems.find(m => m.id === item.id);
+                                                        if (allMenuItem) {
+                                                            handleFoodClick(allMenuItem);
+                                                        }
+                                                    }}
+                                                    style={{ backgroundColor: '#D98324' }}
+                                                    className="hover:bg-opacity-90 flex-shrink-0"
+                                                >
+                                                    {item.isAvailable ? 'View Details' : 'Unavailable'}
+                                                </Button>
                                             </div>
                                         ))}
-                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
                                 </div>
                             )}
 
@@ -868,6 +946,141 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                     </div>
                 </div>
             </div>
+
+            {/* Food Details Modal */}
+            <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle style={{ color: '#443627' }}>
+                            {selectedFood?.name}
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    {selectedFood && (
+                        <div className="space-y-6">
+                            <div className="h-64 bg-gray-200 rounded-lg overflow-hidden">
+                                <Image
+                                    src={selectedFood.image}
+                                    alt={selectedFood.name}
+                                    width={600}
+                                    height={256}
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <h3 className="font-semibold mb-2" style={{ color: '#443627' }}>
+                                        Vendor: {selectedFood.vendorName}
+                                    </h3>
+                                    <p style={{ color: '#a0896b' }}>
+                                        {selectedFood.description || 'No description available'}
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-1">
+                                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                            <span style={{ color: '#443627' }}>{selectedFood.rating || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Clock className="h-4 w-4" style={{ color: '#a0896b' }} />
+                                            <span style={{ color: '#a0896b' }}>
+                                                {selectedFood.preparationTime || 'N/A'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <span className="text-xl font-bold" style={{ color: '#D98324' }}>
+                                        {selectedFood.price > 0 ? `৳${selectedFood.price}` : 'Price TBD'}
+                                    </span>
+                                </div>
+
+                                {/* Quantity Selector */}
+                                <div className="space-y-2">
+                                    <label className="font-semibold" style={{ color: '#443627' }}>
+                                        Quantity:
+                                    </label>
+                                    <div className="flex items-center gap-3">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                            disabled={!canModifyOrder || quantity <= 1}
+                                        >
+                                            <Minus className="h-4 w-4" />
+                                        </Button>
+                                        <span className="font-semibold text-lg px-4" style={{ color: '#443627' }}>
+                                            {quantity}
+                                        </span>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => setQuantity(quantity + 1)}
+                                            disabled={!canModifyOrder}
+                                        >
+                                            <Plus className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {/* Authentication Warning */}
+                                {!user && (
+                                    <div className="p-4 rounded-lg bg-yellow-50 border border-yellow-200">
+                                        <p className="text-sm text-yellow-800">
+                                            Please log in to add items to your cart
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Total Price */}
+                                {selectedFood.price > 0 && (
+                                    <div className="p-4 rounded-lg" style={{ backgroundColor: '#f8f6f3' }}>
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-semibold" style={{ color: '#443627' }}>
+                                                Subtotal:
+                                            </span>
+                                            <span className="text-2xl font-bold" style={{ color: '#D98324' }}>
+                                                ৳{totalPrice.toFixed(2)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Action Buttons */}
+                                <div className="flex gap-3 pt-4">
+                                    <Button
+                                        onClick={handleAddToCart}
+                                        className="w-full"
+                                        style={{ backgroundColor: '#D98324' }}
+                                        disabled={selectedFood.price <= 0 || !user}
+                                    >
+                                        <ShoppingCart className="h-4 w-4 mr-2" />
+                                        Add to Cart
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Floating Cart Button */}
+            <Link href="/cart">
+                <Button
+                    className="fixed bottom-6 right-6 z-50 rounded-full shadow-2xl h-16 w-16 transition-transform hover:scale-110"
+                    style={{ backgroundColor: '#D98324' }}
+                >
+                    <div className="relative">
+                        <ShoppingCart className="h-6 w-6" />
+                        {cartCount > 0 && (
+                            <span className="absolute -top-3 -right-3 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-in zoom-in">
+                                {cartCount}
+                            </span>
+                        )}
+                    </div>
+                </Button>
+            </Link>
         </div>
     );
 }

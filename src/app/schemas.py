@@ -33,6 +33,8 @@ class MenuItemBase(BaseModel):
     category: enums.MenuCategory
     description: Optional[str] = None
     preparation_time: int  # In minutes
+    img_bucket: Optional[str] = None
+    img_path: Optional[str] = None
 
 
 class MenuItemUpdateRequest(BaseModel):
@@ -41,6 +43,8 @@ class MenuItemUpdateRequest(BaseModel):
     category: Optional[enums.MenuCategory] = None
     description: Optional[str] = None
     preparation_time: Optional[int] = None
+    img_bucket: Optional[str] = None
+    img_path: Optional[str] = None
 
 
 class MenuItemResponse(MenuItemBase):

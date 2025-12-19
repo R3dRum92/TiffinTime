@@ -98,3 +98,19 @@ async def delete_menu_item(
     await menu.delete_menu_item(item_id=item_id, vendor_id=vendor.id, client=client)
     # A 204 No Content response should have an empty body
     return None
+
+
+@router.get(
+    "/vendor/{vendor_id}",
+    response_model=List[schemas.MenuItemResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get all menu items for a specific vendor (Public)",
+)
+async def get_vendor_menu(
+    vendor_id: UUID,
+    client: AsyncClient = Depends(get_db),
+) -> List[schemas.MenuItemResponse]:
+    """
+    Retrieves all menu items for a specific vendor. This endpoint is public.
+    """
+    return await menu.get_all_menus_by_vendor(vendor_id=vendor_id, client=client)
