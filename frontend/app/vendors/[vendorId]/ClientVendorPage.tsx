@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Check, Crown, Clock, Calendar, Utensils, Loader2, MessageSquare, Plus, Minus, ShoppingCart, Star } from 'lucide-react';
+import { Check, Crown, Clock, Calendar, Utensils, Loader2, MessageSquare, MapPin, Phone, Mail, DollarSign, Plus, Minus, ShoppingCart, Star } from 'lucide-react';
 import { useVendor } from "@/app/hooks/singleVendor";
 import { useVendorMenu, MenuItem as VendorMenuItem } from "@/app/hooks/vendorMenu";
 import { useVendorSubscription } from "@/app/hooks/useVendorSubscription";
@@ -17,6 +17,12 @@ import RatingStars from "@/components/ui/RatingStars";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+// Payment & Logic
+import { v4 as uuidv4 } from 'uuid';
+import axios from 'axios';
+import { useMutation } from '@tanstack/react-query';
+
+// --- Interfaces ---
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface ReviewItem {
@@ -43,7 +49,7 @@ interface MenuItem {
 }
 
 interface SubscriptionPlan {
-    id: string;
+    id: string; // "weekly" or "monthly"
     name: string;
     duration: string;
     price: number;
@@ -68,10 +74,7 @@ interface VendorDetails {
         address: string;
         area: string;
         city: string;
-        coordinates: {
-            lat: number;
-            lng: number;
-        };
+        coordinates: { lat: number; lng: number };
     };
     contact: {
         phone: string;
@@ -87,13 +90,11 @@ interface ApiVendorData {
     name: string;
     description: string;
     img_url: string;
-    delivery_time: {
-        min: number;
-        max: number;
-    };
+    delivery_time: { min: number; max: number; };
     is_open: boolean;
 }
 
+// --- Data Transformation ---
 const transformVendorData = (apiData: ApiVendorData): VendorDetails => {
     return {
         id: apiData.id,
@@ -121,45 +122,58 @@ const transformVendorData = (apiData: ApiVendorData): VendorDetails => {
         menu: [], // Menu will be fetched separately using useVendorMenu hook
         subscriptionPlans: [
             {
-                id: "weekly",
+                id: "weekly", // Matches the 'type'
                 name: "Weekly Plan",
                 duration: "7 days",
                 price: 299,
                 mealsPerDay: 1,
                 description: "Perfect for students who want a healthy lunch every day",
-                features: [
-                    'Unlimited food delivery',
-                    'No delivery charges',
-                    'Priority customer support',
-                    'Access to exclusive vendors',
-                    'Cancel anytime'
-                ],
+                features: ['Unlimited food delivery', 'No delivery charges', 'Priority customer support', 'Cancel anytime'],
                 discount: 10
             },
             {
-                id: "monthly",
+                id: "monthly", // Matches the 'type'
                 name: "Monthly Plan",
                 duration: "30 days",
                 price: 999,
                 mealsPerDay: 1,
                 description: "Best value for long-term commitment",
-                features: [
-                    'Unlimited food delivery',
-                    'No delivery charges',
-                    'Priority customer support',
-                    'Access to exclusive vendors',
-                    'Cancel anytime',
-                    'Free dessert with every order',
-                    '24/7 customer service'
-                ],
+                features: ['Unlimited food delivery', 'No delivery charges', 'Priority support', 'Free dessert', '24/7 service'],
                 discount: 20,
                 isPopular: true,
             }
         ],
-        tags: ["Homemade", "Bengali", "Vegetarian Options", "Non-Vegetarian", "Healthy"]
+        tags: ["Homemade", "Bengali", "Vegetarian Options"]
     };
 };
 
+// --- API Hooks ---
+const useCreateSubscriptionOrder = () => {
+    return useMutation({
+        // UPDATED: Now only accepts vendor_id and type
+        mutationFn: async (data: { vendor_id: string, type: string }) => {
+            const token = localStorage.getItem('token');
+            const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/subscribe/${data.vendor_id}`, data, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            return response.data;
+        }
+    });
+};
+
+const useInitPayment = () => {
+    return useMutation({
+        mutationFn: async (paymentData: any) => {
+            const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/payment/init`, paymentData, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            return response.data;
+        }
+    });
 export interface VendorDetailPageProps {
     params: Promise<{
         vendorId: string;
@@ -330,8 +344,6 @@ const ReviewsDisplayModal: React.FC<ReviewsDisplayModalProps> = ({ isOpen, onClo
         </div>
     );
 };
-// --- End Review Display Modal ---
-
 
 export default function ClientVendorPage({ params }: VendorDetailPageProps) {
     // Check URL hash to determine initial tab
@@ -344,9 +356,13 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
     const [vendorId, setVendorId] = useState<string>('');
-    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false); // For adding a review
-    const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false); // For viewing reviews
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
 
+    const { user } = useUserInfo();
+    const createSubscriptionMutation = useCreateSubscriptionOrder();
+    const initPaymentMutation = useInitPayment();
     // Handle hash change to switch tabs
     useEffect(() => {
         const handleHashChange = () => {
@@ -378,7 +394,6 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
         getParams();
     }, [params]);
 
-    const { data: vendorData, isLoading, error, isError } = useVendor(vendorId);
     const { data: menuData, isLoading: isMenuLoading, error: menuError } = useVendorMenu(vendorId);
     const { user } = useUserInfo();
     const { addToCart, cartCount } = useCart();
@@ -447,59 +462,67 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
         setSelectedPlan(planId);
     };
 
+    // --- PAYMENT LOGIC ---
     const handleSubscribe = async () => {
         if (!selectedPlan) {
-            toast("No Plan Selected", {
-                description: "Please select a subscription plan before proceeding",
-            });
+            toast.error("No Plan Selected", { description: "Please select a subscription plan." });
             return;
         }
+        if (!user) {
+            toast.error("Login Required", { description: "Please log in to subscribe." });
+            return;
+        }
+        if (!vendor) return;
 
-        if (!vendorId) {
-            toast("Vendor Error", {
-                description: "Vendor information not found. Please refresh the page and try again.",
-            });
-            return;
-        }
-        toast("Processing Subscription...", {
-            description: "Please wait while we process your subscription",
-        });
+        // We still need plan details locally to calculate the total amount for the Payment Gateway
+        const planDetails = vendor.subscriptionPlans.find(p => p.id === selectedPlan);
+        if (!planDetails) return;
+
+        setIsProcessing(true);
+        const transactionId = uuidv4();
 
         try {
-            const result = await subscribe(vendorId, selectedPlan);
-        } catch (error) {
-            console.error('Subscription failed:', error);
+            toast.info("Creating Subscription...", { description: "Please wait a moment." });
+
+            // 1. Create Subscription Record (Pending Status)
+            // UPDATED PAYLOAD: Only sending vendor_id and type ('weekly' or 'monthly')
+            const subscriptionRecord = await createSubscriptionMutation.mutateAsync({
+                vendor_id: vendorId,
+                type: selectedPlan // selectedPlan is "weekly" or "monthly"
+            });
+
+            // 2. Prepare Payment Payload
+            // Using 'subscription_id' from step 1, but using local planDetails for the amount
+            const paymentPayload = {
+                subscription_id: subscriptionRecord.id,
+                total_amount: planDetails.price,
+                tran_id: transactionId,
+                cus_add1: "Digital Subscription",
+                cus_city: "Dhaka",
+                num_of_item: 1,
+                product_name: `${planDetails.name} Subscription`,
+                product_category: "Subscription"
+            };
+
+            toast.info("Redirecting to Payment...", { description: "Handing over to SSLCommerz." });
+
+            // 3. Initiate Payment
+            const paymentResponse = await initPaymentMutation.mutateAsync(paymentPayload);
+
+            if (paymentResponse?.status === 'SUCCESS' && paymentResponse?.GatewayPageURL) {
+                window.location.href = paymentResponse.GatewayPageURL;
+            } else {
+                throw new Error("Failed to get payment gateway URL");
+            }
+
+        } catch (err) {
+            console.error('Subscription failed:', err);
+            toast.error("Subscription Failed", {
+                description: "Could not initiate payment. Please try again."
+            });
+            setIsProcessing(false);
         }
     };
-
-    useEffect(() => {
-        if (isSuccess) {
-            toast("Subscription Successful! 🎉", {
-                description: "Your subscription has been activated. You can now enjoy unlimited food delivery!",
-                duration: 1000,
-            });
-
-            // Reset selected plan after successful subscription
-            setSelectedPlan(null);
-            console.log('Subscription completed successfully');
-        }
-    }, [isSuccess]);
-
-    // Show subscription error if any
-    useEffect(() => {
-        if (subscriptionError) {
-            const errorMessage = subscriptionError instanceof Error
-                ? subscriptionError.message
-                : 'Something went wrong with your subscription. Please try again.';
-
-            toast("Subscription Failed", {
-                description: errorMessage,
-                duration: 1000,
-            });
-
-            console.error('Subscription error:', subscriptionError);
-        }
-    }, [subscriptionError]);
 
     const mapVendorPlansToDisplayPlans = (vendorPlans: SubscriptionPlan[]) => {
         return vendorPlans.map(plan => ({
@@ -516,26 +539,24 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
 
     const displayPlans = vendor ? mapVendorPlansToDisplayPlans(vendor.subscriptionPlans) : [];
 
+    // --- Loading & Error States ---
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'rgb(249, 245, 230)' }}>
+            <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#f9f5e6' }}>
                 <div className="text-center">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" style={{ color: '#D98324' }} />
-                    <p className="text-lg" style={{ color: '#443627' }}>Loading vendor details...</p>
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-[#D98324]" />
+                    <p className="text-lg text-[#443627]">Loading vendor details...</p>
                 </div>
             </div>
         );
     }
 
-    if (isError || !vendor) { // Handle error state and no vendor data
+    if (isError || !vendor) {
         return (
-            <div className="container mx-auto px-4 py-8">
+            <div className="container mx-auto px-4 py-8 mt-20">
                 <div className="text-center py-12">
-                    <h3 className="text-xl mb-2 text-red-600">Vendor not found or an error occurred.</h3>
-                    {error && <p className="text-sm text-red-500">{error.message}</p>}
-                    <Link href="/vendors" className="text-orange-500 hover:underline">
-                        Back to Vendors
-                    </Link>
+                    <h3 className="text-xl mb-2 text-red-600">Vendor not found.</h3>
+                    <Link href="/vendors" className="text-orange-500 hover:underline">Back to Vendors</Link>
                 </div>
             </div>
         );
@@ -594,6 +615,41 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                                 </span>
                             </div>
                         </div>
+                        <div className="flex-1 w-full">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h1 className="text-3xl font-bold mb-2 text-[#443627]">{vendor.name}</h1>
+                                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-4">
+                                        <div className="flex items-center gap-1 bg-yellow-100 px-2 py-1 rounded text-yellow-800">
+                                            <span>⭐ {vendor.rating}</span>
+                                            <button onClick={() => setIsReviewsModalOpen(true)} className="hover:underline font-medium">
+                                                ({vendor.totalReviews} reviews)
+                                            </button>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Clock className="w-4 h-4 text-[#D98324]" />
+                                            {vendor.deliveryTime}
+                                        </div>
+                                        <span className={`px-2 py-1 rounded text-xs font-bold text-white ${vendor.isOpen ? 'bg-green-500' : 'bg-red-500'}`}>
+                                            {vendor.isOpen ? 'OPEN NOW' : 'CLOSED'}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 mb-4">
+                                        {vendor.tags.map(tag => (
+                                            <span key={tag} className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                                                {tag}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setIsReviewModalOpen(true)}
+                                    className="hidden md:flex items-center gap-2 px-4 py-2 bg-[#D98324] text-white rounded-lg font-semibold hover:bg-opacity-90 transition-all shadow-md hover:shadow-lg"
+                                >
+                                    <MessageSquare className="w-4 h-4" />
+                                    Write Review
+                                </button>
+                            </div>
 
                         {/* ADDED: Add Review Button */}
                         <button
@@ -648,24 +704,20 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                                 </button>
                             </div>
 
-                            {/* Menu Tab */}
-                            {activeTab === 'menu' && (
-                                <div className="p-6">
-                                    {/* Category Filter */}
-                                    <div className="flex flex-wrap gap-2 mb-6">
-                                        {categories.map(category => (
-                                            <button
-                                                key={category}
-                                                onClick={() => setSelectedCategory(category)}
-                                                className={`px-4 py-2 rounded-full text-sm font-medium ${selectedCategory === category
-                                                    ? 'bg-orange-500 text-white'
-                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                                    }`}
-                                            >
-                                                {category}
-                                            </button>
-                                        ))}
-                                    </div>
+                        {/* Menu Tab */}
+                        {activeTab === 'menu' && (
+                            <div className="p-6 md:p-8">
+                                <div className="flex overflow-x-auto pb-4 gap-3 mb-6 scrollbar-hide">
+                                    {categories.map(category => (
+                                        <button
+                                            key={category}
+                                            onClick={() => setSelectedCategory(category)}
+                                            className={`px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all ${selectedCategory === category ? 'bg-[#D98324] text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                                        >
+                                            {category}
+                                        </button>
+                                    ))}
+                                </div>
 
                                     {/* Menu Loading State */}
                                     {isMenuLoading && (
@@ -733,215 +785,135 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                                                     {item.isAvailable ? 'View Details' : 'Unavailable'}
                                                 </Button>
                                             </div>
-                                        ))}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Subscription Tab */}
+                        {activeTab === 'subscription' && (
+                            <div className="p-6 md:p-10 bg-gradient-to-b from-white to-orange-50">
+                                <div className="text-center mb-12">
+                                    <div className="inline-block px-4 py-1.5 rounded-full bg-orange-100 text-[#D98324] font-semibold text-sm mb-4">
+                                        For Students & Professionals
+                                    </div>
+                                    <h2 className="text-3xl md:text-4xl font-bold text-[#443627] mb-4">
+                                        Save Big with <span className="text-[#D98324]">Meal Plans</span>
+                                    </h2>
+                                    <p className="text-gray-600 max-w-2xl mx-auto">
+                                        Enjoy healthy, homemade meals delivered to your doorstep every day.
+                                        Flexible plans that you can cancel anytime.
+                                    </p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                                    {displayPlans.map((plan) => (
+                                        <div
+                                            key={plan.id}
+                                            onClick={() => handlePlanSelect(plan.id)}
+                                            className={`relative group bg-white rounded-3xl p-1 transition-all duration-300 cursor-pointer ${selectedPlan === plan.id
+                                                ? 'ring-4 ring-[#D98324] shadow-2xl scale-[1.02] z-10'
+                                                : 'hover:shadow-xl hover:-translate-y-1 shadow-md border border-gray-100'
+                                                }`}
+                                        >
+                                            {plan.popular && (
+                                                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#D98324] text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg z-20 flex items-center gap-2">
+                                                    <Crown className="w-4 h-4 fill-white" /> Most Popular
                                                 </div>
                                             )}
-                                        </>
-                                    )}
-                                </div>
-                            )}
 
-                            {/* Subscription Tab */}
-                            {activeTab === 'subscription' && (
-                                <div className="p-6">
-                                    <div className="max-w-6xl mx-auto">
-                                        {/* Header */}
-                                        <div className="text-center pt-5 mb-10">
-                                            <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full" style={{ backgroundColor: 'rgb(235, 206, 133)' }}>
-                                                <Utensils className="w-5 h-5" style={{ color: '#D98324' }} />
-                                                <span className="text-sm font-semibold" style={{ color: '#443627' }}>Student plan</span>
-                                            </div>
-                                            <h1 className="text-3xl lg:text-4xl font-bold mb-4 pt-5" style={{ color: '#443627' }}>
-                                                Choose Your<br />
-                                                <span style={{ color: '#D98324' }}>Subscription Plan</span>
-                                            </h1>
-                                        </div>
-
-                                        {/* Plans Grid */}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10 max-w-5xl mx-auto">
-                                            {displayPlans.map((plan) => (
-                                                <div
-                                                    key={plan.id}
-                                                    className={`relative bg-white rounded-3xl shadow-lg transition-all duration-300 cursor-pointer hover:shadow-2xl transform hover:-translate-y-2 flex flex-col ${selectedPlan === plan.id
-                                                        ? 'shadow-2xl scale-105'
-                                                        : ''
-                                                        }`}
-                                                    style={{
-                                                        boxShadow: selectedPlan === plan.id ? '0 0 0 4px #D98324, 0 25px 50px -12px rgba(0, 0, 0, 0.25)' : undefined
-                                                    }}
-                                                    onClick={() => handlePlanSelect(plan.id)}
-                                                >
-                                                    {/* Popular Badge */}
-                                                    {plan.popular && (
-                                                        <div className="absolute -top-6 left-1/2 transform -translate-x-1/2">
-                                                            <div
-                                                                className="text-white px-8 py-3 rounded-full text-sm font-bold flex items-center gap-2 shadow-lg"
-                                                                style={{ background: 'rgb(202, 83, 35)' }}
-                                                            >
-                                                                <Crown className="w-5 h-5" />
-                                                                Most Popular Choice
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    <div className="p-8 flex flex-col flex-grow">
-                                                        {/* Plan Header */}
-                                                        <div className="flex items-center gap-4 mb-8">
-                                                            <div
-                                                                className={`p-4 rounded-2xl transition-all duration-300 ${selectedPlan === plan.id
-                                                                    ? 'text-white'
-                                                                    : 'text-white'
-                                                                    }`}
-                                                                style={{
-                                                                    backgroundColor: selectedPlan === plan.id ? ' #D98324' : '#EFDCAB'
-                                                                }}
-                                                            >
-                                                                {plan.icon}
-                                                            </div>
-                                                            <div>
-                                                                <h3 className="text-2xl font-bold" style={{ color: '#443627' }}>
-                                                                    {plan.name}
-                                                                </h3>
-                                                                <p style={{ color: '#a0896b' }}>{plan.duration}</p>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Price */}
-                                                        <div className="mb-8">
-                                                            <div className="flex items-baseline gap-2">
-                                                                <span className="text-5xl font-bold" style={{ color: '#443627' }}>
-                                                                    ৳{plan.price}
-                                                                </span>
-                                                                <span style={{ color: '#a0896b' }}>/{plan.duration}</span>
-                                                            </div>
-                                                            {plan.duration.includes('30 days') && (
-                                                                <p className="text-sm mt-2" style={{ color: '#a0896b' }}>
-                                                                    Only ৳{Math.round(plan.price / 30)}/day
-                                                                </p>
-                                                            )}
-                                                        </div>
-
-                                                        {/* Features */}
-                                                        <div className="space-y-4 mb-8">
-                                                            {plan.features.map((feature, index) => (
-                                                                <div key={index} className="flex items-center gap-3">
-                                                                    <div
-                                                                        className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${selectedPlan === plan.id
-                                                                            ? 'text-white'
-                                                                            : 'text-white'
-                                                                            }`}
-                                                                        style={{
-                                                                            backgroundColor: selectedPlan === plan.id ? '#D98324' : '#EFDCAB'
-                                                                        }}
-                                                                    >
-                                                                        <Check className="w-4 h-4" />
-                                                                    </div>
-                                                                    <span style={{ color: '#443627' }}>{feature}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-
-                                                        {/* Selection Button */}
-                                                        <div className="mt-auto pt-2">
-                                                            <button
-                                                                className={`mx-auto block py-3 px-8 rounded-3xl font-semibold text-lg transition-all duration-300 ${selectedPlan === plan.id
-                                                                    ? 'text-white shadow-lg transform scale-105'
-                                                                    : 'text-white hover:shadow-lg hover:transform hover:scale-105'
-                                                                    }`}
-                                                                style={{
-                                                                    background: selectedPlan === plan.id
-                                                                        ? '#D98324'
-                                                                        : 'rgb(233, 200, 119) 100%'
-                                                                }}
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handlePlanSelect(plan.id);
-                                                                }}
-                                                            >
-                                                                {selectedPlan === plan.id ? (
-                                                                    <span className="flex items-center justify-center gap-2">
-                                                                        <Check className="w-5 h-5" />
-                                                                        Selected
-                                                                    </span>
-                                                                ) : (
-                                                                    'Select This Plan'
-                                                                )}
-                                                            </button>
-                                                        </div>
+                                            <div className="bg-white rounded-[20px] p-8 h-full flex flex-col">
+                                                <div className="flex items-center gap-4 mb-6">
+                                                    <div className={`p-3 rounded-2xl ${selectedPlan === plan.id ? 'bg-[#D98324] text-white' : 'bg-orange-100 text-[#D98324]'}`}>
+                                                        {plan.icon}
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-xl font-bold text-[#443627]">{plan.name}</h3>
+                                                        <p className="text-gray-500 text-sm">{plan.duration} duration</p>
                                                     </div>
                                                 </div>
-                                            ))}
-                                        </div>
 
-                                        {/* Subscribe Button */}
-                                        <div className="text-center mb-10">
-                                            <button
-                                                onClick={handleSubscribe}
-                                                disabled={!selectedPlan || subscriptionLoading}
-                                                className={`px-16 py-5 rounded-full font-bold text-xl transition-all duration-300 transform hover:scale-105 shadow-lg ${selectedPlan && !subscriptionLoading
-                                                    ? 'text-white hover:shadow-2xl'
-                                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                                    }`}
-                                                style={{
-                                                    background: selectedPlan && !subscriptionLoading
-                                                        ? 'rgb(236, 116, 47)'
-                                                        : undefined
-                                                }}
-                                            >
-                                                {subscriptionLoading ? (
-                                                    <span className="flex items-center gap-3">
-                                                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                                        Processing...
-                                                    </span>
-                                                ) : selectedPlan ? (
-                                                    'Subscribe Now →'
-                                                ) : (
-                                                    'Select a Plan Above'
-                                                )}
-                                            </button>
+                                                <div className="mb-8 pb-8 border-b border-gray-100">
+                                                    <div className="flex items-baseline gap-1">
+                                                        <span className="text-4xl font-extrabold text-[#443627]">৳{plan.price}</span>
+                                                        <span className="text-gray-400 font-medium">/period</span>
+                                                    </div>
+                                                    {plan.savings && (
+                                                        <div className="mt-2 text-green-600 text-sm font-semibold bg-green-50 inline-block px-2 py-1 rounded">
+                                                            {plan.savings}
+                                                        </div>
+                                                    )}
+                                                </div>
 
-                                            {selectedPlan && (
-                                                <p className="text-sm mt-4" style={{ color: '#a0896b' }}>
-                                                    🔒 Secure payment with SSLCOMMERZ • Cancel anytime
-                                                </p>
-                                            )}
+                                                <div className="space-y-4 mb-8 flex-grow">
+                                                    {plan.features.map((feature, idx) => (
+                                                        <div key={idx} className="flex items-start gap-3">
+                                                            <div className="mt-0.5 min-w-[20px]">
+                                                                <Check className="w-5 h-5 text-green-500" />
+                                                            </div>
+                                                            <span className="text-gray-600 text-sm">{feature}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <button
+                                                    className={`w-full py-4 rounded-xl font-bold text-lg transition-all duration-300 ${selectedPlan === plan.id
+                                                        ? 'bg-[#D98324] text-white shadow-lg shadow-orange-200'
+                                                        : 'bg-gray-100 text-gray-500 group-hover:bg-gray-200'
+                                                        }`}
+                                                >
+                                                    {selectedPlan === plan.id ? 'Plan Selected' : 'Select Plan'}
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
+                                    ))}
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    {/* Footer Info */}
-                    <div className="rounded-3xl p-8 shadow-md">
-                        <h4 className="font-bold text-xl mb-6 text-center" style={{ color: '#443627' }}>
-                            Why Students Love Our Subscription
-                        </h4>
-                        <div className="grid md:grid-cols-3 gap-6 text-center">
-                            <div>
-                                <div className="font-semibold mb-2" style={{ color: '#D98324' }}>
-                                    No Hidden Fees
+                                <div className="mt-12 text-center">
+                                    <button
+                                        onClick={handleSubscribe}
+                                        disabled={!selectedPlan || isProcessing}
+                                        className={`
+                                            px-12 py-5 rounded-full font-bold text-xl shadow-xl transition-all duration-300
+                                            ${selectedPlan && !isProcessing
+                                                ? 'bg-[#D98324] text-white hover:bg-[#c27520] hover:scale-105 cursor-pointer'
+                                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            }
+                                        `}
+                                    >
+                                        {isProcessing ? (
+                                            <span className="flex items-center gap-3">
+                                                <Loader2 className="w-6 h-6 animate-spin" />
+                                                Processing Payment...
+                                            </span>
+                                        ) : selectedPlan ? (
+                                            'Proceed to Checkout'
+                                        ) : (
+                                            'Select a Plan Above'
+                                        )}
+                                    </button>
+                                    <p className="mt-4 text-sm text-gray-500 flex items-center justify-center gap-2">
+                                        <Clock className="w-4 h-4" />
+                                        Instant activation after payment
+                                    </p>
                                 </div>
-                                <p className="text-sm" style={{ color: '#a0896b' }}>
-                                    Transparent pricing with no surprise charges
-                                </p>
                             </div>
-                            <div>
-                                <div className="font-semibold mb-2" style={{ color: '#D98324' }}>
-                                    Instant Activation
-                                </div>
-                                <p className="text-sm" style={{ color: '#a0896b' }}>
-                                    Start ordering immediately after payment
-                                </p>
-                            </div>
-                            <div>
-                                <div className="font-semibold mb-2" style={{ color: '#D98324' }}>
-                                    Easy Cancellation
-                                </div>
-                                <p className="text-sm" style={{ color: '#a0896b' }}>
-                                    Cancel anytime through your account
-                                </p>
-                            </div>
+                        )}
+                    </div>
+
+                    {/* Quick Review Section */}
+                    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div>
+                            <h3 className="font-bold text-[#443627]">Have you eaten here recently?</h3>
+                            <p className="text-sm text-gray-500">Share your experience to help others choose better.</p>
+                        </div>
+                        <div className="flex flex-col items-center">
+                            <span className="text-xs font-bold text-gray-400 mb-1 uppercase tracking-wide">Tap to Rate</span>
+                            <RatingStars vendorId={vendor.id} variant="input" size={28} />
                         </div>
                     </div>
                 </div>
