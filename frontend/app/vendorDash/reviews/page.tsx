@@ -129,7 +129,7 @@ export default function VendorReviewsPage() {
 
                         {/* Review Body */}
                         <div className="p-6 bg-[#fafafa]">
-                            <p className="text-gray-700 italic">"{review.comment || 'No written comment.'}"</p>
+                            <p className="text-gray-700 italic">&quot;{review.comment || 'No written comment.'}&quot;</p>
                         </div>
 
                         {/* Reply Section */}
