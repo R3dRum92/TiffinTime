@@ -1,89 +1,72 @@
 // app/hooks/useVendorReviews.ts
-
 import { useState, useEffect, useCallback } from 'react';
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from 'sonner';
 
 interface ReviewItem {
-    review_id: string;
+    review_id: number; // Changed to number based on int8
     food_quality: string;
     delivery_experience: string;
     comment: string | null;
-    created_at: string;
-    username: string; // Must match the backend flattened structure
+    username: string;
+    is_replied: boolean; // Added based on DB schema
+    reply: string | null;
 }
 
+const fetchReviews = async (vendorId: string): Promise<ReviewItem[]> => {
+    // Return empty array if no ID yet
+    if (!vendorId) return [];
+
+    // Note: I removed the Auth Token requirement here so the count loads for everyone.
+    // If you need it private, add the header back.
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reviews/${vendorId}`, {
+        headers: { 'Content-Type': 'application/json' }
+    });
+
+    if (!res.ok) {
+        throw new Error('Failed to fetch reviews');
+    }
+
+    return res.json();
+};
+
+const postReply = async ({ reviewId, replyText }: { reviewId: number; replyText: string }) => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reviews/${reviewId}/reply`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            // 'Authorization': `Bearer ${token}` // Add token if your backend requires it
+        },
+        body: JSON.stringify({ reply_text: replyText })
+    });
+
+    if (!res.ok) throw new Error('Failed to post reply');
+    return res.json();
+};
+
 export const useVendorReviews = (vendorId: string) => {
-    const [reviews, setReviews] = useState<ReviewItem[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [isError, setIsError] = useState(false);
+    const queryClient = useQueryClient();
 
-    const fetchReviews = useCallback(async () => {
-        if (!vendorId) {
-            setReviews([]);
-            return;
+    // 1. Fetching
+    const query = useQuery({
+        queryKey: ['vendor-reviews', vendorId],
+        queryFn: () => fetchReviews(vendorId),
+        enabled: !!vendorId,
+    });
+
+    // 2. Replying Mutation
+    const replyMutation = useMutation({
+        mutationFn: postReply,
+        onSuccess: () => {
+            toast.success("Reply posted successfully");
+            // Refresh the list immediately
+            queryClient.invalidateQueries({ queryKey: ['vendor-reviews', vendorId] });
+        },
+        onError: () => {
+            toast.error("Failed to post reply");
         }
+    });
 
-        const userAuthToken = localStorage.getItem('token') || ''; 
-
-        if (!userAuthToken) {
-             setIsError(true);
-             // Use toast here to inform the user (better UX)
-             toast.error("Authentication required to view reviews.", { description: "Please log in to see vendor reviews." });
-             setReviews([]);
-             return;
-        }
-
-        setIsLoading(true);
-        setIsError(false);
-
-        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/reviews/${vendorId}`; 
-        
-        try {
-            const response = await fetch(apiUrl, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${userAuthToken}`, 
-                },
-            });
-            
-            // Check if status is NOT successful (401, 404, 500, etc.)
-            if (!response.ok) {
-                const errorData = await response.json();
-                
-                // If the status is 500, it means the Pydantic flattening failed on the backend.
-                if (response.status === 500) {
-                     throw new Error("Internal Server Error: Backend data structure mismatch.");
-                }
-                
-                throw new Error(errorData.detail || `Failed to fetch reviews (Status: ${response.status})`);
-            }
-
-            const data = await response.json();
-            
-            // CRITICAL CHECK: Ensure the data structure contains 'username' before setting state
-            if (data.length > 0 && data[0].username === undefined) {
-                 console.error("API returned review data, but 'username' field is missing or nested. Check FastAPI processing.");
-                 // We will still set the data, but log the error (assuming other fields are fine)
-            }
-            
-            setReviews(data);
-
-        } catch (e) {
-            console.error("Error fetching vendor reviews:", e);
-            setIsError(true);
-            toast.error("Failed to load reviews.", {
-                description: e instanceof Error ? e.message : "An unknown network error occurred."
-            });
-            setReviews([]);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [vendorId]);
-
-    useEffect(() => {
-        fetchReviews();
-    }, [fetchReviews]);
-
-    return { data: reviews, isLoading, isError };
+    return { ...query, replyToReview: replyMutation.mutate, isReplying: replyMutation.isPending };
 };

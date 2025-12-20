@@ -15,6 +15,7 @@ from app.routers import (
     ratings,
     reviews,
     subscription,
+    upload,
     user_details,
     vendors,
     weekly_menu,
@@ -55,8 +56,8 @@ app.include_router(weekly_menu.router)
 app.include_router(order.router)
 app.include_router(payment.router)
 app.include_router(reviews.router)
-
 app.include_router(ratings.router)
+app.include_router(upload.router)
 
 
 @app.get("/")
