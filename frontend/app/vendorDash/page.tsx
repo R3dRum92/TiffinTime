@@ -137,7 +137,7 @@ export default function VendorDashboard() {
     const { data: singleOrders } = useVendorOrders(vendorId);
 
     // Fetch Real Ratings (Reusing your existing hook!)
-    const { average, count: reviewCount } = useVendorRatings(vendorId || '');
+    const { average, count: ratingCount } = useVendorRatings(vendorId || '');
 
     // Calculate statistics
     const stats = useMemo(() => {
@@ -332,7 +332,7 @@ export default function VendorDashboard() {
                                     </p>
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1">
-                                    Based on {reviewCount} reviews
+                                    Based on {ratingCount} ratings
                                 </p>
                             </div>
                             <Star className="w-8 h-8 theme" />
