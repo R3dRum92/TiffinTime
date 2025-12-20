@@ -33,7 +33,7 @@ interface PaymentPayload {
     product_category: string;
 }
 
-interface VendorDetailPageProps {
+export interface VendorDetailPageProps {
     params: Promise<{
         vendorId: string;
     }>;
