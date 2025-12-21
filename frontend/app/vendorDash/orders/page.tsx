@@ -21,11 +21,11 @@ export default function VendorOrders() {
 
     // Fetch data using hooks
     const { data: subscribers, isLoading: subscribersLoading, error: subscribersError } = useSubscribers();
-    
-    const { 
-        data: singleOrders, 
-        isLoading: ordersLoading, 
-        error: ordersError 
+
+    const {
+        data: singleOrders,
+        isLoading: ordersLoading,
+        error: ordersError
     } = useVendorOrders(vendorId);
 
     const updateOrderMutation = useUpdateOrderStatus();
@@ -33,11 +33,11 @@ export default function VendorOrders() {
     // Filter single orders based on delivery status
     const filteredSingleOrders = useMemo(() => {
         if (!singleOrders) return [];
-        
+
         if (filterStatus === 'all') return singleOrders;
         if (filterStatus === 'pending') return singleOrders.filter(order => !order.is_delivered);
         if (filterStatus === 'delivered') return singleOrders.filter(order => order.is_delivered);
-        
+
         return singleOrders;
     }, [singleOrders, filterStatus]);
 
@@ -237,11 +237,10 @@ export default function VendorOrders() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span
-                                                    className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                                                        isActive
-                                                            ? 'bg-green-100 text-green-800'
-                                                            : 'bg-red-100 text-red-800'
-                                                    }`}
+                                                    className={`px-3 py-1 text-xs font-semibold rounded-full ${isActive
+                                                        ? 'bg-green-100 text-green-800'
+                                                        : 'bg-red-100 text-red-800'
+                                                        }`}
                                                 >
                                                     {isActive ? 'ACTIVE' : 'EXPIRED'}
                                                 </span>
@@ -318,31 +317,28 @@ export default function VendorOrders() {
             <div className="flex gap-3 bg-white p-4 rounded-lg shadow-md">
                 <button
                     onClick={() => setFilterStatus('all')}
-                    className={`px-6 py-2 rounded-md font-medium transition-all ${
-                        filterStatus === 'all'
-                            ? 'bgtheme text-white shadow-md'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={`px-6 py-2 rounded-md font-medium transition-all ${filterStatus === 'all'
+                        ? 'bgtheme text-white shadow-md'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
                 >
                     All Orders ({stats.totalOrders})
                 </button>
                 <button
                     onClick={() => setFilterStatus('pending')}
-                    className={`px-6 py-2 rounded-md font-medium transition-all ${
-                        filterStatus === 'pending'
-                            ? 'bgtheme text-white shadow-md'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={`px-6 py-2 rounded-md font-medium transition-all ${filterStatus === 'pending'
+                        ? 'bgtheme text-white shadow-md'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
                 >
                     Pending ({stats.pendingOrders})
                 </button>
                 <button
                     onClick={() => setFilterStatus('delivered')}
-                    className={`px-6 py-2 rounded-md font-medium transition-all ${
-                        filterStatus === 'delivered'
-                            ? 'bgtheme text-white shadow-md'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={`px-6 py-2 rounded-md font-medium transition-all ${filterStatus === 'delivered'
+                        ? 'bgtheme text-white shadow-md'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
                 >
                     Delivered ({stats.deliveredOrders})
                 </button>
@@ -353,7 +349,7 @@ export default function VendorOrders() {
                     <Package className="h-16 w-16 mx-auto mb-4 text-gray-300" />
                     <p className="text-lg text-gray-500 mb-2">No orders found</p>
                     <p className="text-sm text-gray-400">
-                        {filterStatus === 'all' 
+                        {filterStatus === 'all'
                             ? 'Orders will appear here when students place orders'
                             : `No ${filterStatus} orders at the moment`
                         }
@@ -419,11 +415,10 @@ export default function VendorOrders() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span
-                                                className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                                                    order.is_delivered
-                                                        ? 'bg-green-100 text-green-800'
-                                                        : 'bg-yellow-100 text-yellow-800'
-                                                }`}
+                                                className={`px-3 py-1 text-xs font-semibold rounded-full ${order.is_delivered
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : 'bg-yellow-100 text-yellow-800'
+                                                    }`}
                                             >
                                                 {order.is_delivered ? 'DELIVERED' : 'PENDING'}
                                             </span>
@@ -471,15 +466,14 @@ export default function VendorOrders() {
                     <div>
                         <h1 className="text-3xl font-bold text-gray-800">Order Management</h1>
                         <p className="text-gray-500 mt-1">
-                            Welcome back, <span className="theme font-medium">{vendor?.name}</span>! 
+                            Welcome back, <span className="theme font-medium">{vendor?.name}</span>!
                             Manage all your orders here.
                         </p>
                     </div>
-                    <div className={`px-4 py-2 rounded-full text-sm font-medium ${
-                        vendor?.is_open 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                    }`}>
+                    <div className={`px-4 py-2 rounded-full text-sm font-medium ${vendor?.is_open
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                        }`}>
                         {vendor?.is_open ? '🟢 Open' : '🔴 Closed'}
                     </div>
                 </div>
@@ -491,11 +485,10 @@ export default function VendorOrders() {
                     <nav className="flex space-x-8 px-6">
                         <button
                             onClick={() => setActiveTab('single')}
-                            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                                activeTab === 'single'
-                                    ? 'border-orange-500 theme'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                            }`}
+                            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'single'
+                                ? 'border-orange-500 theme'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }`}
                         >
                             Single Orders
                             {singleOrders && singleOrders.length > 0 && (
@@ -506,11 +499,10 @@ export default function VendorOrders() {
                         </button>
                         <button
                             onClick={() => setActiveTab('subscription')}
-                            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                                activeTab === 'subscription'
-                                    ? 'border-orange-500 theme'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                            }`}
+                            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'subscription'
+                                ? 'border-orange-500 theme'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }`}
                         >
                             Subscription Orders
                             {subscribers && subscribers.length > 0 && (
