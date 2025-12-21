@@ -83,14 +83,8 @@ const transformToFrontend = (rules: BackendWeeklyAvailability[]): WeeklyAvailabi
         id: rule.menu_items.id,
         menu_item_id: rule.menu_items.id,
 
-        // rule.menu_items.id is the UUID of the food
-        // rule.id is the UUID of the weekly rule
-        id: rule.menu_items.id,
-        menu_item_id: rule.menu_items.id,
-
         // Add the rule-specific fields
         rule_id: rule.id,
-        day_of_week: Number(rule.day_of_week),
         day_of_week: Number(rule.day_of_week),
         is_available: rule.is_available,
     }));
@@ -119,7 +113,6 @@ export const useVendorWeeklyMenu = () => {
         queryFn: fetchWeeklyMenu,
         //staleTime: 5 * 60 * 1000, // 5 minutes
         staleTime: 0, // Always fetch fresh data
-        staleTime: 0,
     });
 
     const setAvailabilityMutation = useMutation({
