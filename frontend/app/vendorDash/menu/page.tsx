@@ -176,7 +176,7 @@ const VendorDashboard = () => {
     const {
         weeklyMenuRules,
         isLoading: isWeeklyMenuLoading,
-        error: weeklyMenuError,
+        //error: weeklyMenuError,
         setAvailability,
         isSetting: isSettingAvailability,
     } = useVendorWeeklyMenu();
@@ -214,20 +214,38 @@ const VendorDashboard = () => {
     }, [allSpecials]);
 
     // Create a Map for fast weekly availability lookup: Map<menu_item_id, Set<day_of_week>>
+    // const weeklyAvailabilityMap = useMemo(() => {
+    //     const map = new Map<string, Set<DayOfWeek>>();
+    //     for (const rule of weeklyMenuRules) {
+    //         // After transformation in the hook, 'id' is the menu_item_id
+    //         const menuItemId = rule.id;
+
+    //         if (rule.is_available) {
+    //             if (!map.has(menuItemId)) {
+    //                 map.set(menuItemId, new Set());
+    //             }
+    //             map.get(menuItemId)!.add(rule.day_of_week);
+    //         }
+    //     }
+    //     console.log('Weekly Availability Map:', map);
+    //     return map;
+    // }, [weeklyMenuRules]);
+
     const weeklyAvailabilityMap = useMemo(() => {
-        const map = new Map<string, Set<DayOfWeek>>();
+        // Key: menu_item_id (string), Value: Set of active days (numbers)
+        const map = new Map<string, Set<number>>();
+
         for (const rule of weeklyMenuRules) {
-            // After transformation in the hook, 'id' is the menu_item_id
-            const menuItemId = rule.id;
+            // Use menu_item_id because that's what matches item.id in the UI loop
+            const mId = String(rule.menu_item_id);
 
             if (rule.is_available) {
-                if (!map.has(menuItemId)) {
-                    map.set(menuItemId, new Set());
+                if (!map.has(mId)) {
+                    map.set(mId, new Set());
                 }
-                map.get(menuItemId)!.add(rule.day_of_week);
+                map.get(mId)!.add(Number(rule.day_of_week));
             }
         }
-        console.log('Weekly Availability Map:', map);
         return map;
     }, [weeklyMenuRules]);
 
@@ -369,18 +387,36 @@ const VendorDashboard = () => {
 
     // --- CRUD Handlers (Weekly Menu) ---
 
+    // const handleWeeklyAvailabilityChange = async (
+    //     menu_item_id: string,
+    //     day: DayOfWeek,
+    //     is_available: boolean
+    // ) => {
+    //     const payload: SetWeeklyAvailabilityPayload = {
+    //         menu_item_id,
+    //         day_of_week: day,
+    //         is_available,
+    //     };
+    //     try {
+    //         await setAvailability(payload);
+    //     } catch (e) {
+    //         alert("Failed to update weekly menu: " + (e as Error).message);
+    //     }
+    // };
+
     const handleWeeklyAvailabilityChange = async (
         menu_item_id: string,
-        day: DayOfWeek,
-        is_available: boolean
+        day: number, // Use number for safety with the Enum
+        is_now_checked: boolean // Receive the new state from the checkbox
     ) => {
         const payload: SetWeeklyAvailabilityPayload = {
             menu_item_id,
             day_of_week: day,
-            is_available,
+            is_available: is_now_checked, // Use the new value
         };
         try {
             await setAvailability(payload);
+            // Removed alert for better UX, the onSettled refetch in the hook handles UI update
         } catch (e) {
             alert("Failed to update weekly menu: " + (e as Error).message);
         }
@@ -513,7 +549,7 @@ const VendorDashboard = () => {
 
     // --- Loading / Error States ---
     const isLoading = isMenuLoading || isVendorLoading || isSpecialsLoading || isWeeklyMenuLoading;
-    const dataError = menuError || vendorError || specialsError || weeklyMenuError;
+    const dataError = menuError || vendorError || specialsError;// || weeklyMenuError;
 
     if (isLoading) {
         return (
@@ -664,30 +700,39 @@ const VendorDashboard = () => {
                                             ))}
                                         </div>
                                     </div>
-                                    {/* Item Rows */}
+                                    {/* Item Rows new logics added */}
                                     {menuData.map(item => {
+                                        const itemId = String(item.id);
                                         const availableDays = weeklyAvailabilityMap.get(item.id) || new Set();
+
                                         return (
-                                            <div key={item.id} className="flex items-center p-4 border-t">
+                                            <div key={item.id} className="flex items-center p-4 border-t hover:bg-gray-50/50 transition-colors">
                                                 <div className="flex-1 font-medium" style={{ color: '#443627' }}>
                                                     {item.name}
                                                 </div>
                                                 <div className="flex gap-2">
-                                                    {DAYS_OF_WEEK.map(day => (
-                                                        <div key={day.value} className="w-8 flex justify-center">
-                                                            <Checkbox
-                                                                checked={availableDays.has(day.value)}
-                                                                onCheckedChange={(checked: boolean) => {
-                                                                    handleWeeklyAvailabilityChange(
-                                                                        item.id,
-                                                                        day.value,
-                                                                        !!checked
-                                                                    );
-                                                                }}
-                                                                disabled={isSettingAvailability}
-                                                            />
-                                                        </div>
-                                                    ))}
+                                                    {DAYS_OF_WEEK.map(day => {
+                                                        const isChecked = availableDays.has(day.value);
+
+                                                        return (
+                                                            <div key={day.value} className="w-8 flex justify-center">
+                                                                <Checkbox
+                                                                    // UI reflects the real data from our memoized Map
+                                                                    checked={isChecked}
+                                                                    // onCheckedChange provides the NEW boolean value
+                                                                    onCheckedChange={(newCheckedValue: boolean) => {
+                                                                        handleWeeklyAvailabilityChange(
+                                                                            itemId,
+                                                                            day.value,
+                                                                            newCheckedValue // Pass the new value to the API
+                                                                        );
+                                                                    }}
+                                                                    disabled={isSettingAvailability}
+                                                                    className="data-[state=checked]:bg-[#D98324] data-[state=checked]:border-[#D98324]"
+                                                                />
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         );

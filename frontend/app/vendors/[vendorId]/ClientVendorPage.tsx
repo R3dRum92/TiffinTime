@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Check, Crown, Clock, Calendar, Loader2, MessageSquare, Plus, Minus, ShoppingCart, Star } from 'lucide-react';
 import { useVendor } from "@/app/hooks/singleVendor";
 import { useVendorMenu } from "@/app/hooks/vendorMenu";
-import { useVendorSubscription } from "@/app/hooks/useVendorSubscription";
 import { useReviewSubmission } from "@/app/hooks/useReviewSubmission";
 import { useVendorReviews } from "@/app/hooks/useVendorReviews";
 import { useOrderState } from "@/app/hooks/useOrderState";
@@ -802,7 +801,7 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                                                             {plan.features.map((feature, idx) => (
                                                                 <div key={idx} className="flex items-start gap-3">
                                                                     <div className="mt-0.5 min-w-[20px]">
-                                                                        <Check className="w-5 h-5 text-green-500" />
+                                                                        <Check className="w-5 h-5 text-orange-500" />
                                                                     </div>
                                                                     <span className="text-gray-600 text-sm">{feature}</span>
                                                                 </div>
