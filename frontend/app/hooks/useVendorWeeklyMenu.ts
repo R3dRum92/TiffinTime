@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAuthToken } from "../utils/auth";
-import { MenuItem } from "./useVendorMenu"; // Assuming MenuItem is exported
+import { MenuItem } from "./useVendorMenu(ImageWhileCreatingMenu)"; // Assuming MenuItem is exported
 import { DayOfWeek } from "./useVendorSpecials"; // Re-use DayOfWeek enum
 
 // ========== CONFIG ==========

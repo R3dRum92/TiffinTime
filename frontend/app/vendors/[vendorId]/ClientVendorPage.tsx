@@ -5,7 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Check, Crown, Clock, Calendar, Loader2, MessageSquare, Plus, Minus, ShoppingCart, Star } from 'lucide-react';
 import { useVendor } from "@/app/hooks/singleVendor";
-import { useVendorMenu } from "@/app/hooks/vendorMenu";
+import { useVendorMenu } from "@/app/hooks/vendorMenu(UserSideVendorSpecificFoodShower)";
+import { useVendorSubscription } from "@/app/hooks/useVendorSubscription";
 import { useReviewSubmission } from "@/app/hooks/useReviewSubmission";
 import { useVendorReviews } from "@/app/hooks/useVendorReviews";
 import { useOrderState } from "@/app/hooks/useOrderState";
@@ -711,18 +712,18 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                                                             <div className="flex-1">
                                                                 <div className="flex items-center gap-2 mb-1">
                                                                     <h3 className="font-semibold text-gray-800">{item.name}</h3>
-                                                                    <span className={`text-xs px-2 py-1 rounded ${item.isVeg ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                                    {/* <span className={`text-xs px-2 py-1 rounded ${item.isVeg ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                                                         {item.isVeg ? 'VEG' : 'NON-VEG'}
-                                                                    </span>
+                                                                    </span> */}
                                                                 </div>
                                                                 <p className="text-sm text-gray-600 mb-2 line-clamp-2">{item.description}</p>
                                                                 <p className="font-bold text-lg" style={{ color: '#D98324' }}>
                                                                     ৳{item.price}
                                                                 </p>
                                                             </div>
+                                                            {item.isAvailable && (
                                                             <Button
                                                                 size="sm"
-                                                                disabled={!item.isAvailable}
                                                                 onClick={() => {
                                                                     const allMenuItem = allMenuItems.find(m => m.id === item.id);
                                                                     if (allMenuItem) {
@@ -732,8 +733,9 @@ export default function ClientVendorPage({ params }: VendorDetailPageProps) {
                                                                 style={{ backgroundColor: '#D98324' }}
                                                                 className="hover:bg-opacity-90 flex-shrink-0"
                                                             >
-                                                                {item.isAvailable ? 'View Details' : 'Unavailable'}
+                                                                View Details
                                                             </Button>
+                                                        )}
                                                         </div>
                                                     ))
                                                 )}

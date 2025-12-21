@@ -53,11 +53,16 @@ class MenuItemUpdateRequest(BaseModel):
     preparation_time: Optional[int] = None
     img_bucket: Optional[str] = None
     img_path: Optional[str] = None
+    img_url: Optional[str] = None  # ADD THIS LINE
+
 
 
 class MenuItemResponse(MenuItemBase):
     id: UUID
     vendor_id: UUID
+    img_url: Optional[str] = None
+    available_today: Optional[bool] = None  # ✅ এই line আছে কিনা check করো
+
 
     model_config = ConfigDict(from_attributes=True)
 

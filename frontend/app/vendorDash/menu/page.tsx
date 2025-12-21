@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client"
 
 import React, { useState, useMemo } from 'react';
@@ -32,7 +33,7 @@ import {
     useVendorMenu,
     MenuItem,
     BackendMenuItem,
-} from '@/app/hooks/useVendorMenu';
+} from '@/app/hooks/useVendorMenu(ImageWhileCreatingMenu)';
 import {
     useVendorSpecials,
     DateSpecial,
@@ -55,6 +56,8 @@ interface NewMenuItemForm {
     category: string;
     description: string;
     preparationTime: string; // From input
+        imageFile?: File;  // ADD THIS
+
 }
 
 interface VendorInfo {
@@ -153,6 +156,8 @@ const VendorDashboard = () => {
         isUpdating,
         deleteMenuItem,
         isDeleting,
+        uploadImage,      // ADD
+        isUploading,      // ADD
     } = useVendorMenu();
 
     const {
@@ -429,7 +434,16 @@ const VendorDashboard = () => {
     const renderMenuItemCard = (item: MenuItem, showActions: boolean = true) => (
         <Card key={item.id} className="shadow-lg border-0 relative overflow-hidden">
             <CardContent className="p-4">
+                <img 
+                    src={item.image} 
+                    alt={item.name}
+                    className="w-full h-40 object-cover rounded-md mb-3"
+                    onError={(e) => {
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop';
+                    }}
+                />
                 <div className="flex justify-between items-start mb-2">
+
                     <h3 className="font-bold text-lg" style={{ color: '#443627' }}>
                         {item.name}
                     </h3>
@@ -825,87 +839,124 @@ const VendorDashboard = () => {
                 </Dialog>
 
                 {/* Edit Menu Item Dialog */}
-                <Dialog open={isEditMenuOpen} onOpenChange={(open) => {
-                    setIsEditMenuOpen(open);
-                    if (!open) setEditingItem(null);
-                }}>
-                    <DialogContent className="max-w-md">
-                        <DialogHeader>
-                            <DialogTitle style={{ color: '#443627' }}>
-                                Edit Menu Item
-                            </DialogTitle>
-                        </DialogHeader>
-                        {editingItem && (
-                            <div className="space-y-4">
-                                <div>
-                                    <Label>Item Name</Label>
-                                    <Input
-                                        value={editingItem.name}
-                                        onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <Label>Price (৳)</Label>
-                                    <Input
-                                        type="number"
-                                        value={editingItem.price} // Renders number as string
-                                        onChange={(e) => setEditingItem({ ...editingItem, price: parseFloat(e.target.value) || 0 })}
-                                    />
-                                </div>
-                                <div>
-                                    <Label>Category</Label>
-                                    <Select
-                                        value={editingItem.category}
-                                        onValueChange={(value) => setEditingItem({ ...editingItem, category: value })}
-                                    >
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div>
-                                    <Label>Description</Label>
-                                    <Textarea
-                                        value={editingItem.description}
-                                        onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
-                                        rows={3}
-                                    />
-                                </div>
-                                <div>
-                                    <Label>Preparation Time (in minutes)</Label>
-                                    <Input
-                                        type="number"
-                                        value={editingItem.preparationTime} // Renders number as string
-                                        onChange={(e) => setEditingItem({ ...editingItem, preparationTime: parseInt(e.target.value, 10) || 0 })}
-                                    />
-                                </div>
-                                <div className="flex gap-3 pt-4">
-                                    <Button
-                                        variant="outline"
-                                        className="flex-1"
-                                        onClick={() => {
-                                            setIsEditMenuOpen(false);
-                                            setEditingItem(null);
-                                        }}
-                                    >
-                                        <X className="h-4 w-4 mr-2" />
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        className="flex-1"
-                                        onClick={handleUpdateMenuItem}
-                                        style={{ backgroundColor: '#D98324' }}
-                                        disabled={isUpdating}
-                                    >
-                                        {isUpdating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                                        Update
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
-                    </DialogContent>
-                </Dialog>
+               {/* Edit Menu Item Dialog */}
+<Dialog open={isEditMenuOpen} onOpenChange={(open) => {
+    setIsEditMenuOpen(open);
+    if (!open) setEditingItem(null);
+}}>
+    <DialogContent className="max-w-md">
+        <DialogHeader>
+            <DialogTitle style={{ color: '#443627' }}>
+                Edit Menu Item
+            </DialogTitle>
+        </DialogHeader>
+        {editingItem && (
+            <div className="space-y-4">
+                <div>
+                    <Label>Item Name</Label>
+                    <Input
+                        value={editingItem.name}
+                        onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+                    />
+                </div>
+                
+                {/* ADD THIS ENTIRE IMAGE SECTION */}
+                <div>
+                    <Label>Image</Label>
+                    {editingItem.image && (  // ✅ change
+    <img 
+        src={editingItem.image}  // ✅ change
+        alt={editingItem.name}
+        className="w-full h-32 object-cover rounded-md"
+    />
+)}
+                    <Input
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png"
+                        onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file && editingItem) {
+                                try {
+                                    await uploadImage({ itemId: editingItem.id, file });
+                                    alert('Image uploaded successfully!');
+                                } catch (err) {
+                                    alert('Failed to upload image: ' + (err as Error).message);
+                                }
+                            }
+                        }}
+                        disabled={isUploading}
+                    />
+                    {isUploading && (
+                        <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Uploading...
+                        </p>
+                    )}
+                </div>
+                {/* IMAGE SECTION ENDS */}
+
+                <div>
+                    <Label>Price (৳)</Label>
+                    <Input
+                        type="number"
+                        value={editingItem.price}
+                        onChange={(e) => setEditingItem({ ...editingItem, price: parseFloat(e.target.value) || 0 })}
+                    />
+                </div>
+                <div>
+                    <Label>Category</Label>
+                    <Select
+                        value={editingItem.category}
+                        onValueChange={(value) => setEditingItem({ ...editingItem, category: value })}
+                    >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div>
+                    <Label>Description</Label>
+                    <Textarea
+                        value={editingItem.description}
+                        onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
+                        rows={3}
+                    />
+                </div>
+                <div>
+                    <Label>Preparation Time (in minutes)</Label>
+                    <Input
+                        type="number"
+                        value={editingItem.preparationTime}
+                        onChange={(e) => setEditingItem({ ...editingItem, preparationTime: parseInt(e.target.value, 10) || 0 })}
+                    />
+                </div>
+                <div className="flex gap-3 pt-4">
+                    <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => {
+                            setIsEditMenuOpen(false);
+                            setEditingItem(null);
+                        }}
+                    >
+                        <X className="h-4 w-4 mr-2" />
+                        Cancel
+                    </Button>
+                    <Button
+                        className="flex-1"
+                        onClick={handleUpdateMenuItem}
+                        style={{ backgroundColor: '#D98324' }}
+                        disabled={isUpdating}
+                    >
+                        {isUpdating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                        Update
+                    </Button>
+                </div>
+            </div>
+        )}
+    </DialogContent>
+</Dialog>
 
                 {/* Add Special Dialog */}
                 <Dialog open={isAddSpecialOpen} onOpenChange={setIsAddSpecialOpen}>
