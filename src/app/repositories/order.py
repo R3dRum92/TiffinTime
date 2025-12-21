@@ -2,10 +2,11 @@ from datetime import datetime
 from typing import List
 from uuid import UUID
 
-from fastapi import HTTPException, status
+from fastapi import BackgroundTasks, HTTPException, status
 from supabase import AsyncClient
 
 from app import schemas
+from utils.email import send_delivery_email_resend
 from utils.logger import logger
 
 
@@ -108,7 +109,10 @@ async def get_user_orders(
 
 # Add new function to update order delivery status
 async def update_order_status(
-    client: AsyncClient, order_id: UUID, status_update: schemas.OrderStatusUpdate
+    client: AsyncClient,
+    order_id: UUID,
+    status_update: schemas.OrderStatusUpdate,
+    background_tasks: BackgroundTasks,
 ) -> schemas.BaseResponse:
     """Update the delivery status of an order"""
 
@@ -127,9 +131,44 @@ async def update_order_status(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Order not found"
             )
 
+        updated_order = response.data[0]
+
         logger.info(
             f"Order status updated: {order_id} - delivered: {status_update.is_delivered}"
         )
+
+        if status_update.is_delivered is True:
+            user_id = updated_order.get("user_id")
+
+            if user_id:
+                try:
+                    user_res = (
+                        await client.table("users")
+                        .select("email, name")
+                        .eq("id", user_id)
+                        .single()
+                        .execute()
+                    )
+
+                    user_data = user_res.data
+
+                    if user_data and user_data.get("email"):
+                        background_tasks.add_task(
+                            send_delivery_email_resend,
+                            email_to=user_data["email"],
+                            user_name=user_data.get("name", "Valued Customer"),
+                            order_id=str(updated_order.get("order_id", order_id)),
+                            pickup=updated_order.get("pickup", "Pickup Point"),
+                            total_price=float(updated_order.get("total_price", 0)),
+                        )
+                    else:
+                        logger.warning(f"User {user_id} found but has no email")
+                except Exception as fetch_error:
+                    logger.error(
+                        f"Failed to fetch user for email notification: {fetch_error}"
+                    )
+            else:
+                logger.warning(f"Order {order_id} updated but has no user_id")
 
         return schemas.BaseResponse(
             message=f"Order status updated to {'delivered' if status_update.is_delivered else 'pending'}"

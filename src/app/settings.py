@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     SSLCOMMERZ_STORE_ID: str
     SSLCOMMERZ_STORE_PASS: str
 
+    RESEND_API_KEY: str
+
     @property
     def docs_url(self):
         return None if self.APP_MODE == "production" else "/docs"
