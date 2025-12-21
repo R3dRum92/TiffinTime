@@ -143,7 +143,7 @@ class WeeklyAvailabilityDetailResponse(BaseModel):
     vendor_id: UUID
 
     # Nested menu item data
-    menu_items: MenuItemBase
+    menu_items: MenuItemResponse
 
     model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
 

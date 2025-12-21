@@ -32,6 +32,7 @@ export interface BackendWeeklyAvailability {
 // Frontend shape (flattened)
 export interface WeeklyAvailability extends MenuItem {
     rule_id: string; // The ID of the weekly_availability entry
+    menu_item_id: string; // The vital link to menuData
     day_of_week: DayOfWeek;
     is_available: boolean;
 }
@@ -77,9 +78,14 @@ const transformToFrontend = (rules: BackendWeeklyAvailability[]): WeeklyAvailabi
         ...rule.menu_items,
         preparationTime: rule.menu_items.preparation_time, // Handle snake_case
 
+        // rule.menu_items.id is the UUID of the food
+        // rule.id is the UUID of the weekly rule
+        id: rule.menu_items.id,
+        menu_item_id: rule.menu_items.id,
+
         // Add the rule-specific fields
         rule_id: rule.id,
-        day_of_week: rule.day_of_week,
+        day_of_week: Number(rule.day_of_week),
         is_available: rule.is_available,
     }));
 };
@@ -105,54 +111,59 @@ export const useVendorWeeklyMenu = () => {
     const weeklyMenuQuery = useQuery({
         queryKey,
         queryFn: fetchWeeklyMenu,
-        staleTime: 5 * 60 * 1000, // 5 minutes
+        //staleTime: 5 * 60 * 1000, // 5 minutes
+        staleTime: 0, // Always fetch fresh data
     });
 
     const setAvailabilityMutation = useMutation({
         mutationFn: setWeeklyAvailabilityApi,
         // Optimistically update the cache to make the UI feel instant
-        onMutate: async (newRule: SetWeeklyAvailabilityPayload) => {
-            await queryClient.cancelQueries({ queryKey });
-            const previousMenu = queryClient.getQueryData<WeeklyAvailability[]>(queryKey);
-
-            queryClient.setQueryData<WeeklyAvailability[]>(queryKey, (old) => {
-                if (!old) return [];
-
-                // Find if a rule already exists for this item/day
-                const existingRuleIndex = old.findIndex(
-                    r => r.id === newRule.menu_item_id && r.day_of_week === newRule.day_of_week
-                );
-
-                if (existingRuleIndex > -1) {
-                    // Update existing rule
-                    const updatedMenu = [...old];
-                    updatedMenu[existingRuleIndex] = {
-                        ...updatedMenu[existingRuleIndex],
-                        is_available: newRule.is_available,
-                    };
-                    return updatedMenu;
-                } else {
-                    // This path is less likely if `useVendorMenu` provides all items,
-                    // but it's good practice.
-                    // We can't fully create a new 'WeeklyAvailability' item
-                    // without all the menu item details, so we'll just refetch.
-                    // For this reason, a simple invalidation is safer.
-                    return old;
-                }
-            });
-
-            return { previousMenu };
-        },
-        // Refetch on success or error to ensure consistency
-        onSettled: () => {
-            queryClient.invalidateQueries({ queryKey });
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['vendorWeeklyMenu'] });
         },
     });
+    //     onMutate: async (newRule: SetWeeklyAvailabilityPayload) => {
+    //         await queryClient.cancelQueries({ queryKey });
+    //         const previousMenu = queryClient.getQueryData<WeeklyAvailability[]>(queryKey);
+
+    //         queryClient.setQueryData<WeeklyAvailability[]>(queryKey, (old) => {
+    //             if (!old) return [];
+
+    //             // Find if a rule already exists for this item/day
+    //             const existingRuleIndex = old.findIndex(
+    //                 r => r.id === newRule.menu_item_id && r.day_of_week === newRule.day_of_week
+    //             );
+
+    //             if (existingRuleIndex > -1) {
+    //                 // Update existing rule
+    //                 const updatedMenu = [...old];
+    //                 updatedMenu[existingRuleIndex] = {
+    //                     ...updatedMenu[existingRuleIndex],
+    //                     is_available: newRule.is_available,
+    //                 };
+    //                 return updatedMenu;
+    //             } else {
+    //                 // This path is less likely if `useVendorMenu` provides all items,
+    //                 // but it's good practice.
+    //                 // We can't fully create a new 'WeeklyAvailability' item
+    //                 // without all the menu item details, so we'll just refetch.
+    //                 // For this reason, a simple invalidation is safer.
+    //                 return old;
+    //             }
+    //         });
+
+    //         return { previousMenu };
+    //     },
+    //     // Refetch on success or error to ensure consistency
+    //     onSettled: () => {
+    //         queryClient.invalidateQueries({ queryKey });
+    //     },
+    // });
 
     return {
         weeklyMenuRules: weeklyMenuQuery.data || [],
         isLoading: weeklyMenuQuery.isLoading,
-        error: weeklyMenuQuery.error as Error | null,
+        //error: weeklyMenuQuery.error as Error | null,
 
         setAvailability: setAvailabilityMutation.mutateAsync,
         isSetting: setAvailabilityMutation.isPending,
