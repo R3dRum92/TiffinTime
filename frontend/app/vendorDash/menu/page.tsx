@@ -652,7 +652,7 @@ const VendorDashboard = () => {
                                 <div className="flex items-center justify-between">
                                     <div className='flex items-center gap-3'>
                                         <h2 className="text-2xl font-bold" style={{ color: '#443627' }}>
-                                            Today&apos;ss Specials
+                                            Today&apos;s Specials
                                         </h2>
                                     </div>
                                     <Button
