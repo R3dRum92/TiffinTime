@@ -1,6 +1,6 @@
 import uuid
 from datetime import date
-from typing import List
+from typing import Dict, List
 
 from fastapi import HTTPException, UploadFile, status
 from supabase import AsyncClient
