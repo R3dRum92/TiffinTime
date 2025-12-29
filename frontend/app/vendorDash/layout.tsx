@@ -68,7 +68,7 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
         { href: '/vendorDash/orders', icon: ShoppingBag, label: 'Orders' },
         { href: '/vendorDash/menu', icon: MenuIcon, label: 'Menu Routine' },
         { href: '/vendorDash/reviews', icon: MessageSquare, label: 'Reviews' },
-        { href: '/vendorDash/settings', icon: Settings, label: 'Settings' },
+        // { href: '/vendorDash/settings', icon: Settings, label: 'Settings' },
     ];
 
     return (

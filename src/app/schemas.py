@@ -3,6 +3,9 @@ from datetime import date, datetime, timedelta
 from typing import List, Optional
 from uuid import UUID
 
+
+# DTO Pattern
+
 from pydantic import (
     UUID4,
     BaseModel,
