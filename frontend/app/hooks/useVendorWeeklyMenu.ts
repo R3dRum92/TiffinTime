@@ -26,6 +26,7 @@ export interface BackendWeeklyAvailability {
         category: string;
         description: string;
         preparation_time: number;
+        image_url: string | null
     };
 }
 
@@ -77,6 +78,8 @@ const transformToFrontend = (rules: BackendWeeklyAvailability[]): WeeklyAvailabi
         // Spread the nested menu_item fields
         ...rule.menu_items,
         preparationTime: rule.menu_items.preparation_time, // Handle snake_case
+
+        image: rule.menu_items.image_url || "",
 
         // rule.menu_items.id is the UUID of the food
         // rule.id is the UUID of the weekly rule
