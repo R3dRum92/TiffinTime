@@ -1,7 +1,7 @@
 from typing import List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 from supabase import AsyncClient
 
 from app import schemas
@@ -68,9 +68,13 @@ async def get_vendor_orders(
 async def update_order_status(
     order_id: UUID,
     status_update: schemas.OrderStatusUpdate,
+    background_tasks: BackgroundTasks,
     client: AsyncClient = Depends(get_db),
 ):
     """Update the delivery status of an order (for vendors)"""
     return await order.update_order_status(
-        client=client, order_id=order_id, status_update=status_update
+        client=client,
+        order_id=order_id,
+        status_update=status_update,
+        background_tasks=background_tasks,
     )
