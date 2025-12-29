@@ -35,6 +35,7 @@ export interface BackendDateSpecial {
         category: string;
         description: string;
         preparation_time: number;
+        image_url: string | null
     };
 }
 
@@ -95,6 +96,8 @@ const transformToFrontend = (specials: BackendDateSpecial[]): DateSpecial[] => {
         // Spread the nested menu_item fields
         ...s.menu_items,
         preparationTime: s.menu_items.preparation_time, // Handle snake_case
+
+        image: s.menu_items.image_url || "",
 
         // Add the special-specific fields
         special_id: s.id,

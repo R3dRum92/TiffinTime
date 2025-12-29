@@ -20,9 +20,9 @@ import '@/app/globals.css';
 export default function VendorOrders() {
     const [activeTab, setActiveTab] = useState<'subscription' | 'single'>('single');
     const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'delivered'>('all');
-    
 
-    
+
+
 
     // Get vendor details from token
     const { vendor, isLoading: vendorLoading, error: vendorError } = useVendorInfo();
@@ -31,7 +31,7 @@ export default function VendorOrders() {
     const [groupByUser, setGroupByUser] = useState<boolean>(false);
     const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
 
-    
+
 
     // Fetch data using hooks
     const { data: subscribers, isLoading: subscribersLoading, error: subscribersError } = useSubscribers();
@@ -43,11 +43,11 @@ export default function VendorOrders() {
     } = useVendorOrders(vendorId);
 
     const uniqueUserIds = useMemo(() => {
-    if (!singleOrders) return [];
-    return [...new Set(singleOrders.map(order => order.user_id))];
-}, [singleOrders]);
+        if (!singleOrders) return [];
+        return [...new Set(singleOrders.map(order => order.user_id))];
+    }, [singleOrders]);
 
-const { data: userDetailsMap, isLoading: userDetailsLoading } = useBatchUserDetails(uniqueUserIds);
+    const { data: userDetailsMap, isLoading: userDetailsLoading } = useBatchUserDetails(uniqueUserIds);
 
     const updateOrderMutation = useUpdateOrderStatus();
 
@@ -62,81 +62,81 @@ const { data: userDetailsMap, isLoading: userDetailsLoading } = useBatchUserDeta
         return singleOrders;
     }, [singleOrders, filterStatus]);
 
-    
+
 
 
     const groupedOrders = useMemo(() => {
-    if (!filteredSingleOrders || !groupByUser || !userDetailsMap) return null;
+        if (!filteredSingleOrders || !groupByUser || !userDetailsMap) return null;
 
-    const grouped = filteredSingleOrders.reduce((acc, order) => {
-        const userId = order.user_id;
-        
-        if (!acc[userId]) {
-            const userDetails = userDetailsMap[userId];
-            acc[userId] = {
-                userId,
-                userName: userDetails?.name || `User ${userId.slice(0, 8)}`,
-                userPhone: userDetails?.phone_number || 'N/A',
-                orders: [],
-                totalOrders: 0,
-                totalQuantity: 0,
-                totalAmount: 0,
-                hasPending: false,
-                latestOrderDate: order.order_date,
-            };
+        const grouped = filteredSingleOrders.reduce((acc, order) => {
+            const userId = order.user_id;
+
+            if (!acc[userId]) {
+                const userDetails = userDetailsMap[userId];
+                acc[userId] = {
+                    userId,
+                    userName: userDetails?.name || `User ${userId.slice(0, 8)}`,
+                    userPhone: userDetails?.phone_number || 'N/A',
+                    orders: [],
+                    totalOrders: 0,
+                    totalQuantity: 0,
+                    totalAmount: 0,
+                    hasPending: false,
+                    latestOrderDate: order.order_date,
+                };
+            }
+
+            acc[userId].orders.push(order);
+            acc[userId].totalOrders += 1;
+            acc[userId].totalQuantity += order.quantity;
+            acc[userId].totalAmount += order.total_price;
+
+            if (!order.is_delivered) acc[userId].hasPending = true;
+
+            if (new Date(order.order_date) > new Date(acc[userId].latestOrderDate)) {
+                acc[userId].latestOrderDate = order.order_date;
+            }
+
+            return acc;
+        }, {} as Record<string, any>);
+
+        return Object.values(grouped).sort((a: any, b: any) =>
+            new Date(b.latestOrderDate).getTime() - new Date(a.latestOrderDate).getTime()
+        );
+    }, [filteredSingleOrders, groupByUser, userDetailsMap]);
+
+
+    const toggleUserExpansion = (userId: string) => {
+        setExpandedUsers(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(userId)) {
+                newSet.delete(userId);
+            } else {
+                newSet.add(userId);
+            }
+            return newSet;
+        });
+    };
+
+    useEffect(() => {
+        if (groupByUser && groupedOrders) {
+            const allUserIds = groupedOrders.map((group: any) => group.userId);
+            setExpandedUsers(new Set(allUserIds));
+        } else if (!groupByUser) {
+            setExpandedUsers(new Set());
         }
-        
-        acc[userId].orders.push(order);
-        acc[userId].totalOrders += 1;
-        acc[userId].totalQuantity += order.quantity;
-        acc[userId].totalAmount += order.total_price;
-        
-        if (!order.is_delivered) acc[userId].hasPending = true;
-        
-        if (new Date(order.order_date) > new Date(acc[userId].latestOrderDate)) {
-            acc[userId].latestOrderDate = order.order_date;
-        }
-        
-        return acc;
-    }, {} as Record<string, any>);
-    
-    return Object.values(grouped).sort((a: any, b: any) => 
-        new Date(b.latestOrderDate).getTime() - new Date(a.latestOrderDate).getTime()
-    );
-}, [filteredSingleOrders, groupByUser, userDetailsMap]);
-
-
-const toggleUserExpansion = (userId: string) => {
-    setExpandedUsers(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(userId)) {
-            newSet.delete(userId);
-        } else {
-            newSet.add(userId);
-        }
-        return newSet;
-    });
-};
-
-useEffect(() => {
-    if (groupByUser && groupedOrders) {
-        const allUserIds = groupedOrders.map((group: any) => group.userId);
-        setExpandedUsers(new Set(allUserIds));
-    } else if (!groupByUser) {
-        setExpandedUsers(new Set());
-    }
-}, [groupByUser]);
+    }, [groupByUser]);
 
     // Statistics
     const stats = useMemo(() => {
-    return {
-        totalOrders: singleOrders?.length || 0,
-        pendingOrders: singleOrders?.filter(o => !o.is_delivered).length || 0,
-        deliveredOrders: singleOrders?.filter(o => o.is_delivered).length || 0,
-        totalRevenue: singleOrders?.reduce((sum, order) => sum + order.total_price, 0) || 0,
-        uniqueCustomers: uniqueUserIds.length, // NEW LINE
-    };
-}, [singleOrders, uniqueUserIds]);
+        return {
+            totalOrders: singleOrders?.length || 0,
+            pendingOrders: singleOrders?.filter(o => !o.is_delivered).length || 0,
+            deliveredOrders: singleOrders?.filter(o => o.is_delivered).length || 0,
+            totalRevenue: singleOrders?.reduce((sum, order) => sum + order.total_price, 0) || 0,
+            uniqueCustomers: uniqueUserIds.length, // NEW LINE
+        };
+    }, [singleOrders, uniqueUserIds]);
 
 
     const handleMarkAsDelivered = async (orderId: string) => {
@@ -168,7 +168,7 @@ useEffect(() => {
         }
     };
 
-    
+
     // Show vendor authentication error
     if (vendorError) {
         return (
@@ -452,11 +452,10 @@ useEffect(() => {
                 <button
                     onClick={() => setGroupByUser(!groupByUser)}
                     disabled={userDetailsLoading}
-                    className={`px-6 py-2 rounded-md font-medium transition-all flex items-center gap-2 ${
-                        groupByUser
-                            ? 'bgtheme text-white shadow-md'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    } ${userDetailsLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`px-6 py-2 rounded-md font-medium transition-all flex items-center gap-2 ${groupByUser
+                        ? 'bgtheme text-white shadow-md'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        } ${userDetailsLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                     <Users className="w-5 h-5" />
                     {userDetailsLoading ? 'Loading...' : groupByUser ? 'Show All Orders' : 'Group by Customer'}
@@ -464,122 +463,120 @@ useEffect(() => {
             </div>
 
             {groupByUser && groupedOrders ? (
-    // GROUPED VIEW
-    <div className="space-y-4">
-        {groupedOrders.map((userGroup: any) => (
-            <div key={userGroup.userId} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
-                {/* User Header */}
-                <button
-                    onClick={() => toggleUserExpansion(userGroup.userId)}
-                    className="w-full px-6 py-5 bg-gradient-to-r from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-150 transition-all flex items-center justify-between"
-                >
-                    <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-lg">
-                            <User className="w-7 h-7 text-white" />
-                        </div>
-                        <div className="text-left">
-                            <h3 className="text-lg font-bold text-gray-800">{userGroup.userName}</h3>
-                            <p className="text-sm text-gray-600">{userGroup.userPhone}</p>
-                            <div className="flex gap-4 mt-2 text-sm text-gray-700">
-                                <span className="font-semibold">{userGroup.totalOrders} orders</span>
-                                <span>•</span>
-                                <span>{userGroup.totalQuantity} items</span>
-                                <span>•</span>
-                                <span className="font-bold text-orange-600">৳{userGroup.totalAmount.toFixed(2)}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        {userGroup.hasPending && (
-                            <span className="px-4 py-2 text-sm font-bold rounded-full bg-yellow-100 text-yellow-800 shadow-sm">
-                                📦 Pending Orders
-                            </span>
-                        )}
-                        <ChevronDown 
-                            className={`w-7 h-7 text-gray-500 transition-transform duration-300 ${
-                                expandedUsers.has(userGroup.userId) ? 'rotate-180' : ''
-                            }`}
-                        />
-                    </div>
-                </button>
+                // GROUPED VIEW
+                <div className="space-y-4">
+                    {groupedOrders.map((userGroup: any) => (
+                        <div key={userGroup.userId} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
+                            {/* User Header */}
+                            <button
+                                onClick={() => toggleUserExpansion(userGroup.userId)}
+                                className="w-full px-6 py-5 bg-gradient-to-r from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-150 transition-all flex items-center justify-between"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-lg">
+                                        <User className="w-7 h-7 text-white" />
+                                    </div>
+                                    <div className="text-left">
+                                        <h3 className="text-lg font-bold text-gray-800">{userGroup.userName}</h3>
+                                        <p className="text-sm text-gray-600">{userGroup.userPhone}</p>
+                                        <div className="flex gap-4 mt-2 text-sm text-gray-700">
+                                            <span className="font-semibold">{userGroup.totalOrders} orders</span>
+                                            <span>•</span>
+                                            <span>{userGroup.totalQuantity} items</span>
+                                            <span>•</span>
+                                            <span className="font-bold text-orange-600">৳{userGroup.totalAmount.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    {userGroup.hasPending && (
+                                        <span className="px-4 py-2 text-sm font-bold rounded-full bg-yellow-100 text-yellow-800 shadow-sm">
+                                            📦 Pending Orders
+                                        </span>
+                                    )}
+                                    <ChevronDown
+                                        className={`w-7 h-7 text-gray-500 transition-transform duration-300 ${expandedUsers.has(userGroup.userId) ? 'rotate-180' : ''
+                                            }`}
+                                    />
+                                </div>
+                            </button>
 
-                {/* Expanded Orders */}
-                {expandedUsers.has(userGroup.userId) && (
-                    <div className="overflow-x-auto border-t-2 border-orange-200">
-                        <table className="w-full">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Order ID</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Date & Time</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Pickup</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Qty</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Price</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200 bg-white">
-                                {userGroup.orders.map((order: any) => (
-                                    <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-sm font-mono font-medium text-gray-900">
-                                                #{order.id.slice(0, 8).toUpperCase()}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900">{formatDate(order.order_date)}</div>
-                                            <div className="flex items-center mt-1">
-                                                <Clock className="w-3 h-3 text-gray-400 mr-1" />
-                                                <span className="text-xs text-gray-500">{formatTime(order.order_date)}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center">
-                                                <MapPin className="w-4 h-4 text-gray-400 mr-2" />
-                                                <span className="text-sm text-gray-700">{order.pickup}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-sm font-medium text-gray-900">{order.quantity}x</span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-sm font-bold theme">৳{order.total_price.toFixed(2)}</span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                                                order.is_delivered ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                                            }`}>
-                                                {order.is_delivered ? 'DELIVERED' : 'PENDING'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                            {!order.is_delivered ? (
-                                                <button
-                                                    onClick={() => handleMarkAsDelivered(order.id)}
-                                                    disabled={updateOrderMutation.isPending}
-                                                    className="bgtheme text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-orange-600 disabled:opacity-50 transition-all"
-                                                >
-                                                    {updateOrderMutation.isPending ? 'Updating...' : 'Mark Delivered'}
-                                                </button>
-                                            ) : (
-                                                <div className="flex items-center text-green-600 font-medium">
-                                                    <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                    Delivered
-                                                </div>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
-        ))}
-    </div>
-) : (
+                            {/* Expanded Orders */}
+                            {expandedUsers.has(userGroup.userId) && (
+                                <div className="overflow-x-auto border-t-2 border-orange-200">
+                                    <table className="w-full">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Order ID</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Date & Time</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Pickup</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Qty</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Price</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200 bg-white">
+                                            {userGroup.orders.map((order: any) => (
+                                                <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className="text-sm font-mono font-medium text-gray-900">
+                                                            #{order.id.slice(0, 8).toUpperCase()}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="text-sm text-gray-900">{formatDate(order.order_date)}</div>
+                                                        <div className="flex items-center mt-1">
+                                                            <Clock className="w-3 h-3 text-gray-400 mr-1" />
+                                                            <span className="text-xs text-gray-500">{formatTime(order.order_date)}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="flex items-center">
+                                                            <MapPin className="w-4 h-4 text-gray-400 mr-2" />
+                                                            <span className="text-sm text-gray-700">{order.pickup}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className="text-sm font-medium text-gray-900">{order.quantity}x</span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className="text-sm font-bold theme">৳{order.total_price.toFixed(2)}</span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${order.is_delivered ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                                            }`}>
+                                                            {order.is_delivered ? 'DELIVERED' : 'PENDING'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                        {!order.is_delivered ? (
+                                                            <button
+                                                                onClick={() => handleMarkAsDelivered(order.id)}
+                                                                disabled={updateOrderMutation.isPending}
+                                                                className="bgtheme text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-orange-600 disabled:opacity-50 transition-all"
+                                                            >
+                                                                {updateOrderMutation.isPending ? 'Updating...' : 'Mark Delivered'}
+                                                            </button>
+                                                        ) : (
+                                                            <div className="flex items-center text-green-600 font-medium">
+                                                                <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                </svg>
+                                                                Delivered
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            ) : (
                 <div className="bg-white rounded-lg shadow-md overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full">
@@ -683,7 +680,7 @@ useEffect(() => {
     );
 
     return (
-        <div className="p-6 pt-20 min-h-screen style={{ backgroundColor: 'rgb(249, 245, 230)' }">
+        <div className="p-6 pt-20 min-h-screen" style={{ backgroundColor: 'rgb(249, 245, 230)' }}>
             {/* Header */}
             <div className="mb-8">
                 <div className="flex items-center justify-between">
