@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAuthToken } from "@/app/utils/auth"; // Changed import path
-import { MenuItem } from "./useVendorMenu"; // Assuming MenuItem is exported
+import { MenuItem } from "./useVendorMenu(ImageWhileCreatingMenu)"; // Assuming MenuItem is exported
 
 // ========== CONFIG ==========
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;

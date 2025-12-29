@@ -1,6 +1,9 @@
 from typing import List
 from uuid import UUID
 
+from fastapi import UploadFile, File
+
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import AsyncClient
 
@@ -114,3 +117,34 @@ async def get_vendor_menu(
     Retrieves all menu items for a specific vendor. This endpoint is public.
     """
     return await menu.get_all_menus_by_vendor(vendor_id=vendor_id, client=client)
+
+
+@router.post(
+    "/{item_id}/image",
+    status_code=status.HTTP_200_OK,
+    summary="Upload image for a menu item",
+)
+async def upload_menu_image(
+    item_id: UUID,
+    file: UploadFile = File(...),
+    vendor: schemas.UserBase = Depends(get_vendor),
+    client: AsyncClient = Depends(get_db),
+):
+    """Upload an image for a menu item."""
+    return await menu.upload_menu_image(
+        item_id=item_id,
+        vendor_id=vendor.id,
+        file=file,
+        client=client
+    )
+
+@router.get(
+    "/vendor/{vendor_id}/with-availability",
+    response_model=List[schemas.MenuItemResponse],
+    status_code=status.HTTP_200_OK,
+)
+async def get_vendor_menu_with_availability(
+    vendor_id: UUID,
+    client: AsyncClient = Depends(get_db),
+):
+    return await menu.get_vendor_menu_with_availability(vendor_id=vendor_id, client=client)

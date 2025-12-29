@@ -1,4 +1,4 @@
-
+//allmenu.ts
 
 'use client';
 

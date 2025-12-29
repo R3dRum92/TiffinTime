@@ -1,5 +1,5 @@
 import uuid
-from typing import List
+from typing import List, Optional
 
 from fastapi import HTTPException, status
 from supabase import AsyncClient
@@ -74,7 +74,7 @@ async def set_weekly_availability(
     request: schemas.WeeklyAvailabilitySetRequest,
     vendor_id: uuid.UUID,
     client: AsyncClient,
-) -> schemas.WeeklyAvailabilityDetailResponse:
+) -> Optional[schemas.WeeklyAvailabilityDetailResponse]:
     """
     Sets the availability for an item on a specific day of the week.
     This uses 'upsert' to create the rule if it doesn't exist
@@ -88,52 +88,60 @@ async def set_weekly_availability(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You do not own this menu item.",
             )
+        if not request.is_available:
+        # If the vendor unchecked it, DELETE the entry
+            response = await client.table("weekly_availability")\
+                .delete()\
+                .eq("menu_item_id", str(request.menu_item_id))\
+                .eq("day_of_week", request.day_of_week.value)\
+                .execute()
+            return None # Return None since the record is gone
+        else:
+            # 2. Prepare data for upsert
+            upsert_data = {
+                "menu_item_id": str(request.menu_item_id),
+                "day_of_week": request.day_of_week.value,  # Use the int value
+                "is_available": request.is_available,
+            }
 
-        # 2. Prepare data for upsert
-        upsert_data = {
-            "menu_item_id": str(request.menu_item_id),
-            "day_of_week": request.day_of_week.value,  # Use the int value
-            "is_available": request.is_available,
-        }
-
-        # 3. Perform the 'upsert'
-        # 'on_conflict' tells Supabase which columns to check for a duplicate.
-        upsert_response = (
-            await client.table("weekly_availability")
-            .upsert(
-                upsert_data,
-                on_conflict="menu_item_id, day_of_week",
-            )
-            .execute()
-        )
-
-        if not upsert_response.data or not upsert_response.data[0]:
-            raise HTTPException(
-                status.HTTP_500_INTERNAL_SERVER_ERROR,
-                "Failed to set availability (upsert failed).",
-            )
-
-        upserted_row_id = upsert_response.data[0].get("id")
-
-        # 4. Fetch the newly created/updated item with join (Step 2 of 2)
-        fetch_response = (
-            await client.table("weekly_availability")
-            .select("*, menu_items(*)")  # Fetch with join
-            .eq("id", upserted_row_id)  # Use the ID from the upsert response
-            .single()
-            .execute()
-        )
-
-        if not fetch_response.data:
-            raise HTTPException(
-                status.HTTP_500_INTERNAL_SERVER_ERROR,
-                "Failed to set availability (fetch failed).",
+            # 3. Perform the 'upsert'
+            # 'on_conflict' tells Supabase which columns to check for a duplicate.
+            upsert_response = (
+                await client.table("weekly_availability")
+                .upsert(
+                    upsert_data,
+                    on_conflict="menu_item_id, day_of_week",
+                )
+                .execute()
             )
 
-        # 5. Return the full response
-        result_data = fetch_response.data
-        result_data["vendor_id"] = vendor_id  # Add for schema
-        return schemas.WeeklyAvailabilityDetailResponse.model_validate(result_data)
+            if not upsert_response.data or not upsert_response.data[0]:
+                raise HTTPException(
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    "Failed to set availability (upsert failed).",
+                )
+
+            upserted_row_id = upsert_response.data[0].get("id")
+
+            # 4. Fetch the newly created/updated item with join (Step 2 of 2)
+            fetch_response = (
+                await client.table("weekly_availability")
+                .select("*, menu_items(*)")  # Fetch with join
+                .eq("id", upserted_row_id)  # Use the ID from the upsert response
+                .single()
+                .execute()
+            )
+
+            if not fetch_response.data:
+                raise HTTPException(
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    "Failed to set availability (fetch failed).",
+                )
+
+            # 5. Return the full response
+            result_data = fetch_response.data
+            result_data["vendor_id"] = vendor_id  # Add for schema
+            return schemas.WeeklyAvailabilityDetailResponse.model_validate(result_data)
 
     except HTTPException as e:
         raise e  # Re-throw known HTTP exceptions

@@ -1,4 +1,5 @@
 // app/hooks/useVendorMenu.ts
+//eta ami image input neyar jonne banaisi
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -9,6 +10,11 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
 
 // ========== TYPES ==========
 
+export interface UploadImagePayload {
+    itemId: string;
+    file: File;
+}
+
 export interface MenuItem {
     id: string;
     name: string;
@@ -16,8 +22,9 @@ export interface MenuItem {
     category: string;
     description: string;
     preparationTime: number;
-    // image: string;
+    image: string;  // ✅ img_url থেকে image করো
 }
+
 
 export interface BackendMenuItem {
     id: string;
@@ -27,8 +34,8 @@ export interface BackendMenuItem {
     category: string;
     description: string;
     preparation_time: number;
+    img_url?: string | null; 
 }
-
 export interface NewMenuItem {
     name: string;
     price: string;
@@ -45,7 +52,6 @@ export interface MenuData {
 
 
 
-// Transform backend data to frontend format
 const transformToFrontend = (items: BackendMenuItem[]): MenuData => {
     return {
         items: items.map(item => ({
@@ -55,6 +61,7 @@ const transformToFrontend = (items: BackendMenuItem[]): MenuData => {
             category: item.category,
             description: item.description,
             preparationTime: item.preparation_time,
+            image: item.img_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop',
         })),
     };
 };
@@ -87,9 +94,19 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
 
 // ========== API FUNCTIONS ==========
 
+
+
 const fetchVendorMenu = async (): Promise<MenuData> => {
     const url = `${API_BASE_URL}/menu/vendors/`;
     const data = await fetchWithAuth(url);
+    console.log('🔥 API_BASE_URL:', API_BASE_URL);
+    console.log('🔥 Raw data[0]:', data[0]);
+    
+    const transformed = transformToFrontend(data);
+    
+    // ✅ এটাও add করো:
+    console.log('🔥 Transformed items[0]:', transformed.items[0]);
+    console.log('🔥 Image URL:', transformed.items[0]?.image);
     return transformToFrontend(data);
 };
 
@@ -110,6 +127,27 @@ const updateMenuItemApi = async (data: Partial<BackendMenuItem> & { id: string }
 
 const deleteMenuItemApi = async (id: string): Promise<void> => {
     await fetchWithAuth(`${API_BASE_URL}/menu/${id}`, { method: 'DELETE' });
+};
+
+const uploadMenuImageApi = async ({ itemId, file }: UploadImagePayload) => {
+    const token = getAuthToken();
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/menu/${itemId}/image`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || 'Upload failed');
+    }
+
+    return response.json();
 };
 
 // ========== CUSTOM HOOK ==========
@@ -143,6 +181,11 @@ export const useVendorMenu = () => {
         onSuccess: () => queryClient.invalidateQueries({ queryKey }),
     });
 
+     const uploadImageMutation = useMutation({
+        mutationFn: uploadMenuImageApi,
+        onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+    });
+
     return {
         menuData: menuQuery.data?.items || [],
         isLoading: menuQuery.isLoading,
@@ -158,5 +201,7 @@ export const useVendorMenu = () => {
         isDeleting: deleteMutation.isPending,
 
         refetch: menuQuery.refetch,
+        uploadImage: uploadImageMutation.mutateAsync,  // ADD THIS
+        isUploading: uploadImageMutation.isPending,    // ADD THIS
     };
 };

@@ -32,6 +32,7 @@ export interface BackendMenuItem {
   price: number;
   category: string | null;
   preparation_time: number | null;
+  available_today?: boolean;
 }
 
 // Transform backend data to frontend format
@@ -76,24 +77,35 @@ export const useMenu = () => {
 // Get menu for a specific vendor - FIXED ENDPOINT
 export const useVendorMenu = (vendorId: string | null) => {
   return useQuery({
-    queryKey: ['menu', 'vendor', vendorId],
+    queryKey: ['menu', 'vendor', 'availability', vendorId],
     queryFn: async (): Promise<MenuItem[]> => {
       if (!vendorId) throw new Error('Vendor ID is required');
       
-      // FIXED: Changed from /menu/vendor/${vendorId} to match backend
-      const response = await fetch(`${API_BASE_URL}/menu/vendor/${vendorId}`, {
-        headers: {
-          'Content-Type': 'application/json',
-        }
+      // ✅ Use the new endpoint
+      const response = await fetch(`${API_BASE_URL}/menu/vendor/${vendorId}/with-availability`, {
+        headers: { 'Content-Type': 'application/json' }
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch vendor menu');
-      }
+      if (!response.ok) throw new Error('Failed to fetch vendor menu');
 
       const data: BackendMenuItem[] = await response.json();
-      return data.map(transformMenuItem);
+      
+      return data.map((item: BackendMenuItem) => ({
+        id: item.id,
+        vendorId: item.vendor_id,
+        vendorName: item.vendor_name,
+        name: item.name,
+        description: item.description,
+        image: item.img_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop',
+        price: item.price,
+        category: item.category,
+        preparationTime: item.preparation_time ? `${item.preparation_time} min` : null,
+        rating: 4.5,
+        available: item.available_today || false,  // ✅ Backend calculate kore dibe
+        isAvailable: item.available_today || false, // ✅ Backend calculate kore dibe
+        date: item.date,
+      }));
     },
-    enabled: !!vendorId, // Only run query if vendorId exists
+    enabled: !!vendorId,
   });
 };

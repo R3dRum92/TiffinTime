@@ -1,5 +1,5 @@
 import uuid
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, status
 from supabase import AsyncClient  # Use supabase_async
@@ -31,7 +31,7 @@ async def get_my_weekly_menu(
 
 @router.post(
     "/set-availability",
-    response_model=schemas.WeeklyAvailabilityDetailResponse,
+    response_model=Optional[schemas.WeeklyAvailabilityDetailResponse],
     status_code=status.HTTP_200_OK,  # 200 OK since it's an update or create
     summary="Set an item's availability for a day of the week",
 )
