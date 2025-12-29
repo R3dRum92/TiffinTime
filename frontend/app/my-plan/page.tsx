@@ -29,13 +29,13 @@ const UserDashboard = () => {
         unit_price: number;
         total_price: number;
     }
-    
+
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [isOrderDetailsOpen, setIsOrderDetailsOpen] = useState(false);
-    
+
     const { subscriptions, isLoading: subscriptionsLoading, error: subscriptionsError, refetch: refetchSubscriptions } = useTransformedUserSubscriptions();
     const { user, isLoading: userLoading, error: userError } = useUserInfo();
-    
+
     // Fetch user orders
     const { data: orders, isLoading: ordersLoading, error: ordersError, refetch: refetchOrders } = useUserOrders(user?.id || null);
 
@@ -52,7 +52,7 @@ const UserDashboard = () => {
     // Categorize orders
     const categorizedOrders = useMemo(() => {
         if (!orders) return { upcoming: [], completed: [], all: [] };
-        
+
         return {
             upcoming: orders.filter(order => !order.is_delivered),
             completed: orders.filter(order => order.is_delivered),
@@ -70,7 +70,7 @@ const UserDashboard = () => {
         };
     }, [subscriptions.length, categorizedOrders, orders]);
 
-   const handleCancelSubscription = async (subscriptionId: string) => {
+    const handleCancelSubscription = async (subscriptionId: string) => {
         try {
             const token = localStorage.getItem('token');
             if (!token) {
@@ -136,9 +136,9 @@ const UserDashboard = () => {
 
     const formatDate = (dateString: string | number | Date) => {
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'short', 
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
             day: 'numeric',
             hour: '2-digit',
             minute: '2-digit'
@@ -150,8 +150,8 @@ const UserDashboard = () => {
         return (
             <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'rgb(249, 245, 230)' }}>
                 <div className="text-center">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" style={{ color: '#D98324' }} />
-                    <p className="text-lg" style={{ color: '#443627' }}>Loading your dashboard...</p>
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 theme" />
+                    <p className="text-lg darktext"> Loading your dashboard...</p>
                 </div>
             </div>
         );
@@ -187,7 +187,7 @@ const UserDashboard = () => {
         return (
             <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'rgb(249, 245, 230)' }}>
                 <div className="text-center">
-                    <p className="text-lg" style={{ color: '#443627' }}>No user data available</p>
+                    <p className="text-lg darktext" >No user data available</p>
                 </div>
             </div>
         );
@@ -200,7 +200,7 @@ const UserDashboard = () => {
             <div className="max-w-6xl mx-auto p-6 space-y-8 relative z-10">
                 {/* Hero Section */}
                 <div className="text-center pt-20">
-                    <h2 className="text-3xl font-bold mb-4" style={{ color: '#443627' }}>
+                    <h2 className="text-3xl font-bold mb-4 darktext" >
                         Welcome back, {user.name}!
                     </h2>
                     <p className="text-xl" style={{ color: '#a0896b' }}>
@@ -217,12 +217,12 @@ const UserDashboard = () => {
                         }} />
                         <CardContent className="p-6 text-center relative z-10">
                             <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: '#EFDCAB' }}>
-                                <ShoppingBag className="h-8 w-8" style={{ color: '#D98324' }} />
+                                <ShoppingBag className="h-8 w-8 theme" />
                             </div>
-                            <h3 className="font-bold text-lg mb-2" style={{ color: '#443627' }}>
+                            <h3 className="font-bold text-lg mb-2 darktext">
                                 Active Subscriptions
                             </h3>
-                            <p className="text-2xl font-bold" style={{ color: '#D98324' }}>{stats.activeSubscriptions}</p>
+                            <p className="text-2xl font-bold theme">{stats.activeSubscriptions}</p>
                         </CardContent>
                     </Card>
 
@@ -233,12 +233,12 @@ const UserDashboard = () => {
                         }} />
                         <CardContent className="p-6 text-center relative z-10">
                             <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: '#EFDCAB' }}>
-                                <Clock className="h-8 w-8" style={{ color: '#D98324' }} />
+                                <Clock className="h-8 w-8 theme" />
                             </div>
-                            <h3 className="font-bold text-lg mb-2" style={{ color: '#443627' }}>
+                            <h3 className="font-bold text-lg mb-2 darktext">
                                 Upcoming Orders
                             </h3>
-                            <p className="text-2xl font-bold" style={{ color: '#D98324' }}>{stats.upcomingOrders}</p>
+                            <p className="text-2xl font-bold theme">{stats.upcomingOrders}</p>
                         </CardContent>
                     </Card>
 
@@ -249,12 +249,12 @@ const UserDashboard = () => {
                         }} />
                         <CardContent className="p-6 text-center relative z-10">
                             <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: '#EFDCAB' }}>
-                                <CheckCircle className="h-8 w-8" style={{ color: '#D98324' }} />
+                                <CheckCircle className="h-8 w-8 theme" />
                             </div>
-                            <h3 className="font-bold text-lg mb-2" style={{ color: '#443627' }}>
+                            <h3 className="font-bold text-lg mb-2 darktext">
                                 Completed Orders
                             </h3>
-                            <p className="text-2xl font-bold" style={{ color: '#D98324' }}>{stats.completedOrders}</p>
+                            <p className="text-2xl font-bold theme">{stats.completedOrders}</p>
                         </CardContent>
                     </Card>
 
@@ -265,12 +265,12 @@ const UserDashboard = () => {
                         }} />
                         <CardContent className="p-6 text-center relative z-10">
                             <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: '#EFDCAB' }}>
-                                <DollarSign className="h-8 w-8" style={{ color: '#D98324' }} />
+                                <DollarSign className="h-8 w-8 theme" />
                             </div>
-                            <h3 className="font-bold text-lg mb-2" style={{ color: '#443627' }}>
+                            <h3 className="font-bold text-lg mb-2 darktext">
                                 Total Spent
                             </h3>
-                            <p className="text-2xl font-bold" style={{ color: '#D98324' }}>৳{stats.totalSpent.toFixed(2)}</p>
+                            <p className="text-2xl font-bold theme">৳{stats.totalSpent.toFixed(2)}</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -282,7 +282,7 @@ const UserDashboard = () => {
                         backgroundSize: '24px 24px'
                     }} />
                     <CardHeader className="pb-4 relative z-10">
-                        <CardTitle className="flex items-center gap-2" style={{ color: '#443627' }}>
+                        <CardTitle className="flex items-center gap-2 darktext">
                             <User className="h-5 w-5" />
                             My Profile
                         </CardTitle>
@@ -295,15 +295,15 @@ const UserDashboard = () => {
                             </div>
                             <div>
                                 <p className="text-sm" style={{ color: '#a0896b' }}>Email</p>
-                                <p className="font-semibold" style={{ color: '#443627' }}>{user.email}</p>
+                                <p className="font-semibold darktext">{user.email}</p>
                             </div>
                             <div>
                                 <p className="text-sm" style={{ color: '#a0896b' }}>Phone</p>
-                                <p className="font-semibold" style={{ color: '#443627' }}>{user.phone_number}</p>
+                                <p className="font-semibold darktext" >{user.phone_number}</p>
                             </div>
                             <div>
                                 <p className="text-sm" style={{ color: '#a0896b' }}>Pickup Point</p>
-                                <p className="font-semibold" style={{ color: '#443627' }}>{pickupPoint}</p>
+                                <p className="font-semibold darktext" >{pickupPoint}</p>
                             </div>
                         </div>
                     </CardContent>
@@ -316,7 +316,7 @@ const UserDashboard = () => {
                         backgroundSize: '24px 24px'
                     }} />
                     <CardHeader className="pb-4 relative z-10">
-                        <CardTitle className="flex items-center justify-between" style={{ color: '#443627' }}>
+                        <CardTitle className="flex items-center justify-between darktext">
                             <div className="flex items-center gap-2">
                                 <Package className="h-5 w-5" />
                                 My Orders
@@ -359,8 +359,8 @@ const UserDashboard = () => {
                                                 <div className="flex justify-between items-start mb-3">
                                                     <div className="flex-1">
                                                         <div className="flex items-center gap-2 mb-2">
-                                                            <Utensils className="h-5 w-5" style={{ color: '#D98324' }} />
-                                                            <h3 className="font-bold text-lg" style={{ color: '#443627' }}>
+                                                            <Utensils className="h-5 w-5 theme" />
+                                                            <h3 className="font-bold text-lg darktext">
                                                                 Order #{order.id.slice(0, 8)}
                                                             </h3>
                                                         </div>
@@ -376,19 +376,19 @@ const UserDashboard = () => {
                                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                                                     <div>
                                                         <p className="text-sm" style={{ color: '#a0896b' }}>Quantity</p>
-                                                        <p className="font-semibold" style={{ color: '#443627' }}>{order.quantity}x</p>
+                                                        <p className="font-semibold darktext">{order.quantity}x</p>
                                                     </div>
                                                     <div>
                                                         <p className="text-sm" style={{ color: '#a0896b' }}>Unit Price</p>
-                                                        <p className="font-semibold" style={{ color: '#443627' }}>৳{order.unit_price}</p>
+                                                        <p className="font-semibold darktext">৳{order.unit_price}</p>
                                                     </div>
                                                     <div>
                                                         <p className="text-sm" style={{ color: '#a0896b' }}>Total</p>
-                                                        <p className="font-semibold" style={{ color: '#D98324' }}>৳{order.total_price}</p>
+                                                        <p className="font-semibold theme">৳{order.total_price}</p>
                                                     </div>
                                                     <div>
                                                         <p className="text-sm" style={{ color: '#a0896b' }}>Pickup</p>
-                                                        <p className="font-semibold text-sm" style={{ color: '#443627' }}>{order.pickup}</p>
+                                                        <p className="font-semibold text-sm darktext">{order.pickup}</p>
                                                     </div>
                                                 </div>
 
@@ -408,7 +408,7 @@ const UserDashboard = () => {
                                         <Package className="h-12 w-12 mx-auto mb-4" style={{ color: '#a0896b' }} />
                                         <p style={{ color: '#a0896b' }}>No upcoming orders</p>
                                         <Button className="mt-4" style={{ backgroundColor: '#D98324' }}
-                                            onClick={() => router.push("/food-search")}>
+                                            onClick={() => router.push("/food")}>
                                             Order Food Now
                                         </Button>
                                     </div>
@@ -429,7 +429,7 @@ const UserDashboard = () => {
                                                     <div className="flex-1">
                                                         <div className="flex items-center gap-2 mb-2">
                                                             <Utensils className="h-5 w-5" style={{ color: '#D98324' }} />
-                                                            <h3 className="font-bold text-lg" style={{ color: '#443627' }}>
+                                                            <h3 className="font-bold text-lg darktext">
                                                                 Order #{order.id.slice(0, 8)}
                                                             </h3>
                                                         </div>
@@ -446,11 +446,11 @@ const UserDashboard = () => {
                                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                                                     <div>
                                                         <p className="text-sm" style={{ color: '#a0896b' }}>Quantity</p>
-                                                        <p className="font-semibold" style={{ color: '#443627' }}>{order.quantity}x</p>
+                                                        <p className="font-semibold darktext">{order.quantity}x</p>
                                                     </div>
                                                     <div>
                                                         <p className="text-sm" style={{ color: '#a0896b' }}>Unit Price</p>
-                                                        <p className="font-semibold" style={{ color: '#443627' }}>৳{order.unit_price}</p>
+                                                        <p className="font-semibold darktext">৳{order.unit_price}</p>
                                                     </div>
                                                     <div>
                                                         <p className="text-sm" style={{ color: '#a0896b' }}>Total</p>
@@ -495,7 +495,7 @@ const UserDashboard = () => {
                                                     <div className="flex-1">
                                                         <div className="flex items-center gap-2 mb-2">
                                                             <Utensils className="h-5 w-5" style={{ color: '#D98324' }} />
-                                                            <h3 className="font-bold text-lg" style={{ color: '#443627' }}>
+                                                            <h3 className="font-bold text-lg darktext">
                                                                 Order #{order.id.slice(0, 8)}
                                                             </h3>
                                                         </div>
@@ -516,19 +516,19 @@ const UserDashboard = () => {
                                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                                                     <div>
                                                         <p className="text-sm" style={{ color: '#a0896b' }}>Quantity</p>
-                                                        <p className="font-semibold" style={{ color: '#443627' }}>{order.quantity}x</p>
+                                                        <p className="font-semibold darktext">{order.quantity}x</p>
                                                     </div>
                                                     <div>
                                                         <p className="text-sm" style={{ color: '#a0896b' }}>Unit Price</p>
-                                                        <p className="font-semibold" style={{ color: '#443627' }}>৳{order.unit_price}</p>
+                                                        <p className="font-semibold darktext">৳{order.unit_price}</p>
                                                     </div>
                                                     <div>
                                                         <p className="text-sm" style={{ color: '#a0896b' }}>Total</p>
-                                                        <p className="font-semibold" style={{ color: '#D98324' }}>৳{order.total_price}</p>
+                                                        <p className="font-semibold darktext">৳{order.total_price}</p>
                                                     </div>
                                                     <div>
                                                         <p className="text-sm" style={{ color: '#a0896b' }}>Pickup</p>
-                                                        <p className="font-semibold text-sm" style={{ color: '#443627' }}>{order.pickup}</p>
+                                                        <p className="font-semibold text-sm darktext">{order.pickup}</p>
                                                     </div>
                                                 </div>
 
@@ -589,7 +589,7 @@ const UserDashboard = () => {
                                     <div className="relative z-10">
                                         <div className="flex justify-between items-start mb-3">
                                             <div>
-                                                <h3 className="font-bold text-lg" style={{ color: '#443627' }}>{subscription.vendor}</h3>
+                                                <h3 className="font-bold text-lg darktext">{subscription.vendor}</h3>
                                             </div>
                                             <Badge
                                                 className="px-3 py-1"
@@ -606,15 +606,15 @@ const UserDashboard = () => {
                                             </div>
                                             <div>
                                                 <p className="text-sm" style={{ color: '#a0896b' }}>Start Date</p>
-                                                <p className="font-semibold" style={{ color: '#443627' }}>{subscription.startDate}</p>
+                                                <p className="font-semibold darktext">{subscription.startDate}</p>
                                             </div>
                                             <div>
                                                 <p className="text-sm" style={{ color: '#a0896b' }}>End Date</p>
-                                                <p className="font-semibold" style={{ color: '#443627' }}>{subscription.endDate}</p>
+                                                <p className="font-semibold darktext">{subscription.endDate}</p>
                                             </div>
                                             <div>
                                                 <p className="text-sm" style={{ color: '#a0896b' }}>Status</p>
-                                                <p className="font-semibold" style={{ color: '#443627' }}>{subscription.status}</p>
+                                                <p className="font-semibold darktext">{subscription.status}</p>
                                             </div>
                                         </div>
 
@@ -674,13 +674,13 @@ const UserDashboard = () => {
                                 Order Details
                             </DialogTitle>
                         </DialogHeader>
-                        
+
                         {selectedOrder && (
                             <div className="space-y-6">
                                 <div className="p-4 rounded-lg" style={{ backgroundColor: '#f8f6f3' }}>
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
-                                            <h3 className="font-bold text-xl mb-2" style={{ color: '#443627' }}>
+                                            <h3 className="font-bold text-xl mb-2 darktext">
                                                 Order #{selectedOrder.id.slice(0, 8)}
                                             </h3>
                                             <p className="text-sm" style={{ color: '#a0896b' }}>
@@ -706,21 +706,21 @@ const UserDashboard = () => {
                                         <div>
                                             <div className="flex items-center gap-2 mb-2">
                                                 <Calendar className="h-4 w-4" style={{ color: '#D98324' }} />
-                                                <p className="text-sm font-semibold" style={{ color: '#443627' }}>Order Date</p>
+                                                <p className="text-sm font-semibold darktext">Order Date</p>
                                             </div>
                                             <p style={{ color: '#a0896b' }}>{formatDate(selectedOrder.order_date)}</p>
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2 mb-2">
                                                 <MapPin className="h-4 w-4" style={{ color: '#D98324' }} />
-                                                <p className="text-sm font-semibold" style={{ color: '#443627' }}>Pickup Location</p>
+                                                <p className="text-sm font-semibold darktext" >Pickup Location</p>
                                             </div>
                                             <p style={{ color: '#a0896b' }}>{selectedOrder.pickup}</p>
                                         </div>
                                     </div>
 
                                     <div className="border-t pt-4 mt-4">
-                                        <h4 className="font-semibold mb-3" style={{ color: '#443627' }}>Order Summary</h4>
+                                        <h4 className="font-semibold mb-3 darktext">Order Summary</h4>
                                         <div className="space-y-2">
                                             <div className="flex justify-between">
                                                 <span style={{ color: '#a0896b' }}>Quantity</span>
@@ -728,10 +728,10 @@ const UserDashboard = () => {
                                             </div>
                                             <div className="flex justify-between">
                                                 <span style={{ color: '#a0896b' }}>Unit Price</span>
-                                                <span className="font-semibold" style={{ color: '#443627' }}>৳{selectedOrder.unit_price.toFixed(2)}</span>
+                                                <span className="font-semibold darktext">৳{selectedOrder.unit_price.toFixed(2)}</span>
                                             </div>
                                             <div className="flex justify-between pt-2 border-t">
-                                                <span className="font-semibold" style={{ color: '#443627' }}>Total Amount</span>
+                                                <span className="font-semibold darktext">Total Amount</span>
                                                 <span className="font-bold text-xl" style={{ color: '#D98324' }}>৳{selectedOrder.total_price.toFixed(2)}</span>
                                             </div>
                                         </div>
